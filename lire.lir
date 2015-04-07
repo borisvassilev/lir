@@ -1,0 +1,15 @@
+---
+title: 'Reproducible computing with `lire`'
+author: Boris Vassilev
+bibliography: lire.bib
+...
+
+This is a collection of tools that support programming language-agnostic reproducible computing.
+
+In its first version, it consist only of a [Pandoc](http://johnmacfarlane.net/pandoc/) backend for [Noweb](https://www.cs.tufts.edu/~nr/noweb/) [@Noweb2008].
+This backend reads from standard input the pipeline representation emitted by Noweb's `markup` and writes to standard output a document in Pandoc's markdown.
+It assumes that all documentation chunks in the source document are written in Pandoc's markdown.
+The code chunks in the source document are represented as fenced code blocks preceded by a level-three Atx-style header with the name of the code chunk and followed by a single horizontal rule.
+
+# References
+
