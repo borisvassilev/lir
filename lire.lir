@@ -2,14 +2,264 @@
 title: 'Reproducible computing with `lire`'
 author: Boris Vassilev
 bibliography: lire.bib
+version: 0.1
 ...
 
+# Introduction
 This is a collection of tools that support programming language-agnostic reproducible computing.
 
-In its first version, it consist only of a [Pandoc](http://johnmacfarlane.net/pandoc/) backend for [Noweb](https://www.cs.tufts.edu/~nr/noweb/) [@Noweb2008].
-This backend reads from standard input the pipeline representation emitted by Noweb's `markup` and writes to standard output a document in Pandoc's markdown.
+This document is self-hosting: the implementation presented here can be used to produce the final human-readable documentation.
+This means that at any point it only implements enough to be able to compile itself.
+
+# The Back End
+In its first version, it consist only of a [Pandoc](http://johnmacfarlane.net/pandoc/) back end for [Noweb](https://www.cs.tufts.edu/~nr/noweb/) [@Noweb2008].
+The back end reads from standard input the pipeline representation emitted by Noweb's `markup` and writes to standard output a document in Pandoc's markdown.
 It assumes that all documentation chunks in the source document are written in Pandoc's markdown.
 The code chunks in the source document are represented as fenced code blocks preceded by a level-three Atx-style header with the name of the code chunk and followed by a single horizontal rule.
+
+This script uses `markup` provided by `noweb`, and passes the output to the back end that transform `noweb`'s pipeline to Pandoc's markdown.
+<<lir-pandoc>>=
+<<Bash shebang>>
+<<Noweb location>>/markup "$@" \
+	| <<Noweb location>>/emptydefn \
+	| ./nwpipe-pandoc
+@
+
+Logically, the back end can be broken down to components, each taking care of one of the following:
+
+- Reading each _token_ in `noweb`'s pipeline representation from standard input and parsing it, to obtain an equivalent Prolog term -- [[<<Parse `noweb` tokens>>]];
+- A finite state machine that consumes the Prolog terms and emits Pandoc markdown -- [[<<Pipeline FSM>>]] (it is rather a finite state transducer, as it generates output, but let's not get too formal);
+- A writer that transforms each term to the actual emitted markdown -- [[<<Emit Pandoc's markdown>>]].
+
+The program defines a [[main/0]] so that it can be compiled and run as a command line tool.
+<<nwpipe-pandoc.pl>>=
+:- set_prolog_flag(verbose, silent). % no messages of type `informational` or `banner`
+
+main :-
+	current_prolog_flag(argv, Argv), % get command line arguments
+	prompt(_Old, ''), %  turn off prompt
+	nwpipeline_to_pandoc(Argv),
+	halt. % exit with success
+main :-
+	halt(1). % otherwise, exit with failure (1)
+
+nwpipeline_to_pandoc(_) :- % command line arguments ignored TODO
+	nwpipeline_fsm.
+
+<<Parse `noweb` tokens>>
+<<Pipeline FSM>>
+<<Emit Pandoc's markdown>>
+@
+
+## Parsing `noweb` tokens
+The first component reads the line-oriented pipeline representation of `noweb` from standard input and turns each line (token) into a Prolog term.
+<<Parse `noweb` tokens>>=
+<<Read lines from standard input>>
+<<Transform `noweb` tokens to prolog terms>>
+@
+
+To read lines from standard input we define [[next_input/1]] that unifies its argument with the Prolog term representing the next `noweb` token, or `end_of_file` at the end of input.
+<<Read lines from standard input>>=
+:- use_module(library(readutil), [read_line_to_codes/2]).
+next_input(T) :-
+	read_line_to_codes(user_input, Codes),
+	nwtoken_to_plterm(Codes, T).
+
+nwtoken_to_plterm(end_of_file, end_of_file).
+nwtoken_to_plterm([0'@|Token], T) :-
+	phrase(token_term(T), Token).
+@
+
+The structure of the Prolog terms mostly mirrors the structure of the tokens as described in "The `noweb` Hacker's Guide" [@Ramsey1992].
+In the table [[nwtoken/3]], the first argument is `noweb`'s keyword, the second argument represents the items in this token, and the third argument is the resulting Prolog term.
+<<Transform `noweb` tokens to prolog terms>>=
+% Tagging keywords
+nwtoken(file, [space, atom_rest(File)], file(File)).
+% Structural keywords
+nwtoken(begin, [space, chunk_kind(Kind), space, integer(N)], begin(Kind, N)).
+nwtoken(end, [space, chunk_kind(Kind), space, integer(N)], end(Kind, N)).
+nwtoken(text, [space, string_rest(Text)], text(Text)).
+nwtoken(nl, [], nl).
+nwtoken(defn, [space, string_rest(Name)], defn(Name)).
+nwtoken(use, [space, string_rest(Name)], use(Name)).
+nwtoken(quote, [], quote).
+nwtoken(endquote, [], endquote).
+
+<<Interpreter>>
+@
+
+This approach of using a table containing a miniature program in the second argument and implementing an interpreter for it is directly borrowed from the chapter on definite clause grammer in "The Craft of Prolog" [@OKeefe1990, pp. 299-300].
+Here is the interpreter:
+<<Interpreter>>=
+token_term(T) -->
+	nonblanks(NB),
+	{	atom_codes(Keyword, NB),
+		nwtoken(Keyword, Items, T)
+	},
+	nwtokenitems(Items).
+
+nwtokenitems([]) --> [].
+nwtokenitems([I|Is]) -->
+	nwtokenitem(I),
+	nwtokenitems(Is).
+
+<<Transform individual items>>
+@
+
+Here we define the transformation for each item appearing in [[nwtoken/3]]:
+<<Transform individual items>>=
+:- use_module(library(dcg/basics), [nonblanks//1, integer//1]).
+nwtokenitem(atom_rest(A)) -->
+	rest(Codes),
+	{	atom_codes(A, Codes)
+	}.
+nwtokenitem(space) -->
+	[0'\s]. % could it be another "white"?...
+nwtokenitem(integer(N)) -->
+	integer(N).
+nwtokenitem(string_rest(Str)) -->
+	rest(Codes),
+	{	string_codes(Str, Codes)
+	}.
+nwtokenitem(chunk_kind(CK)) -->
+	nonblanks(Codes),
+	{	atom_codes(CK, Codes),
+		nwchunk_kind(CK)
+	}.
+
+rest([]) --> [].
+rest([C|Cs]) -->
+	[C],
+	rest(Cs).
+
+nwchunk_kind(code).
+nwchunk_kind(docs).
+@
+
+## Pipeline Finite State Machine
+To represent a finite state machine in Prolog we use predicates for states and predicate clauses for arcs (transitions), another idea borrowed from "The Craft of Prolog" [@OKeefe1990, pp. 353].
+The finite state machine is initialized by [[nwpipeline_fsm/0]].
+The input to the state machine are the terms representing the `noweb` tokens, obtained by consecutive calls to [[next_input/1]].
+<<Pipeline FSM>>=
+nwpipeline_fsm :-
+	next_input(T),
+	start(T).
+% States
+<<Start>>
+<<File>>
+<<Begin chunk>>
+<<Docs chunk>>
+<<Quoted code>>
+<<Code chunk>>
+% etc
+
+<<Start>>=
+start(file(_File)) :-
+	next_input(T),
+	file(T).
+
+<<File>>=
+file(begin(Kind, N)) :-
+	begin_chunk(Kind, N).
+file(end_of_file).
+
+<<Begin chunk>>=
+begin_chunk(docs, N) :-
+	next_input(T),
+	docs(T, N).
+begin_chunk(code, N) :-
+	next_input(T),
+	code(T, N).
+
+<<Docs chunk>>=
+docs(end(docs, N), N) :-
+	next_input(T),
+	file(T).
+docs(nl, N) :-
+	emit_pandoc(nl),
+	next_input(T),
+	docs(T, N).
+docs(text(Text), N) :-
+	emit_pandoc(docs_text(Text)),
+	next_input(T),
+	docs(T, N).
+docs(quote, N) :- % for now, just write verbatim. TODO
+	emit_pandoc(quote),
+	next_input(T),
+	quote(T, N).
+
+<<Quoted code>>=
+quote(endquote, N) :-
+	emit_pandoc(endquote),
+	next_input(T),
+	docs(T, N).
+quote(text(Text), N) :-
+	format("~s", [Text]),
+	next_input(T),
+	quote(T, N).
+quote(nl, N) :-
+	emit_pandoc(nl),
+	next_input(T),
+	quote(T, N).
+quote(use(Name), N) :-
+	emit_pandoc(use(Name)),
+	next_input(T),
+	quote(T, N).
+
+<<Code chunk>>=
+code(end(code, N), N) :-
+	emit_pandoc(end(code)),
+	next_input(T),
+	file(T).
+code(defn(Name), N) :-
+	emit_pandoc(defn(Name)),
+	next_input(T),
+	code(T, N).
+code(use(Name), N) :-
+	emit_pandoc(use(Name)),
+	next_input(T),
+	code(T, N).
+code(nl, N) :-
+	emit_pandoc(nl),
+	next_input(T),
+	code(T, N).
+code(text(Text), N) :-
+	emit_pandoc(code_text(Text)),
+	next_input(T),
+	code(T, N).
+@
+
+## Writing Pandoc's Markdown
+The writer is implemented as a single predicate, [[emit_pandoc/1]], with one clause for each possible output, as produced by the finite state machine.
+<<Emit Pandoc's markdown>>=
+emit_pandoc(nl) :-
+	format("~n").
+emit_pandoc(docs_text(Text)) :-
+	format("~s", [Text]).
+emit_pandoc(code_text(Text)) :-
+	format("~s", [Text]).
+emit_pandoc(quote) :-
+	format("`").
+emit_pandoc(endquote) :-
+	format("`").
+emit_pandoc(use(Name)) :-
+	format("@<<~s@>>", [Name]).
+emit_pandoc(defn(Name)) :-
+	format("~n### [Code Chunk] ~s~n```", [Name]).
+emit_pandoc(end(code)) :-
+	format("```~n").
+@
+
+# Common definitions
+All building block for `noweb` (front ends, filters, back ends) are usually installed in the same place:
+<<Noweb location>>=
+/usr/lib/noweb
+@
+
+The portable Bash shebang is, according to [Stack Overflow](http://stackoverflow.com/questions/10376206/preferred-bash-shebang):
+<<Bash shebang>>=
+#! /usr/bin/env bash
+@
 
 # References
 
