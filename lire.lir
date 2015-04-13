@@ -3,6 +3,7 @@ title: 'Reproducible computing with `lire`'
 author: Boris Vassilev
 bibliography: lire.bib
 version: 0.1
+rights: (c) 2015 Boris Vassilev, University of Helsinki
 ...
 
 # Introduction
@@ -10,6 +11,30 @@ This is a collection of tools that support programming language-agnostic reprodu
 
 This document is self-hosting: the implementation presented here can be used to produce the final human-readable documentation.
 This means that at any point it only implements enough to be able to compile itself.
+
+The following bootstrapping script can be extracted and run as follows:
+
+~~~
+$ notangle -R"bootstrap" lire.lir > bootstrap.sh
+$ chmod u+x bootrstrap.sh
+$ ./bootstrap.sh
+~~~
+
+Running this will extract and install the `lire` executable and tools.
+From there on, `lire` can be used to generate the documentation.
+
+<<bootstrap>>=
+<<Bash shebang>>
+
+notangle -R"lir-pandoc" -filter emptydefn lire.lir > lir-pandoc
+chmod u+x lir-pandoc
+
+notangle -R"nwpipe-pandoc.pl" -filter emptydefn lire.lir > nwpipe-pandoc.pl
+swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
+
+./lir-pandoc lire.lir > lire.pandoc
+pandoc --filter pandoc-citeproc -s -S -t html5 -o lire.html lire.pandoc
+@
 
 # The Back End
 In its first version, it consist only of a [Pandoc](http://johnmacfarlane.net/pandoc/) back end for [Noweb](https://www.cs.tufts.edu/~nr/noweb/) [@Noweb2008].
@@ -183,7 +208,7 @@ docs(text(Text), N) :-
 	emit_pandoc(docs_text(Text)),
 	next_input(T),
 	docs(T, N).
-docs(quote, N) :- % for now, just write verbatim. TODO
+docs(quote, N) :-
 	emit_pandoc(quote),
 	next_input(T),
 	quote(T, N).
@@ -232,6 +257,7 @@ code(text(Text), N) :-
 ## Writing Pandoc's Markdown
 The writer is implemented as a single predicate, [[emit_pandoc/1]], with one clause for each possible output, as produced by the finite state machine.
 <<Emit Pandoc's markdown>>=
+% TODO
 emit_pandoc(nl) :-
 	format("~n").
 emit_pandoc(docs_text(Text)) :-
@@ -259,7 +285,9 @@ All building block for `noweb` (front ends, filters, back ends) are usually inst
 The portable Bash shebang is, according to [Stack Overflow](http://stackoverflow.com/questions/10376206/preferred-bash-shebang):
 <<Bash shebang>>=
 #! /usr/bin/env bash
+set -e
 @
+We also set the script to stop immediately at errors.
 
 # References
 
