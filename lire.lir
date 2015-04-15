@@ -28,12 +28,20 @@ From there on, `lire` can be used to generate the documentation.
 
 notangle -R"lir-pandoc" -filter emptydefn lire.lir > lir-pandoc
 chmod u+x lir-pandoc
+echo "tangled lir-pandoc"
 
 notangle -R"nwpipe-pandoc.pl" -filter emptydefn lire.lir > nwpipe-pandoc.pl
 swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
+echo "tangled and compiled nwpipe-pandoc.pl"
 
 ./lir-pandoc lire.lir > lire.pandoc
-pandoc --filter pandoc-citeproc -s -S -t html5 -o lire.html lire.pandoc
+echo "converted to pandoc"
+
+pandoc --filter pandoc-citeproc \
+	--to=html5 \
+	--standalone --css=lire.css --smart \
+	-o lire.html lire.pandoc
+echo "used pandoc to compile to html"
 @
 
 # The Back End
@@ -45,8 +53,8 @@ The code chunks in the source document are represented as fenced code blocks pre
 This script uses `markup` provided by `noweb`, and passes the output to the back end that transform `noweb`'s pipeline to Pandoc's markdown.
 <<lir-pandoc>>=
 <<Bash shebang>>
-<<Noweb location>>/markup "$@" \
-	| <<Noweb location>>/emptydefn \
+<<`Noweb` location>>/markup "$@" \
+	| <<`Noweb` location>>/emptydefn \
 	| ./nwpipe-pandoc
 @
 
@@ -80,7 +88,7 @@ nwpipeline_to_pandoc(_) :- % command line arguments ignored TODO
 The first component reads the line-oriented pipeline representation of `noweb` from standard input and turns each line (token) into a Prolog term.
 <<Parse `noweb` tokens>>=
 <<Read lines from standard input>>
-<<Transform `noweb` tokens to prolog terms>>
+<<`Noweb` tokens $\rightarrow$ prolog terms>>
 @
 
 To read lines from standard input we define [[next_input/1]] that unifies its argument with the Prolog term representing the next `noweb` token, or `end_of_file` at the end of input.
@@ -97,7 +105,7 @@ nwtoken_to_plterm([0'@|Token], T) :-
 
 The structure of the Prolog terms mostly mirrors the structure of the tokens as described in "The `noweb` Hacker's Guide" [@Ramsey1992].
 In the table [[nwtoken/3]], the first argument is `noweb`'s keyword, the second argument represents the items in this token, and the third argument is the resulting Prolog term.
-<<Transform `noweb` tokens to prolog terms>>=
+<<`Noweb` tokens $\rightarrow$ prolog terms>>=
 % Tagging keywords
 nwtoken(file, [space, atom_rest(File)], file(File)).
 % Structural keywords
@@ -177,108 +185,146 @@ nwpipeline_fsm :-
 <<Quoted code>>
 <<Code chunk>>
 % etc
+@
 
+The pipeline representation consists of one or more files:
 <<Start>>=
 start(file(_File)) :-
 	next_input(T),
 	file(T).
+@
 
 <<File>>=
 file(begin(Kind, N)) :-
 	begin_chunk(Kind, N).
+file(file(_File)) :-
+	next_input(T),
+	file(T).
 file(end_of_file).
+@
 
+This is not a real state, since the transition happens without any input.
 <<Begin chunk>>=
 begin_chunk(docs, N) :-
 	next_input(T),
 	docs(T, N).
 begin_chunk(code, N) :-
 	next_input(T),
-	code(T, N).
+	code(T, N, Content, Content).
+@
 
+Since the documentation chunks are expected to be valid Pandoc markdown, the contents are simply emitted unchanged to the output.
 <<Docs chunk>>=
 docs(end(docs, N), N) :-
 	next_input(T),
 	file(T).
 docs(nl, N) :-
-	emit_pandoc(nl),
+	nl,
 	next_input(T),
 	docs(T, N).
 docs(text(Text), N) :-
-	emit_pandoc(docs_text(Text)),
+	format("~s", [Text]),
 	next_input(T),
 	docs(T, N).
 docs(quote, N) :-
-	emit_pandoc(quote),
 	next_input(T),
-	quote(T, N).
+	quote(T, N, Content, Content).
+@
 
+For both quoted (inline) code and code chunks, the contents are first collected before emitted at the end of the quote or code chunk.
 <<Quoted code>>=
-quote(endquote, N) :-
-	emit_pandoc(endquote),
+quote(endquote, N, Content, []) :-
+	emit(quote(Content)),
 	next_input(T),
 	docs(T, N).
-quote(text(Text), N) :-
-	format("~s", [Text]),
+quote(text(Text), N, Content, [text(Text)|Rest]) :-
 	next_input(T),
-	quote(T, N).
-quote(nl, N) :-
-	emit_pandoc(nl),
+	quote(T, N, Content, Rest).
+quote(nl, N, Content, [nl|Rest]) :-
 	next_input(T),
-	quote(T, N).
-quote(use(Name), N) :-
-	emit_pandoc(use(Name)),
+	quote(T, N, Content, Rest).
+quote(use(Name), N, Content, [use(Name)|Rest]) :-
 	next_input(T),
-	quote(T, N).
+	quote(T, N, Content, Rest).
 
 <<Code chunk>>=
-code(end(code, N), N) :-
-	emit_pandoc(end(code)),
+code(end(code, N), N, Content, []) :-
+	emit(code(Content)),
 	next_input(T),
 	file(T).
-code(defn(Name), N) :-
-	emit_pandoc(defn(Name)),
+code(defn(Name), N, Content, [defn(Name)|Rest]) :-
 	next_input(T),
-	code(T, N).
-code(use(Name), N) :-
-	emit_pandoc(use(Name)),
+	code(T, N, Content, Rest).
+code(use(Name), N, Content, [use(Name)|Rest]) :-
 	next_input(T),
-	code(T, N).
-code(nl, N) :-
-	emit_pandoc(nl),
+	code(T, N, Content, Rest).
+code(nl, N, Content, [nl|Rest]) :-
 	next_input(T),
-	code(T, N).
-code(text(Text), N) :-
-	emit_pandoc(code_text(Text)),
+	code(T, N, Content, Rest).
+code(text(Text), N, Content, [text(Text)|Rest]) :-
 	next_input(T),
-	code(T, N).
+	code(T, N, Content, Rest).
 @
 
 ## Writing Pandoc's Markdown
-The writer is implemented as a single predicate, [[emit_pandoc/1]], with one clause for each possible output, as produced by the finite state machine.
+The writer is implemented as a single predicate, [[emit/1]], with one clause for each possible output, as produced by the finite state machine.
 <<Emit Pandoc's markdown>>=
 % TODO
-emit_pandoc(nl) :-
-	format("~n").
-emit_pandoc(docs_text(Text)) :-
-	format("~s", [Text]).
-emit_pandoc(code_text(Text)) :-
-	format("~s", [Text]).
-emit_pandoc(quote) :-
-	format("`").
-emit_pandoc(endquote) :-
-	format("`").
-emit_pandoc(use(Name)) :-
-	format("@<<~s@>>", [Name]).
-emit_pandoc(defn(Name)) :-
-	format("~n### [Code Chunk] ~s~n```", [Name]).
-emit_pandoc(end(code)) :-
-	format("```~n").
+:- multifile html_write:layout/3.
+html_write:layout(pre, 0-0, 0-0).
+html_write:layout(br, 0-0, 0-0).
+
+:- use_module(library(http/html_write)).
+
+emit(code(C)) :-
+	maplist(codechunk_html, C, Content),
+	html(div([class=codechunk], pre(Content)), HTML, []),
+	print_html(HTML).
+emit(quote(Q)) :-
+	maplist(quotedcode_html, Q, Content),
+	html(span([class=quotedcode], code(Content)), HTML, []),
+	print_html(HTML).
+
+codechunk_html(nl, br([])).
+codechunk_html(text(Text), Text).
+codechunk_html(defn(Name),
+		span(class=nwdefn,
+			[&(lang), &(nbsp), \[Formatted], &(nbsp), &(rang), &(equiv)])) :-
+	through_pandoc(html5, Name, Formatted).
+codechunk_html(use(Name),
+		span(class=nwuse,
+		[&(lang), &(nbsp), \[Formatted], &(nbsp), &(rang)])) :-
+	through_pandoc(html5, Name, Formatted).
+
+through_pandoc(_To, Str, FStr) :-
+	atomic_list_concat(L, "'", Str),
+	atomic_list_concat(L, "'\\''", EscStr),
+	atomic_list_concat(["echo '", EscStr, "' | pandoc -t html5"], Pandoc),
+	format(user_error, "~w~n", [Pandoc]),
+	setup_call_cleanup(
+		process_create(path(bash), ['-c', Pandoc], [stdout(pipe(Out))]),
+		read_rest(Out, F0),
+		close(Out)),
+	append(`<p>`, F1, F0),
+	once(append(F2, `</p>\n`, F1)),
+	atom_codes(FStr, F2),
+	format(user_error, "~w~n", [FStr]).
+
+read_rest(Stream, Rest) :-
+	read_pending_input(Stream, Rest, Rest1),
+	(	at_end_of_stream(Stream)
+	->	Rest1 = []
+	;	read_rest(Stream, Rest1)
+	).
+
+quotedcode_html(nl, br([])).
+quotedcode_html(text(Text), Text).
+quotedcode_html(use(Name), span(class=nwuse, [&(lang), &(nbsp), Name, &(nbsp), &(rang)])).
 @
 
 # Common definitions
 All building block for `noweb` (front ends, filters, back ends) are usually installed in the same place:
-<<Noweb location>>=
+<<`Noweb` location>>=
 /usr/lib/noweb
 @
 
