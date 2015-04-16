@@ -383,6 +383,9 @@ It also aims to provide a sensible default layout for the human-readable documen
 ## HTML
 For HTML documentation, a CSS file is used. Here it is:
 <<lire.css>>=
+h1, h2, h3 {
+	font-family: sans-serif;
+}
 p {
 	max-width: 17cm;
 }
