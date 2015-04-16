@@ -30,6 +30,9 @@ notangle -R"lir-pandoc" -filter emptydefn lire.lir > lir-pandoc
 chmod u+x lir-pandoc
 echo "tangled lir-pandoc"
 
+notangle -R"lire.css" lire.lir > lire.css
+echo "tangled lire.css"
+
 notangle -R"nwpipe-pandoc.pl" -filter emptydefn lire.lir > nwpipe-pandoc.pl
 swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
 echo "tangled and compiled nwpipe-pandoc.pl"
@@ -38,9 +41,10 @@ echo "tangled and compiled nwpipe-pandoc.pl"
 echo "converted to pandoc"
 
 pandoc --filter pandoc-citeproc \
-	--to=html5 \
-	--standalone --css=lire.css --smart \
-	-o lire.html lire.pandoc
+	--to=html5 --css=lire.css \
+	--table-of-contents --standalone --smart \
+	--output=lire.html \
+	lire.pandoc
 echo "used pandoc to compile to html"
 @
 
@@ -88,7 +92,7 @@ nwpipeline_to_pandoc(_) :- % command line arguments ignored TODO
 The first component reads the line-oriented pipeline representation of `noweb` from standard input and turns each line (token) into a Prolog term.
 <<Parse `noweb` tokens>>=
 <<Read lines from standard input>>
-<<`Noweb` tokens $\rightarrow$ prolog terms>>
+<<`Noweb` tokens $\rightarrow$ Prolog terms>>
 @
 
 To read lines from standard input we define [[next_input/1]] that unifies its argument with the Prolog term representing the next `noweb` token, or `end_of_file` at the end of input.
@@ -105,7 +109,7 @@ nwtoken_to_plterm([0'@|Token], T) :-
 
 The structure of the Prolog terms mostly mirrors the structure of the tokens as described in "The `noweb` Hacker's Guide" [@Ramsey1992].
 In the table [[nwtoken/3]], the first argument is `noweb`'s keyword, the second argument represents the items in this token, and the third argument is the resulting Prolog term.
-<<`Noweb` tokens $\rightarrow$ prolog terms>>=
+<<`Noweb` tokens $\rightarrow$ Prolog terms>>=
 % Tagging keywords
 nwtoken(file, [space, atom_rest(File)], file(File)).
 % Structural keywords
@@ -203,7 +207,7 @@ file(file(_File)) :-
 file(end_of_file).
 @
 
-This is not a real state, since the transition happens without any input.
+[[<<Begin chunk>>]] is not a real state, since the transition happens without any input:
 <<Begin chunk>>=
 begin_chunk(docs, N) :-
 	next_input(T),
@@ -213,7 +217,7 @@ begin_chunk(code, N) :-
 	code(T, N, Content, Content).
 @
 
-Since the documentation chunks are expected to be valid Pandoc markdown, the contents are simply emitted unchanged to the output.
+Since the documentation chunks are expected to be valid Pandoc markdown, the contents are simply emitted unchanged to the output:
 <<Docs chunk>>=
 docs(end(docs, N), N) :-
 	next_input(T),
@@ -232,6 +236,7 @@ docs(quote, N) :-
 @
 
 For both quoted (inline) code and code chunks, the contents are first collected before emitted at the end of the quote or code chunk.
+Note the two additional arguments for these two states: they represent the difference-list pair that is used to collect the contents to a list.
 <<Quoted code>>=
 quote(endquote, N, Content, []) :-
 	emit(quote(Content)),
@@ -246,7 +251,9 @@ quote(nl, N, Content, [nl|Rest]) :-
 quote(use(Name), N, Content, [use(Name)|Rest]) :-
 	next_input(T),
 	quote(T, N, Content, Rest).
+@
 
+The state for code chunks is largely the same, with the addition of a transition for the `defn` token.
 <<Code chunk>>=
 code(end(code, N), N, Content, []) :-
 	emit(code(Content)),
@@ -267,59 +274,93 @@ code(text(Text), N, Content, [text(Text)|Rest]) :-
 @
 
 ## Writing Pandoc's Markdown
+Unfortunately, Pandoc's markdown is not expressive enough to allow the code of the literate program to be expressed in pure markdown.
+Instead, native markup for each supported front end is used.
 The writer is implemented as a single predicate, [[emit/1]], with one clause for each possible output, as produced by the finite state machine.
-<<Emit Pandoc's markdown>>=
-% TODO
-:- multifile html_write:layout/3.
-html_write:layout(pre, 0-0, 0-0).
-html_write:layout(br, 0-0, 0-0).
+At the moment, only a Pandoc document that can be compiled to an HTML page is generated.
 
+### Emitting HTML
+A Prolog library is used for emitting HTML.
+Code chunks are put in a `<div>` with a class `codechunk`, and all content of a code chunk is put in a `<pre>`.
+Quoted code is put in a `<span>` with a class `quotedcode` and typeset in monospace.
+<<Emit Pandoc's markdown>>=
 :- use_module(library(http/html_write)).
 
 emit(code(C)) :-
 	maplist(codechunk_html, C, Content),
-	html(div([class=codechunk], pre(Content)), HTML, []),
+	phrase(html(div(class=codechunk, pre(Content))), HTML),
 	print_html(HTML).
 emit(quote(Q)) :-
 	maplist(quotedcode_html, Q, Content),
-	html(span([class=quotedcode], code(Content)), HTML, []),
+	phrase(html(span([class=quotedcode,'font-family'=monospace], code(Content))),
+		HTML),
 	print_html(HTML).
 
-codechunk_html(nl, br([])).
+<<`Noweb` $\rightarrow$ HTML>>
+@
+
+Transforming the Prolog terms representing code to HTML could be quite straight-forward: just map the `noweb` token to an HTML tag with the appropriate attributes.
+For quoted code, this is good enough:
+<<`Noweb` $\rightarrow$ HTML>>=
+quotedcode_html(nl, '\n').
+quotedcode_html(text(Text), Text).
+quotedcode_html(use(Name),
+		span(class=nwuse, [
+			&(lang), &(nbsp),
+			Name,
+			&(nbsp), &(rang)])).
+@
+
+Apparently, Pandoc does recognize markdown inside `<span>` contents, and adds the necessary HTML markup.
+
+For example, we can put a "use" inside quoted code, complete with its own Pandoc markdown, as in:
+<<foo>>=
+[[quoted with @<<foo $\rightarrow \pi =$ `bar`@>>]]
+@ Which will turn into: [[quoted with <<foo $\rightarrow \pi =$ `bar`>>]]
+
+Unfortunately, it does not do that for the contents of `<span>` which is inside a `<pre>` (I guess rightfully so?).
+
+The solution used here is ugly and hacky: the "name" of a `use` or `defn` token is passed through pandoc, and the resulting HTML is inserted literally in the generated Pandoc document:
+<<`Noweb` $\rightarrow$ HTML>>=
+codechunk_html(nl, '\n').
 codechunk_html(text(Text), Text).
 codechunk_html(defn(Name),
-		span(class=nwdefn,
-			[&(lang), &(nbsp), \[Formatted], &(nbsp), &(rang), &(equiv)])) :-
-	through_pandoc(html5, Name, Formatted).
+		span(class=nwdefn, [
+			&(lang), &(nbsp),
+			\[F], % add directly to the output
+			&(nbsp), &(rang), &(equiv)])) :-
+	through_pandoc(html5, Name, F).
 codechunk_html(use(Name),
-		span(class=nwuse,
-		[&(lang), &(nbsp), \[Formatted], &(nbsp), &(rang)])) :-
-	through_pandoc(html5, Name, Formatted).
+		span(class=nwuse, [
+			&(lang), &(nbsp),
+			\[F], % add directly to the output
+			&(nbsp), &(rang)])) :-
+	through_pandoc(html5, Name, F).
 
-through_pandoc(_To, Str, FStr) :-
-	atomic_list_concat(L, "'", Str),
-	atomic_list_concat(L, "'\\''", EscStr),
-	atomic_list_concat(["echo '", EscStr, "' | pandoc -t html5"], Pandoc),
-	format(user_error, "~w~n", [Pandoc]),
-	setup_call_cleanup(
-		process_create(path(bash), ['-c', Pandoc], [stdout(pipe(Out))]),
-		read_rest(Out, F0),
-		close(Out)),
-	append(`<p>`, F1, F0),
-	once(append(F2, `</p>\n`, F1)),
-	atom_codes(FStr, F2),
-	format(user_error, "~w~n", [FStr]).
+<<The ugliness called `through_pandoc/3`>>
+@
 
-read_rest(Stream, Rest) :-
-	read_pending_input(Stream, Rest, Rest1),
-	(	at_end_of_stream(Stream)
-	->	Rest1 = []
-	;	read_rest(Stream, Rest1)
-	).
+This is a hacky solution for many reasons, but it works.
+The whole process is done in the following steps:
 
-quotedcode_html(nl, br([])).
-quotedcode_html(text(Text), Text).
-quotedcode_html(use(Name), span(class=nwuse, [&(lang), &(nbsp), Name, &(nbsp), &(rang)])).
+#. Turn single quotes -- "`'`" -- into "`'\''`" sequences;
+#. Construct the pipe;
+#. Call it as a `bash` process;
+#. Parse the output, removing the enclosing `<p>`;
+#. Convert back to HTML
+<<The ugliness called `through_pandoc/3`>>=
+:- use_module(library(sgml)).
+:- use_module(library(sgml_write)).
+
+through_pandoc(To, Str, FStr) :-
+	atomics_to_string(L, "'", Str), % split
+	atomics_to_string(L, "'\\''", EscStr), % put together
+	atomics_to_string(["echo '", EscStr, "' | pandoc -t ", To], Pandoc),
+	process_create(path(bash), ['-c', Pandoc], [stdout(pipe(Out))]),
+	load_structure(Out, [element(p, [], StrDOM)], [space(preserve)]),
+	close(Out),
+	with_output_to(string(FStr),
+		xml_write(current_output, StrDOM, [header(false), layout(false)])).
 @
 
 # Common definitions
@@ -334,6 +375,32 @@ The portable Bash shebang is, according to [Stack Overflow](http://stackoverflow
 set -e
 @
 We also set the script to stop immediately at errors.
+
+# Layout
+The system tries to separate content and layout as much as possible.
+It also aims to provide a sensible default layout for the human-readable documentation.
+
+## HTML
+For HTML documentation, a CSS file is used. Here it is:
+<<lire.css>>=
+p {
+	max-width: 17cm;
+}
+ul {
+	max-width: 15cm;
+}
+body {
+	padding-left: 3cm;
+}
+span.nwuse {
+	font-family: serif;
+	font-style: italic;
+}
+span.nwdefn {
+	font-family: serif;
+	font-weight: bold;
+}
+@
 
 # References
 
