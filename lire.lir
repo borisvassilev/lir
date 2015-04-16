@@ -70,10 +70,11 @@ Logically, the back end can be broken down to components, each taking care of on
 
 The program defines a [[main/0]] so that it can be compiled and run as a command line tool.
 <<nwpipe-pandoc.pl>>=
-:- set_prolog_flag(verbose, silent). % no messages of type `informational` or `banner`
+% no messages of type `informational` or `banner`
+:- set_prolog_flag(verbose, silent).
 
 main :-
-	current_prolog_flag(argv, Argv), % get command line arguments
+	current_prolog_flag(argv, Argv), % command line arguments
 	prompt(_Old, ''), %  turn off prompt
 	nwpipeline_to_pandoc(Argv),
 	halt. % exit with success
@@ -315,8 +316,8 @@ Apparently, Pandoc does recognize markdown inside `<span>` contents, and adds th
 
 For example, we can put a "use" inside quoted code, complete with its own Pandoc markdown, as in:
 <<foo>>=
-[[quoted with @<<foo $\rightarrow \pi =$ `bar`@>>]]
-@ Which will turn into: [[quoted with <<foo $\rightarrow \pi =$ `bar`>>]]
+[[quoted @<<foo $\rightarrow \pi =$ `bar`@>>]]
+@ Which will turn into: [[quoted <<foo $\rightarrow \pi =$ `bar`>>]]
 
 Unfortunately, it does not do that for the contents of `<span>` which is inside a `<pre>` (I guess rightfully so?).
 
