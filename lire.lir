@@ -281,7 +281,10 @@ code(text(Text), Code0) :-
 	code_content(text(Text), Code0, Code),
 	next_input(T),
 	code(T, Code).
+@
 
+To avoid having too many arguments to the [[code]] predicate (and keep the state machine code cleaner), we define a few help predicates that serve as an interface to the data structure (Prolog term) that is used to represent a code chunk:
+<<Code chunk>>=
 code_begin(N,
 	codechunk(N, _, Content, Content)).
 code_defn(Name,
