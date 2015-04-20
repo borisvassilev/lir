@@ -14,40 +14,42 @@ This means that at any point it only implements enough to be able to compile its
 The following bootstrapping script can be extracted and run as follows:
 
 ~~~
-$ notangle -R"bootstrap" lire.lir > bootstrap.sh
-$ chmod u+x bootrstrap.sh
-$ ./bootstrap.sh
+$ notangle -R"Makefile" lire.lir > Makefile
 ~~~
 
 Running this will extract and install the `lire` executable and tools.
 From there on, `lire` can be used to generate the documentation.
 
-<<bootstrap>>=
-<<Bash shebang>>
+<<Makefile>>=
+lire.html : lire.pandoc lire.css lire.bib
+	pandoc \
+		--table-of-contents --standalone --smart \
+		--bibliography=lire.bib \
+		--to=html5 \
+		--css=lire.css \
+		--output=lire.html \
+		lire.pandoc
+	
+lire.pandoc : lire.lir lir-pandoc nwpipe-pandoc
+	./lir-pandoc lire.lir > lire.pandoc
 
-notangle -R"lir-pandoc" -filter emptydefn lire.lir > lir-pandoc
-chmod u+x lir-pandoc
-echo "tangled lir-pandoc"
+lir-pandoc : lire.lir
+	notangle -R"lir-pandoc" -filter emptydefn lire.lir > lir-pandoc
+	chmod u+x lir-pandoc
 
-notangle -R"lire.css" lire.lir > lire.css
-echo "tangled lire.css"
+nwpipe-pandoc : nwpipe-pandoc.pl
+	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
 
-notangle -R"nwpipe-pandoc.pl" -filter emptydefn lire.lir > nwpipe-pandoc.pl
-echo "tangled nwpipe-pandoc.pl"
-swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
-echo "compiled nwpipe-pandoc.pl"
+nwpipe-pandoc.pl : lire.lir
+	notangle -R"nwpipe-pandoc.pl" -filter emptydefn lire.lir > nwpipe-pandoc.pl
 
-./lir-pandoc lire.lir > lire.pandoc
-echo "converted to pandoc"
+lire.css : lire.lir
+	notangle -R"lire.css" lire.lir > lire.css
 
-pandoc \
-	--table-of-contents --standalone --smart \
-	--bibliography=lire.bib \
-	--to=html5 \
-	--css=lire.css \
-	--output=lire.html \
-	lire.pandoc
-echo "used pandoc to compile to html"
+.PHONY : clean
+clean :
+	-rm lire.html lire.pandoc lire.css  \
+		nwpipe-pandoc nwpipe-pandoc.pl lir-pandoc
 @
 
 # The Back End
@@ -283,7 +285,8 @@ code(text(Text), Code0) :-
 	code(T, Code).
 @
 
-To avoid having too many arguments to the [[code]] predicate (and keep the state machine code cleaner), we define a few help predicates that serve as an interface to the data structure (Prolog term) that is used to represent a code chunk:
+To avoid having too many arguments to the [[code]] predicate (and keep the state machine code cleaner), we define a few help predicates that serve as an interface to the data structure (Prolog term) that is used to represent a code chunk.
+To allow for efficient appending to the end of the list of contents, it is kept as a difference list pair:
 <<Code chunk>>=
 code_begin(N,
 	codechunk(N, _, Content, Content)).
