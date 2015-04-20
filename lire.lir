@@ -216,8 +216,9 @@ begin_chunk(docs, N) :-
 	next_input(T),
 	docs(T, N).
 begin_chunk(code, N) :-
+	code_begin(N, Code),
 	next_input(T),
-	code(T, N, Content, Content).
+	code(T, Code).
 @
 
 Since the documentation chunks are expected to be valid Pandoc markdown, the contents are simply emitted unchanged to the output:
@@ -258,47 +259,70 @@ quote(use(Name), N, Content, [use(Name)|Rest]) :-
 
 The state for code chunks is largely the same, with the addition of a transition for the `defn` token.
 <<Code chunk>>=
-code(end(code, N), N, Content, []) :-
-	emit(code(Content)),
+code(end(code, N), Code) :-
+	code_end(N, Code),
+	emit(Code),
 	next_input(T),
 	file(T).
-code(defn(Name), N, Content, [defn(Name)|Rest]) :-
+code(defn(Name), Code0) :-
+	code_defn(Name, Code0, Code),
+	next_input(nl), % must be here! (says the "Hacker's Guide")
 	next_input(T),
-	code(T, N, Content, Rest).
-code(use(Name), N, Content, [use(Name)|Rest]) :-
+	code(T, Code).
+code(use(Name), Code0) :-
+	code_content(use(Name), Code0, Code),
 	next_input(T),
-	code(T, N, Content, Rest).
-code(nl, N, Content, [nl|Rest]) :-
+	code(T, Code).
+code(nl, Code0) :-
+	code_content(nl, Code0, Code),
 	next_input(T),
-	code(T, N, Content, Rest).
-code(text(Text), N, Content, [text(Text)|Rest]) :-
+	code(T, Code).
+code(text(Text), Code0) :-
+	code_content(text(Text), Code0, Code),
 	next_input(T),
-	code(T, N, Content, Rest).
+	code(T, Code).
 
-<<Code chunk header>>=
-
+code_begin(N,
+	codechunk(N, _, Content, Content)).
+code_defn(Name,
+	codechunk(N, _, Content, Content),
+	codechunk(N, Name, Content, Content)).
+code_content(New,
+	codechunk(N, Name, Content, [New|Rest]),
+	codechunk(N, Name, Content, Rest)).
+code_end(N,
+	codechunk(N, _, _, [])).
 @
 
 ## Writing Pandoc's Markdown
 Unfortunately, Pandoc's markdown is not expressive enough to allow the code of the literate program to be expressed in pure markdown.
 Instead, native markup for each supported front end is used.
 The writer is implemented as a single predicate, [[emit/1]], with one clause for each possible output, as produced by the finite state machine.
+There is an ugly help predicate, [[through_pandoc/3]], which uses Pandoc to generate correct markup for the layout of elements that are unusual for normal documents, but necessary for a literate program.
 At the moment, only a Pandoc document that can be compiled to an HTML page is generated.
+<<Emit Pandoc's markdown>>=
+<<The ugliness called `through_pandoc/3`>>
+<<Emit HTML for Pandoc>>
+@
 
 ### Emitting HTML
 A Prolog library is used for emitting HTML.
-Code chunks are put in a `<div>` with a class `codechunk`, and all content of a code chunk is put in a `<pre>`.
+Code chunks are put in a `<div>` tag with a class `codechunk`, with `noweb`'s `defn` at the top, inside its own `<span>` tag with a class `nwdefn`, and all content in a `<pre>` tag.
 Quoted code is put in a `<span>` with a class `quotedcode` and typeset in monospace.
-<<Emit Pandoc's markdown>>=
+<<Emit HTML for Pandoc>>=
 :- use_module(library(http/html_write)).
 
-emit(code(C)) :-
+emit(codechunk(_, Name, C, _)) :-
+	Defn = span(class=nwdefn, [
+			&(lang), &(nbsp),
+			Name,
+			&(nbsp), &(rang), &(equiv)]),
 	maplist(codechunk_html, C, Content),
-	phrase(html(div(class=codechunk, pre(Content))), HTML),
+	phrase(html(div(class=codechunk, [Defn, pre(Content)])), HTML),
 	print_html(HTML).
 emit(quote(Q)) :-
 	maplist(quotedcode_html, Q, Content),
-	phrase(html(span([class=quotedcode,'font-family'=monospace], code(Content))),
+	phrase(html(span(class=quotedcode, Content)),
 		HTML),
 	print_html(HTML).
 
@@ -316,7 +340,6 @@ quotedcode_html(use(Name),
 			Name,
 			&(nbsp), &(rang)])).
 @
-
 Apparently, Pandoc does recognize markdown inside `<span>` contents, and adds the necessary HTML markup.
 
 For example, we can put a "use" inside quoted code, complete with its own Pandoc markdown, as in:
@@ -325,29 +348,23 @@ For example, we can put a "use" inside quoted code, complete with its own Pandoc
 @ Which will turn into: [[quoted <<foo $\rightarrow \pi =$ `bar`>>]]
 
 Unfortunately, it does not do that for the contents of `<span>` which is inside a `<pre>` (I guess rightfully so?).
-
-The solution used here is ugly and hacky: the "name" of a `use` or `defn` token is passed through pandoc, and the resulting HTML is inserted literally in the generated Pandoc document:
 <<`Noweb` $\rightarrow$ HTML>>=
 codechunk_html(nl, '\n').
 codechunk_html(text(Text), Text).
-codechunk_html(defn(Name), % the `defn` followed by `nl` is quaranteed
-		span(class=nwdefn, [
-			&(lang), &(nbsp),
-			\[F], % add directly to the output
-			&(nbsp), &(rang), &(equiv)])) :-
-	through_pandoc(html5, Name, F).
 codechunk_html(use(Name),
 		span(class=nwuse, [
 			&(lang), &(nbsp),
 			\[F], % add directly to the output
 			&(nbsp), &(rang)])) :-
 	through_pandoc(html5, Name, F).
-
-<<The ugliness called `through_pandoc/3`>>
 @
 
-This is a hacky solution for many reasons, but it works.
-The whole process is done in the following steps:
+### Ad-hoc markup with Pandoc
+To make the contents of code chunks look like code, they are put inside a `<pre>` tag.
+But in a `lire` source file, a code chunk can contain a [[<<Use>>]], which will have to be typeset properly.
+Pandoc will not do this automatically for a `<span>` inside raw HTML `<pre>`.
+The hacky solution here is to pass the Name in a [[<<Use>>]] (formatted in markdown) to Pandoc, and embed the resulting markup in the output.
+Here is how it is done:
 
 #. Turn single quotes -- "`'`" -- into "`'\''`" sequences;
 #. Construct the pipe;
@@ -403,6 +420,9 @@ ul {
 }
 body {
 	padding-left: 3cm;
+}
+span.quotedcode {
+	font-family: monospace;
 }
 span.nwuse {
 	font-family: serif;
