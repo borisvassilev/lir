@@ -1,7 +1,6 @@
 ---
 title: 'Reproducible computing with `lire`'
 author: Boris Vassilev
-bibliography: lire.bib
 version: 0.2
 rights: (c) 2015 Boris Vassilev, University of Helsinki
 ...
@@ -34,15 +33,18 @@ notangle -R"lire.css" lire.lir > lire.css
 echo "tangled lire.css"
 
 notangle -R"nwpipe-pandoc.pl" -filter emptydefn lire.lir > nwpipe-pandoc.pl
+echo "tangled nwpipe-pandoc.pl"
 swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
-echo "tangled and compiled nwpipe-pandoc.pl"
+echo "compiled nwpipe-pandoc.pl"
 
 ./lir-pandoc lire.lir > lire.pandoc
 echo "converted to pandoc"
 
-pandoc --filter pandoc-citeproc \
-	--to=html5 --css=lire.css \
+pandoc \
 	--table-of-contents --standalone --smart \
+	--bibliography=lire.bib \
+	--to=html5 \
+	--css=lire.css \
 	--output=lire.html \
 	lire.pandoc
 echo "used pandoc to compile to html"
@@ -272,6 +274,9 @@ code(nl, N, Content, [nl|Rest]) :-
 code(text(Text), N, Content, [text(Text)|Rest]) :-
 	next_input(T),
 	code(T, N, Content, Rest).
+
+<<Code chunk header>>=
+
 @
 
 ## Writing Pandoc's Markdown
@@ -325,7 +330,7 @@ The solution used here is ugly and hacky: the "name" of a `use` or `defn` token 
 <<`Noweb` $\rightarrow$ HTML>>=
 codechunk_html(nl, '\n').
 codechunk_html(text(Text), Text).
-codechunk_html(defn(Name),
+codechunk_html(defn(Name), % the `defn` followed by `nl` is quaranteed
 		span(class=nwdefn, [
 			&(lang), &(nbsp),
 			\[F], % add directly to the output
@@ -350,16 +355,19 @@ The whole process is done in the following steps:
 #. Parse the output, removing the enclosing `<p>`;
 #. Convert back to HTML
 <<The ugliness called `through_pandoc/3`>>=
-:- use_module(library(sgml)).
-:- use_module(library(sgml_write)).
+:- use_module(library(sgml), [load_structure/3]).
+:- use_module(library(sgml_write), [xml_write/3]).
 
 through_pandoc(To, Str, FStr) :-
 	atomics_to_string(L, "'", Str), % split
 	atomics_to_string(L, "'\\''", EscStr), % put together
 	atomics_to_string(["echo '", EscStr, "' | pandoc -t ", To], Pandoc),
 	process_create(path(bash), ['-c', Pandoc], [stdout(pipe(Out))]),
+	through_pandoc_1(To, Out, FStr),
+	close(Out).
+
+through_pandoc_1(html5, Out, FStr) :-
 	load_structure(Out, [element(p, [], StrDOM)], [space(preserve)]),
-	close(Out),
 	with_output_to(string(FStr),
 		xml_write(current_output, StrDOM, [header(false), layout(false)])).
 @
