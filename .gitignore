@@ -3,3 +3,5 @@
 # generated documentation files
 *.html
 *.pdf
+# working directory
+.lire
