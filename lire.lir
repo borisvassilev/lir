@@ -148,11 +148,12 @@ To read lines from standard input we define [[next_input/1]] that unifies its ar
 next_input(T) :-
 	read_line_to_codes(user_input, Codes),
 	nwtoken_to_plterm(Codes, T0),
-	(	T0 = xref(_)
-	->	%writeln(user_error, T0),
+	(	T0 = xref(T1), \+ basic_xref(T1)
+	->	writeln(user_error, T0),
 		next_input(T)
 	;	T0 = T
 	).
+basic_xref(label(_)). basic_xref(ref(_)).
 
 nwtoken_to_plterm(end_of_file, end_of_file).
 nwtoken_to_plterm([0'@|Token], T) :-
@@ -356,7 +357,7 @@ begin_chunk(docs, N) :-
 begin_chunk(code, N) :-
 	code_begin(N, Code),
 	next_input(T),
-	code(T, Code).
+	code(T, Code, []).
 @
 
 Since the documentation chunks are expected to be valid Pandoc markdown, the contents are simply emitted unchanged to the output:
@@ -373,52 +374,65 @@ docs(text(Text), N) :-
 	next_input(T),
 	docs(T, N).
 docs(quote, N) :-
+	code_begin(N, Quoted),
 	next_input(T),
-	quote(T, N, Content, Content).
+	quote(T, Quoted, []).
 @
 
 For both quoted (inline) code and code chunks, the contents are first collected before emitted at the end of the quote or code chunk.
 Note the two additional arguments for these two states: they represent the difference-list pair that is used to collect the contents to a list.
 <<Quoted code>>=
-quote(endquote, N, Content, []) :-
-	emit(quote(Content)),
+quote(endquote, Quoted, []) :-
+	code_end(N, Quoted),
+	Quoted = codechunk(_, Q, _),
+	emit(quote(Q)),
 	next_input(T),
 	docs(T, N).
-quote(text(Text), N, Content, [text(Text)|Rest]) :-
+quote(text(Text), Quoted0, XRef) :-
+	code_content(text(Text), Quoted0, Quoted),
 	next_input(T),
-	quote(T, N, Content, Rest).
-quote(nl, N, Content, [nl|Rest]) :-
+	quote(T, Quoted, XRef).
+quote(nl, Quoted0, XRef) :-
+	code_content(nl, Quoted0, Quoted),
 	next_input(T),
-	quote(T, N, Content, Rest).
-quote(use(Name), N, Content, [use(Name)|Rest]) :-
+	quote(T, Quoted, XRef).
+quote(use(Name), Quoted0, XRef) :-
+	code_use([name(Name)|XRef], Quoted0, Quoted),
 	next_input(T),
-	quote(T, N, Content, Rest).
+	quote(T, Quoted, []).
+quote(xref(XRef), Quoted, XRef_rest) :-
+	next_input(T),
+	quote(T, Quoted, [XRef|XRef_rest]).
 @
 
-The state for code chunks is largely the same, with the addition of a transition for the `defn` token.
+The state for code chunks is a bit more involved.
+Code chunks are numbered, have a name, can contain uses, can be labelled and referenced, and so on:
 <<Code chunk>>=
-code(end(code, N), Code) :-
+code(end(code, N), Code, []) :-
 	code_end(N, Code),
 	emit(Code),
 	next_input(T),
 	file(T).
-code(defn(Name), Code) :-
-	code_defn(Name, Code),
+code(xref(XRef), Code, XRef_rest) :-
+	next_input(T),
+	code(T, Code, [XRef|XRef_rest]).
+code(defn(Name), Code0, XRef) :-
+	code_defn([name(Name)|XRef], Code0, Code),
 	next_input(nl), % must be here! (says the "Hacker's Guide")
 	next_input(T),
-	code(T, Code).
-code(use(Name), Code0) :-
-	code_content(use(Name), Code0, Code),
+	code(T, Code, []).
+code(use(Name), Code0, XRef) :-
+	code_use([name(Name)|XRef], Code0, Code),
 	next_input(T),
-	code(T, Code).
-code(nl, Code0) :-
+	code(T, Code, []).
+code(nl, Code0, XRef) :-
 	code_content(nl, Code0, Code),
 	next_input(T),
-	code(T, Code).
-code(text(Text), Code0) :-
+	code(T, Code, XRef).
+code(text(Text), Code0, XRef) :-
 	code_content(text(Text), Code0, Code),
 	next_input(T),
-	code(T, Code).
+	code(T, Code, XRef).
 @
 
 To avoid having too many arguments to the [[code]] predicate (and keep the state machine code cleaner), we define a few help predicates that serve as an interface to the data structure (Prolog term) that is used to represent a code chunk.
@@ -427,18 +441,30 @@ To allow for efficient appending to the end of the list of contents, it is kept 
 <<Code chunk>>=
 :- use_module(library(record)).
 
-:- record ccattr(
-	number:integer,
-	label:atom,
-	name:string).
+:- record
+	ccattr(
+		number:integer,
+		name:string,
+		label:atom,
+		ref:atom),
+	use(
+		name:string,
+		label:atom,
+		ref:atom).
 
 code_begin(N, codechunk(Attr, Content, Content)) :-
 	make_ccattr([number(N)], Attr).
-code_defn(Name, codechunk(Attr, Content, Content)) :-
-	ccattr_name(Attr, Name).
+code_defn(NameXRef,
+		codechunk(Attr0, Content, Content),
+		codechunk(Attr, Content, Content)) :-
+	set_ccattr_fields(NameXRef, Attr0, Attr).
+code_use(UseAttr,
+		codechunk(Attr, Content, [use(Use)|Rest]),
+		codechunk(Attr, Content, Rest)) :-
+	make_use(UseAttr, Use).
 code_content(New,
-	codechunk(Attr, Content, [New|Rest]),
-	codechunk(Attr, Content, Rest)).
+		codechunk(Attr, Content, [New|Rest]),
+		codechunk(Attr, Content, Rest)).
 code_end(N, codechunk(Attr, _, [])) :-
 	ccattr_number(Attr, N).
 @
@@ -463,9 +489,11 @@ Quoted code is put in a `<span>` with a class `quotedcode`.
 
 emit(codechunk(Attr, C, _)) :-
 	ccattr_name(Attr, Name),
-	Defn = span(class=nwdefn, [
+	ccattr_label(Attr, Label),
+	ccattr_ref(Attr, Ref),
+	Defn = span([class=nwdefn, id=Label], [
 			&(lang), &(nbsp),
-			Name,
+			a(href="#~a"-Ref, Name),
 			&(nbsp), &(rang), &(equiv)]),
 	maplist(codechunk_html, C, Content),
 	phrase(html(div(class=codechunk, [Defn, pre(Content)])), HTML),
@@ -484,11 +512,13 @@ For quoted code, this is good enough:
 <<`Noweb` $\rightarrow$ HTML>>=
 quotedcode_html(nl, '\n').
 quotedcode_html(text(Text), Text).
-quotedcode_html(use(Name),
+quotedcode_html(use(Use),
 		span(class=nwquoteduse, [
 			&(lang), &(nbsp),
-			Name,
-			&(nbsp), &(rang)])).
+			a(href="#~a"-Ref, Name),
+			&(nbsp), &(rang)])) :-
+	use_ref(Use, Ref),
+	use_name(Use, Name).
 @
 Apparently, Pandoc does recognize markdown inside `<span>` contents, and adds the necessary HTML markup.
 
@@ -501,11 +531,14 @@ Unfortunately, it does not do that for the contents of `<span>` which is inside 
 <<`Noweb` $\rightarrow$ HTML>>=
 codechunk_html(nl, '\n').
 codechunk_html(text(Text), Text).
-codechunk_html(use(Name),
-		span(class=nwuse, [
-			&(lang), &(nbsp),
-			\[F], % add directly to the output
-			&(nbsp), &(rang)])) :-
+codechunk_html(use(Use),
+		span([class=nwuse, id=Label], [
+				&(lang), &(nbsp),
+				a(href="#~a"-Ref, \[F]), % add directly to the output
+				&(nbsp), &(rang)])) :-
+	use_name(Use, Name),
+	use_label(Use, Label),
+	use_ref(Use, Ref),
 	through_pandoc(html5, Name, F).
 @
 
