@@ -9,12 +9,12 @@ rights: (c) 2015 Boris Vassilev, University of Helsinki
 This is a collection of tools that support programming language-agnostic reproducible computing.
 
 This document is self-hosting: the implementation presented here can be used to produce the final human-readable documentation.
-This means that at any point it only implements enough to be able to compile itself.
+This makes informal validation trivial ("does the final document look right?"), but it also means that the only guarantee is that it implements enough to be able to compile itself.
 
 # Bootstrapping
 The following small programs are the components used to provide the functionality of `lire`.
 
-The first one is used to tangle a code chunk and if necessary, deploy it to the working directory, `.lire`:
+The first one is used to tangle a code chunk and, if necessary, deploy it to the working directory, `.lire`:
 <<lire-tangle.sh>>=
 f=$(mktemp)
 notangle -t8 -filter emptydefn -R"$1" *.lir > "$f"
@@ -65,9 +65,8 @@ Once `lire` is tangled, unless the [[<<bootstrap>>]] code chunk is changed, re-m
 
 # The Back End
 In its first incarnation, it consist only of a [Pandoc](http://johnmacfarlane.net/pandoc/) back end for [Noweb](https://www.cs.tufts.edu/~nr/noweb/) [@Noweb2008].
-The back end reads from standard input the pipeline representation emitted by Noweb's `markup` and writes to standard output a document in Pandoc's markdown.
+The back end reads from standard input the pipeline representation emitted by Noweb's `markup` and writes a document in Pandoc's markdown.
 It assumes that all documentation chunks in the source document are written in Pandoc's markdown.
-The code chunks in the source document are represented as fenced code blocks preceded by a level-three Atx-style header with the name of the code chunk and followed by a single horizontal rule.
 
 The back end first takes `lire` file(s) and writes to standard output `noweb`'s pipeline representation.
 At the moment, this uses `noweb`'s own back end, `markup`, followed by the `emptydefn` and `noidx` filters:
@@ -114,7 +113,7 @@ pandoc \
 	"$@"
 @
 
-We use the GNU `make` utility to generate the human readable documentation.
+We use the GNU `make` utility to generate the human readable documentation and generate any files that are required.
 <<Makefile>>=
 lire.html: lire.lir lire.css lire.bib lire-nwpipe.sh nwpipe-pandoc pandoc-html.sh
 	bash lire-nwpipe.sh lire.lir \
@@ -131,9 +130,9 @@ nwpipe-pandoc: nwpipe-pandoc.pl
 
 Logically, converting `noweb`'s pipeline to valid Pandoc markdown be broken down to components, each taking care of one of the following:
 
-- Reading each _token_ in `noweb`'s pipeline representation from standard input and parsing it, to obtain an equivalent Prolog term -- [[<<Parse `noweb` tokens>>]];
-- A finite state machine that consumes the Prolog terms and emits Pandoc markdown -- [[<<Pipeline FSM>>]] (it is rather a finite state transducer, as it generates output, but let's not get too formal);
-- A writer that transforms each term to the actual emitted markdown -- [[<<Emit Pandoc's markdown>>]].
+- Reading each _token_ in `noweb`'s pipeline representation from standard input and parsing it, to obtain an equivalent Prolog term---[[<<Parse `noweb` tokens>>]];
+- A finite state machine that consumes the Prolog terms and emits Pandoc markdown---[[<<Pipeline FSM>>]] (it is rather a finite state transducer, as it generates output, but let's not get too formal);
+- A writer that transforms each term to the actual emitted markdown---[[<<Emit Pandoc's markdown>>]].
 
 ## Parsing `noweb` tokens
 The first component reads the line-oriented pipeline representation of `noweb` from standard input and turns each line (token) into a Prolog term.
@@ -150,7 +149,7 @@ next_input(T) :-
 	read_line_to_codes(user_input, Codes),
 	nwtoken_to_plterm(Codes, T0),
 	(	T0 = xref(_)
-	->	writeln(user_error, T0),
+	->	%writeln(user_error, T0),
 		next_input(T)
 	;	T0 = T
 	).
@@ -160,9 +159,9 @@ nwtoken_to_plterm([0'@|Token], T) :-
 	phrase(token(T), Token).
 @
 
-To convert the `noweb` token to a Prolog term we use an approach directly borrowed from the chapter on [definite clause grammers](http://en.wikipedia.org/wiki/Definite_clause_grammar) in "The Craft of Prolog" [@OKeefe1990, pp. 299-300].
+To convert the `noweb` token to a Prolog term we use an approach directly borrowed from the chapter on definite clause grammers in "The Craft of Prolog" [@OKeefe1990, pp. 299-300].
 
-With this approach, in the three-columnt [[<<Table of keywords>>], each `noweb` token keyword is associated with (a) a description of how to parse the rest of the token and (b) a Prolog term representing the result. The description in (a) is in effect a miniature program passed to the [[<<Interpreter>>]].
+With this approach, in the three-column [[<<Table of keywords>>]], each `noweb` token keyword is associated with (a) a description of how to parse the rest of the token and (b) a Prolog term representing the result. The description in (a) is in effect a miniature program passed to the [[<<Interpreter>>]].
 <<`Noweb` tokens $\rightarrow$ Prolog terms>>=
 <<Table of keywords>>
 <<Interpreter>>
@@ -177,8 +176,8 @@ keyword(file, [space, atom_rest(File)], file(File)).
 
 The structural keywords represent the documentation and code chunks in the `noweb` source:
 <<>>=
-keyword(begin, [space, chunk_kind(Kind), space, integer(N)], begin(Kind, N)).
-keyword(end, [space, chunk_kind(Kind), space, integer(N)], end(Kind, N)).
+keyword(begin, [space, chunk_kind(Kind), space, chunk_number(N)], begin(Kind, N)).
+keyword(end, [space, chunk_kind(Kind), space, chunk_number(N)], end(Kind, N)).
 keyword(text, [space, string_rest(Text)], text(Text)).
 keyword(nl, [], nl).
 keyword(defn, [space, string_rest(Name)], defn(Name)).
@@ -222,7 +221,7 @@ xref(enduses, [], enduses).
 xref(notused, [space, string_rest(Name)], notused(Name)).
 @
 
-And the list of chunks:
+And the list of all code chunks:
 <<>>=
 xref(beginchunks, [], beginchunks).
 xref(chunkbegin,
@@ -234,12 +233,12 @@ xref(chunkend, [], chunkend).
 xref(endchunks, [], endchunks).
 @
 
-The interpreter for the miniature programs in the second argument of the  is defined as a Prolog [**d**efinite **c**lause **g**rammar](http://en.wikipedia.org/wiki/Definite_clause_grammar).
+The interpreter for the miniature programs in the second argument of the table of keywords is defined as a Prolog [**d**efinite **c**lause **g**rammar](http://en.wikipedia.org/wiki/Definite_clause_grammar).
 A couple of the DCG primitives offered by the SWI-Prolog library [DCG Basics](http://www.swi-prolog.org/pldoc/doc/swi/library/dcg/basics.pl) are used.
 
 The `noweb` tokens that are being parsed are simple enough to make it unnecessary to have separate tokenization and parse steps: both are done in one pass.
-Each token is represented as a single line that starts with a keyword: a string on non-blank characters.
-The keyword is converted to an atom; this atom is the "key" in the [[keyword/3]] table that maps the list of items to the final Prolog term.
+Each token is represented as a single line that starts with a keyword: a string of non-blank characters.
+The keyword is converted to an atom; this atom is the "key" in the [[keyword/3]] table that associated the list of items with the final Prolog term.
 <<Interpreter>>=
 :- use_module(library(dcg/basics), [nonblanks//1, integer//1]).
 
@@ -280,7 +279,7 @@ item(space) -->
 
 Integers are used to enumerate the code and documentation chunks:
 <<>>=
-item(integer(N)) -->
+item(chunk_number(N)) -->
 	integer(N).
 @
 
@@ -349,7 +348,7 @@ file(file(_File)) :-
 file(end_of_file).
 @
 
-[[<<Begin chunk>>]] is not a real state, since the transition happens without any input:
+[[<<Begin chunk>>]] is not a real state, since the transition happens without any input; it is here to make the transition deterministic:
 <<Begin chunk>>=
 begin_chunk(docs, N) :-
 	next_input(T),
@@ -438,7 +437,7 @@ code_end(N,
 @
 
 ## Writing Pandoc's Markdown
-Unfortunately, Pandoc's markdown is not expressive enough to allow the code of the literate program to be expressed in pure markdown.
+Unfortunately, Pandoc's markdown is not expressive enough to allow code chunks in the literate program to be expressed in pure markdown.
 Instead, native markup for each supported front end is used.
 The writer is implemented as a single predicate, [[emit/1]], with one clause for each possible output, as produced by the finite state machine.
 There is an ugly help predicate, [[through_pandoc/3]], which uses Pandoc to generate correct markup for the layout of elements that are unusual for normal documents, but necessary for a literate program.
@@ -451,7 +450,7 @@ At the moment, only a Pandoc document that can be compiled to an HTML page is ge
 ### Emitting HTML
 A Prolog library is used for emitting HTML.
 Code chunks are put in a `<div>` tag with a class `codechunk`, with `noweb`'s `defn` at the top, inside its own `<span>` tag with a class `nwdefn`, and all content in a `<pre>` tag.
-Quoted code is put in a `<span>` with a class `quotedcode` and typeset in monospace.
+Quoted code is put in a `<span>` with a class `quotedcode`.
 <<Emit HTML for Pandoc>>=
 :- use_module(library(http/html_write)).
 
