@@ -380,20 +380,22 @@ docs(quote, N) :-
 @
 
 For both quoted (inline) code and code chunks, the contents are first collected before emitted at the end of the quote or code chunk.
-Note the two additional arguments for these two states: they represent the difference-list pair that is used to collect the contents to a list.
+Since there are enough similarities between quoted code and proper code chunks, we use the same [[<<Data structure for code>>]].
+It allows us to keep the state machine a bit cleaner.
 <<Quoted code>>=
+<<Data structure for code>>
 quote(endquote, Quoted, []) :-
 	code_end(N, Quoted),
-	Quoted = codechunk(_, Q, _),
-	emit(quote(Q)),
+	code_content(Quoted, Content),
+	emit(quote(Content)),
 	next_input(T),
 	docs(T, N).
 quote(text(Text), Quoted0, XRef) :-
-	code_content(text(Text), Quoted0, Quoted),
+	code_add(text(Text), Quoted0, Quoted),
 	next_input(T),
 	quote(T, Quoted, XRef).
 quote(nl, Quoted0, XRef) :-
-	code_content(nl, Quoted0, Quoted),
+	code_add(nl, Quoted0, Quoted),
 	next_input(T),
 	quote(T, Quoted, XRef).
 quote(use(Name), Quoted0, XRef) :-
@@ -405,7 +407,6 @@ quote(xref(XRef), Quoted, XRef_rest) :-
 	quote(T, Quoted, [XRef|XRef_rest]).
 @
 
-The state for code chunks is a bit more involved.
 Code chunks are numbered, have a name, can contain uses, can be labelled and referenced, and so on:
 <<Code chunk>>=
 code(end(code, N), Code, []) :-
@@ -426,19 +427,19 @@ code(use(Name), Code0, XRef) :-
 	next_input(T),
 	code(T, Code, []).
 code(nl, Code0, XRef) :-
-	code_content(nl, Code0, Code),
+	code_add(nl, Code0, Code),
 	next_input(T),
 	code(T, Code, XRef).
 code(text(Text), Code0, XRef) :-
-	code_content(text(Text), Code0, Code),
+	code_add(text(Text), Code0, Code),
 	next_input(T),
 	code(T, Code, XRef).
 @
 
-To avoid having too many arguments to the [[code]] predicate (and keep the state machine code cleaner), we define a few help predicates that serve as an interface to the data structure (Prolog term) that is used to represent a code chunk.
-The attributes of the chunk are maintained in a _record_.
+To avoid having too many arguments in the predicates of the [[<<Pipeline FSM>>]], we define a few help predicates that serve as an interface to the data structure (Prolog term) that is used to represent a code chunk.
+The attributes of a chunk, or uses inside a chunk, are maintained as Prolog _records_.
 To allow for efficient appending to the end of the list of contents, it is kept as a _difference list_ pair:
-<<Code chunk>>=
+<<Data structure for code>>=
 :- use_module(library(record)).
 
 :- record
@@ -462,9 +463,10 @@ code_use(UseAttr,
 		codechunk(Attr, Content, [use(Use)|Rest]),
 		codechunk(Attr, Content, Rest)) :-
 	make_use(UseAttr, Use).
-code_content(New,
+code_add(New,
 		codechunk(Attr, Content, [New|Rest]),
 		codechunk(Attr, Content, Rest)).
+code_content(codechunk(_, Content, []), Content).
 code_end(N, codechunk(Attr, _, [])) :-
 	ccattr_number(Attr, N).
 @
