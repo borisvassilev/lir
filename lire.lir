@@ -68,15 +68,20 @@ In its first incarnation, it consist only of a [Pandoc](http://johnmacfarlane.ne
 The back end reads from standard input the pipeline representation emitted by Noweb's `markup` and writes to standard output a document in Pandoc's markdown.
 It assumes that all documentation chunks in the source document are written in Pandoc's markdown.
 The code chunks in the source document are represented as fenced code blocks preceded by a level-three Atx-style header with the name of the code chunk and followed by a single horizontal rule.
-A "back end" takes `lire` file(s) and writes to standard output `noweb`'s pipeline representation.
-At the moment, this only uses `noweb`'s own back end, `markup`, followed by the `emptydefn` filter:
+
+The back end first takes `lire` file(s) and writes to standard output `noweb`'s pipeline representation.
+At the moment, this uses `noweb`'s own back end, `markup`, followed by the `emptydefn` and `noidx` filters:
 <<lire-nwpipe.sh>>=
-<<`Noweb` location>>/markup "$@" | <<`Noweb` location>>/emptydefn
+<<`Noweb` location>>/markup "$@" \
+	| <<`Noweb` location>>/emptydefn \
+	| <<`Noweb` location>>/noidx
 @
 
 The `noweb` pipeline representation of a `lire` source file is then converted to Pandoc markdown, with embedded raw markup for the intended final documentation source.
 At the moment, we only create a human readable file in HTML.
-It is written as a stand-alone command line Prolog program: once compiled, can be run from the command line as a part of a pipe.
+
+The program is written in Prolog, using the SWI-Prolog implementation [@Wielemaker2012].
+It is written as a stand-alone command line program: once compiled, can be run from the command line as a part of a pipe.
 <<nwpipe-pandoc.pl>>=
 % no messages of type `informational` or `banner`
 :- set_prolog_flag(verbose, silent).
@@ -143,20 +148,35 @@ To read lines from standard input we define [[next_input/1]] that unifies its ar
 
 next_input(T) :-
 	read_line_to_codes(user_input, Codes),
-	nwtoken_to_plterm(Codes, T).
+	nwtoken_to_plterm(Codes, T0),
+	(	T0 = xref(_)
+	->	writeln(user_error, T0),
+		next_input(T)
+	;	T0 = T
+	).
 
 nwtoken_to_plterm(end_of_file, end_of_file).
 nwtoken_to_plterm([0'@|Token], T) :-
 	phrase(token(T), Token).
 @
 
-The structure of the Prolog terms mostly mirrors the structure of the tokens as described in "The `noweb` Hacker's Guide" [@Ramsey1992].
-In the table [[nwtoken/3]], the first argument is `noweb`'s keyword, the second argument represents the items in this token, and the third argument is the resulting Prolog term.
-<<`Noweb` tokens $\rightarrow$ Prolog terms>>=
-% Tagging keywords
-keyword(file, [space, atom_rest(File)], file(File)).
+To convert the `noweb` token to a Prolog term we use an approach directly borrowed from the chapter on [definite clause grammers](http://en.wikipedia.org/wiki/Definite_clause_grammar) in "The Craft of Prolog" [@OKeefe1990, pp. 299-300].
 
-% Structural keywords
+With this approach, in the three-columnt [[<<Table of keywords>>], each `noweb` token keyword is associated with (a) a description of how to parse the rest of the token and (b) a Prolog term representing the result. The description in (a) is in effect a miniature program passed to the [[<<Interpreter>>]].
+<<`Noweb` tokens $\rightarrow$ Prolog terms>>=
+<<Table of keywords>>
+<<Interpreter>>
+@
+
+In the table [[keyword/3]], the first column is `noweb`'s keyword, the second column represents the items in this token, and the third argument is the resulting Prolog term.
+The structure of the Prolog terms mostly mirrors the structure of the tokens as described in "The `noweb` Hacker's Guide" [@Ramsey1992].
+The only tagging keyword recognized at the moment is `file`:
+<<Table of keywords>>=
+keyword(file, [space, atom_rest(File)], file(File)).
+@
+
+The structural keywords represent the documentation and code chunks in the `noweb` source:
+<<>>=
 keyword(begin, [space, chunk_kind(Kind), space, integer(N)], begin(Kind, N)).
 keyword(end, [space, chunk_kind(Kind), space, integer(N)], end(Kind, N)).
 keyword(text, [space, string_rest(Text)], text(Text)).
@@ -165,17 +185,68 @@ keyword(defn, [space, string_rest(Name)], defn(Name)).
 keyword(use, [space, string_rest(Name)], use(Name)).
 keyword(quote, [], quote).
 keyword(endquote, [], endquote).
-
-<<Interpreter>>
 @
 
-This approach of using a table containing a miniature program in the second argument and implementing an interpreter for it is directly borrowed from the chapter on definite clause grammer in "The Craft of Prolog" [@OKeefe1990, pp. 299-300].
-Here is the interpreter:
+All cross-referencing is represented in `noweb`'s pipeline by a single keyword, `xref`.
+It is then followed by a second keyword which is described in its own table.
+<<>>=
+keyword(xref, [space, xref(XRef)], xref(XRef)).
+<<Table of cross-referencing keywords>>
+@
+
+There are several categories of cross-referencing concepts.
+The basic cross-reference for labels and references to labels:
+<<Table of cross-referencing keywords>>=
+xref(label, [space, atom_rest(Label)], label(Label)).
+xref(ref, [space, atom_rest(Label)], ref(Label)).
+@
+
+Linking previous and next definitions of a code chunk:
+<<>>=
+xref(prevdef, [space, atom_rest(Label)], prevdef(Label)).
+xref(nextdef, [space, atom_rest(Label)], nextdef(Label)).
+@
+
+Continued definitions of the current chunk:
+<<>>=
+xref(begindefs, [], begindefs).
+xref(defitem, [space, atom_rest(Label)], defitem(Label)).
+xref(enddefs, [], enddefs).
+@
+
+Chunks where the code is used:
+<<>>=
+xref(beginuses, [], beginuses).
+xref(useitem, [space, atom_rest(Label)], useitem(Label)).
+xref(enduses, [], enduses).
+xref(notused, [space, string_rest(Name)], notused(Name)).
+@
+
+And the list of chunks:
+<<>>=
+xref(beginchunks, [], beginchunks).
+xref(chunkbegin,
+	[space, atom(Label), space, string_rest(Name)],
+	chunkbegin(Label, Name)).
+xref(chunkuse, [space, atom_rest(Label)], chunkuse(Label)).
+xref(chunkdefn, [space, atom_rest(Label)], chunkdefn(Label)).
+xref(chunkend, [], chunkend).
+xref(endchunks, [], endchunks).
+@
+
+The interpreter for the miniature programs in the second argument of the  is defined as a Prolog [**d**efinite **c**lause **g**rammar](http://en.wikipedia.org/wiki/Definite_clause_grammar).
+A couple of the DCG primitives offered by the SWI-Prolog library [DCG Basics](http://www.swi-prolog.org/pldoc/doc/swi/library/dcg/basics.pl) are used.
+
+The `noweb` tokens that are being parsed are simple enough to make it unnecessary to have separate tokenization and parse steps: both are done in one pass.
+Each token is represented as a single line that starts with a keyword: a string on non-blank characters.
+The keyword is converted to an atom; this atom is the "key" in the [[keyword/3]] table that maps the list of items to the final Prolog term.
 <<Interpreter>>=
+:- use_module(library(dcg/basics), [nonblanks//1, integer//1]).
+
 token(Term) -->
 	nonblanks(NB),
-	{	atom_codes(Keyword, NB),
-		keyword(Keyword, Items, Term)
+	{	atom_codes(Key, NB),
+		keyword(Key, Items, Term)
 	},
 	items(Items).
 
@@ -185,37 +256,63 @@ items([I|Is]) -->
 	items(Is).
 
 <<Transform individual items>>
+<<Helper DCGs>>
 @
 
-Here we define the transformation for each item appearing in [[nwtoken/3]]:
+These are the rules for parsing the individual items that appear in the `noweb` tokens to Prolog terms.
+Identifiers are converted to atoms, while "text" (text and names) are converted to strings:
 <<Transform individual items>>=
-:- use_module(library(dcg/basics), [nonblanks//1, integer//1]).
-
 item(atom_rest(A)) -->
 	rest(Codes),
 	{	atom_codes(A, Codes)
 	}.
-item(space) -->
-	[0'\s]. % could it be another "white"?...
-item(integer(N)) -->
-	integer(N).
 item(string_rest(Str)) -->
 	rest(Codes),
 	{	string_codes(Str, Codes)
 	}.
+@
+
+We assume that space is represented by a single "space" character; the "Hacker's Guide" is not explicit about this, but so far it has always worked.
+<<>>=
+item(space) -->
+	[0'\s]. % could it be another "white"?...
+@
+
+Integers are used to enumerate the code and documentation chunks:
+<<>>=
+item(integer(N)) -->
+	integer(N).
+@
+
+Code and documentation chunks are delimited by the same keywords; the type of chunk is encoded in a secondary keyword:
+<<>>=
 item(chunk_kind(CK)) -->
 	nonblanks(Codes),
 	{	atom_codes(CK, Codes),
-		nwchunk_kind(CK)
+		chunk_kind(CK) % validation; is it necessary?
 	}.
+@
 
+Finally, cross-reference: it employs quite a few secondary keywords.
+These are collected in their own look up table.
+<<>>=
+item(xref(XRef)) -->
+	nonblanks(Codes),
+	{	atom_codes(X, Codes),
+		xref(X, Items, XRef)
+	},
+	items(Items).
+@
+
+Two helper DCGS are used so far.
+The first one just takes the rest of the input; the other one is used for validating the chunk kind.
+<<Helper DCGs>>=
 rest([]) --> [].
 rest([C|Cs]) -->
 	[C],
 	rest(Cs).
 
-nwchunk_kind(code).
-nwchunk_kind(docs).
+chunk_kind(code). chunk_kind(docs).
 @
 
 ## Pipeline Finite State Machine
