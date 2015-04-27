@@ -402,8 +402,8 @@ code(end(code, N), Code) :-
 	emit(Code),
 	next_input(T),
 	file(T).
-code(defn(Name), Code0) :-
-	code_defn(Name, Code0, Code),
+code(defn(Name), Code) :-
+	code_defn(Name, Code),
 	next_input(nl), % must be here! (says the "Hacker's Guide")
 	next_input(T),
 	code(T, Code).
@@ -422,18 +422,25 @@ code(text(Text), Code0) :-
 @
 
 To avoid having too many arguments to the [[code]] predicate (and keep the state machine code cleaner), we define a few help predicates that serve as an interface to the data structure (Prolog term) that is used to represent a code chunk.
-To allow for efficient appending to the end of the list of contents, it is kept as a difference list pair:
+The attributes of the chunk are maintained in a _record_.
+To allow for efficient appending to the end of the list of contents, it is kept as a _difference list_ pair:
 <<Code chunk>>=
-code_begin(N,
-	codechunk(N, _, Content, Content)).
-code_defn(Name,
-	codechunk(N, _, Content, Content),
-	codechunk(N, Name, Content, Content)).
+:- use_module(library(record)).
+
+:- record ccattr(
+	number:integer,
+	label:atom,
+	name:string).
+
+code_begin(N, codechunk(Attr, Content, Content)) :-
+	make_ccattr([number(N)], Attr).
+code_defn(Name, codechunk(Attr, Content, Content)) :-
+	ccattr_name(Attr, Name).
 code_content(New,
-	codechunk(N, Name, Content, [New|Rest]),
-	codechunk(N, Name, Content, Rest)).
-code_end(N,
-	codechunk(N, _, _, [])).
+	codechunk(Attr, Content, [New|Rest]),
+	codechunk(Attr, Content, Rest)).
+code_end(N, codechunk(Attr, _, [])) :-
+	ccattr_number(Attr, N).
 @
 
 ## Writing Pandoc's Markdown
@@ -454,7 +461,8 @@ Quoted code is put in a `<span>` with a class `quotedcode`.
 <<Emit HTML for Pandoc>>=
 :- use_module(library(http/html_write)).
 
-emit(codechunk(_, Name, C, _)) :-
+emit(codechunk(Attr, C, _)) :-
+	ccattr_name(Attr, Name),
 	Defn = span(class=nwdefn, [
 			&(lang), &(nbsp),
 			Name,
