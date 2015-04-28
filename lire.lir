@@ -148,12 +148,13 @@ To read lines from standard input we define [[next_input/1]] that unifies its ar
 next_input(T) :-
 	read_line_to_codes(user_input, Codes),
 	nwtoken_to_plterm(Codes, T0),
-	(	T0 = xref(T1), \+ basic_xref(T1)
-	->	writeln(user_error, T0),
+	(	T0 = xref(T1), \+ used_xref(T1)
+	->	%writeln(user_error, T0),
 		next_input(T)
 	;	T0 = T
 	).
-basic_xref(label(_)). basic_xref(ref(_)).
+used_xref(label(_)). used_xref(ref(_)).
+used_xref(nextdef(_)). used_xref(prevdef(_)).
 
 nwtoken_to_plterm(end_of_file, end_of_file).
 nwtoken_to_plterm([0'@|Token], T) :-
@@ -414,12 +415,12 @@ code(end(code, N), Code, []) :-
 	emit(Code),
 	next_input(T),
 	file(T).
-code(xref(XRef), Code, XRef_rest) :-
+code(xref(XRef), Code, XRefs0) :-
+	code_xref(XRef, Code, XRefs0, XRefs),
 	next_input(T),
-	code(T, Code, [XRef|XRef_rest]).
+	code(T, Code, XRefs).
 code(defn(Name), Code0, XRef) :-
 	code_defn([name(Name)|XRef], Code0, Code),
-	next_input(nl), % must be here! (says the "Hacker's Guide")
 	next_input(T),
 	code(T, Code, []).
 code(use(Name), Code0, XRef) :-
@@ -434,11 +435,18 @@ code(text(Text), Code0, XRef) :-
 	code_add(text(Text), Code0, Code),
 	next_input(T),
 	code(T, Code, XRef).
+
+code_xref(prevdef(Label), codechunk(Attr, _, _), XRefs, XRefs) :-
+	ccattr_prevdef(Attr, Label).
+code_xref(nextdef(Label), codechunk(Attr, _, _), XRefs, XRefs) :-
+	ccattr_nextdef(Attr, Label).
+code_xref(label(Label), _, XRefs, [label(Label)|XRefs]).
+code_xref(ref(Label), _, XRefs, [ref(Label)|XRefs]).
+	
 @
 
 To avoid having too many arguments in the predicates of the [[<<Pipeline FSM>>]], we define a few help predicates that serve as an interface to the data structure (Prolog term) that is used to represent a code chunk.
 The attributes of a chunk, or uses inside a chunk, are maintained as Prolog _records_.
-To allow for efficient appending to the end of the list of contents, it is kept as a _difference list_ pair:
 <<Data structure for code>>=
 :- use_module(library(record)).
 
@@ -447,12 +455,20 @@ To allow for efficient appending to the end of the list of contents, it is kept 
 		number:integer,
 		name:string,
 		label:atom,
-		ref:atom),
+		ref:atom,
+		nextdef:atom,
+		prevdef:atom),
 	use(
 		name:string,
 		label:atom,
 		ref:atom).
 
+<<Interface to the data>>
+@
+
+To allow for efficient appending to the end of the list of contents, it is kept as a _difference list_ pair:
+
+<<Interface to the data>>=
 code_begin(N, codechunk(Attr, Content, Content)) :-
 	make_ccattr([number(N)], Attr).
 code_defn(NameXRef,
@@ -466,7 +482,7 @@ code_use(UseAttr,
 code_add(New,
 		codechunk(Attr, Content, [New|Rest]),
 		codechunk(Attr, Content, Rest)).
-code_content(codechunk(_, Content, []), Content).
+code_content(codechunk(_, Content, _), Content).
 code_end(N, codechunk(Attr, _, [])) :-
 	ccattr_number(Attr, N).
 @
@@ -494,13 +510,29 @@ emit(codechunk(Attr, C, _)) :-
 	ccattr_label(Attr, Label),
 	ccattr_ref(Attr, Ref),
 	name_ref(Name, Ref, Name_ref),
+	ccattr_prevdef(Attr, Prevdef),
+	Codechunk = Back0,
 	Defn = span([class=nwdefn, id=Label],
 		[	&(lang), &(nbsp),
 			Name_ref,
-			&(nbsp), &(rang), &(equiv)
+			&(nbsp), &(rang)
 		]),
+	(	nonvar(Prevdef)
+	->	Back0 = [ Defn,
+				&(nbsp),
+				a(href="#~a"-Prevdef, "prev"),
+				&(nbsp)|Back1]
+	;	Back0 = [Defn|Back1]
+	),
+	Back1 = [&(equiv)|Back2],
+	ccattr_nextdef(Attr, Nextdef),
+	(	nonvar(Nextdef)
+	->	Back2 = [&(nbsp), a(href="#~a"-Nextdef, "next")|Back3]
+	;	Back2 = Back3
+	),
+	Back3 = [pre(Content)],
 	maplist(codechunk_html, C, Content),
-	phrase(html(div(class=codechunk, [Defn, pre(Content)])), HTML),
+	phrase(html(div(class=codechunk, Codechunk)), HTML),
 	print_html(HTML).
 emit(quote(Q)) :-
 	maplist(quotedcode_html, Q, Content),
