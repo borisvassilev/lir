@@ -16,6 +16,7 @@ The following small programs are the components used to provide the functionalit
 
 The first one is used to tangle a code chunk and, if necessary, deploy it to the working directory, `.lire`:
 <<lire-tangle.sh>>=
+<<Bash shebang>>
 f=$(mktemp)
 notangle -t8 -filter emptydefn -R"$1" *.lir > "$f"
 cmp --quiet "$f" .lire/"$1"
@@ -149,12 +150,15 @@ next_input(T) :-
 	read_line_to_codes(user_input, Codes),
 	nwtoken_to_plterm(Codes, T0),
 	(	T0 = xref(T1), \+ used_xref(T1)
-	->	%writeln(user_error, T0),
+	->	writeln(user_error, T0),
 		next_input(T)
 	;	T0 = T
 	).
 used_xref(label(_)). used_xref(ref(_)).
 used_xref(nextdef(_)). used_xref(prevdef(_)).
+used_xref(notused(_)).  used_xref(useitem(_)).
+used_xref(beginuses). used_xref(enduses).
+
 
 nwtoken_to_plterm(end_of_file, end_of_file).
 nwtoken_to_plterm([0'@|Token], T) :-
@@ -415,10 +419,9 @@ code(end(code, N), Code, []) :-
 	emit(Code),
 	next_input(T),
 	file(T).
-code(xref(XRef), Code, XRefs0) :-
-	code_xref(XRef, Code, XRefs0, XRefs),
+code(xref(XRef), Code, XRefs) :-
 	next_input(T),
-	code(T, Code, XRefs).
+	code_xref(XRef, T, Code, XRefs).
 code(defn(Name), Code0, XRef) :-
 	code_defn([name(Name)|XRef], Code0, Code),
 	next_input(T),
@@ -436,13 +439,33 @@ code(text(Text), Code0, XRef) :-
 	next_input(T),
 	code(T, Code, XRef).
 
-code_xref(prevdef(Label), codechunk(Attr, _, _), XRefs, XRefs) :-
-	ccattr_prevdef(Attr, Label).
-code_xref(nextdef(Label), codechunk(Attr, _, _), XRefs, XRefs) :-
-	ccattr_nextdef(Attr, Label).
-code_xref(label(Label), _, XRefs, [label(Label)|XRefs]).
-code_xref(ref(Label), _, XRefs, [ref(Label)|XRefs]).
-	
+code_xref(label(Label), T, Code, XRefs) :-
+	code(T, Code, [label(Label)|XRefs]).
+code_xref(ref(Label), T, Code, XRefs) :-
+	code(T, Code, [ref(Label)|XRefs]).
+code_xref(prevdef(Label), T, Code, XRefs) :-
+	Code = codechunk(Attr, _, _),
+	ccattr_prevdef(Attr, Label),
+	code(T, Code, XRefs).
+code_xref(nextdef(Label), T, Code, XRefs) :-
+	Code = codechunk(Attr, _, _),
+	ccattr_nextdef(Attr, Label),
+	code(T, Code, XRefs).
+code_xref(notused(_Name), T, Code, XRefs) :-
+	Code = codechunk(Attr, _, _),
+	ccattr_uses(Attr, []),
+	code(T, Code, XRefs).
+code_xref(beginuses, T, Code, XRefs) :-
+	code_xref_uses(T, Code, XRefs, []).
+
+code_xref_uses(xref(useitem(I)), Code, XRefs, Use_items) :-
+	next_input(T),
+	code_xref_uses(T, Code, XRefs, [I|Use_items]).
+code_xref_uses(xref(enduses), Code, XRefs, Use_items) :-
+	Code = codechunk(Attr, _, _),
+	ccattr_uses(Attr, Use_items),
+	next_input(T),
+	code(T, Code, XRefs).
 @
 
 To avoid having too many arguments in the predicates of the [[<<Pipeline FSM>>]], we define a few help predicates that serve as an interface to the data structure (Prolog term) that is used to represent a code chunk.
@@ -451,13 +474,18 @@ The attributes of a chunk, or uses inside a chunk, are maintained as Prolog _rec
 :- use_module(library(record)).
 
 :- record
+	codechunk(
+		attr,
+		content,
+		content_back),
 	ccattr(
 		number:integer,
 		name:string,
 		label:atom,
 		ref:atom,
 		nextdef:atom,
-		prevdef:atom),
+		prevdef:atom,
+		uses:list(atom)),
 	use(
 		name:string,
 		label:atom,
@@ -530,7 +558,9 @@ emit(codechunk(Attr, C, _)) :-
 	->	Back2 = [&(nbsp), a(href="#~a"-Nextdef, "next")|Back3]
 	;	Back2 = Back3
 	),
-	Back3 = [pre(Content)],
+	Back3 = [pre(Content)|Back4],
+	ccattr_uses(Attr, Uses),
+	uses_to_links(Uses, Back4),
 	maplist(codechunk_html, C, Content),
 	phrase(html(div(class=codechunk, Codechunk)), HTML),
 	print_html(HTML).
@@ -539,6 +569,19 @@ emit(quote(Q)) :-
 	phrase(html(span(class=quotedcode, Content)),
 		HTML),
 	print_html(HTML).
+
+uses_to_links(Uses, span(class=uses, Links)) :-
+	(	nonvar(Uses), Uses = [First|Rest]
+	->	Links = ["Used ", a(href="#~a"-First, "here")|Links_rest],
+		uses_to_links_1(Rest, Links_rest)
+	;	Links = ["Not used: root chunk"]
+	).
+uses_to_links_1([], []).
+uses_to_links_1([Second|Rest], Links_rest) :-
+	uses_to_links_2(Rest, Second, Links_rest).
+uses_to_links_2([], Last, [", and ", a(href="#~a"-Last, "here")]).
+uses_to_links_2([This|Rest], Prev, [a(href="#~a"-Prev, ", here")|Links]) :-
+	uses_to_links_2(Rest, This, Links).
 
 name_ref(Name, Ref, Name_ref) :-
 	(	dif(Ref, 'nw@notdef')
@@ -647,6 +690,9 @@ span.nwuse {
 span.nwdefn {
 	font-family: serif;
 	font-weight: bold;
+}
+span.uses {
+	font-size: small;
 }
 @
 
