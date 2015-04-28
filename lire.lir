@@ -1,7 +1,7 @@
 ---
 title: 'Reproducible computing with `lire`'
 author: Boris Vassilev
-version: 0.2
+version: 0.3
 rights: (c) 2015 Boris Vassilev, University of Helsinki
 ...
 
@@ -494,10 +494,11 @@ emit(codechunk(Attr, C, _)) :-
 	ccattr_label(Attr, Label),
 	ccattr_ref(Attr, Ref),
 	name_ref(Name, Ref, Name_ref),
-	Defn = span([class=nwdefn, id=Label], [
-			&(lang), &(nbsp),
+	Defn = span([class=nwdefn, id=Label],
+		[	&(lang), &(nbsp),
 			Name_ref,
-			&(nbsp), &(rang), &(equiv)]),
+			&(nbsp), &(rang), &(equiv)
+		]),
 	maplist(codechunk_html, C, Content),
 	phrase(html(div(class=codechunk, [Defn, pre(Content)])), HTML),
 	print_html(HTML).
@@ -521,11 +522,11 @@ For quoted code, this is good enough:
 <<`Noweb` $\rightarrow$ HTML>>=
 quotedcode_html(nl, '\n').
 quotedcode_html(text(Text), Text).
-quotedcode_html(use(Use),
-		span(class=nwquoteduse, [
-			&(lang), &(nbsp),
+quotedcode_html(use(Use), span(class=nwquoteduse,
+		[	&(lang), &(nbsp),
 			Name_ref,
-			&(nbsp), &(rang)])) :-
+			&(nbsp), &(rang)
+		])) :-
 	use_ref(Use, Ref),
 	use_name(Use, Name),
 	name_ref(Name, Ref, Name_ref).
