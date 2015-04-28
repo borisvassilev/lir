@@ -493,9 +493,10 @@ emit(codechunk(Attr, C, _)) :-
 	ccattr_name(Attr, Name),
 	ccattr_label(Attr, Label),
 	ccattr_ref(Attr, Ref),
+	name_ref(Name, Ref, Name_ref),
 	Defn = span([class=nwdefn, id=Label], [
 			&(lang), &(nbsp),
-			a(href="#~a"-Ref, Name),
+			Name_ref,
 			&(nbsp), &(rang), &(equiv)]),
 	maplist(codechunk_html, C, Content),
 	phrase(html(div(class=codechunk, [Defn, pre(Content)])), HTML),
@@ -505,6 +506,12 @@ emit(quote(Q)) :-
 	phrase(html(span(class=quotedcode, Content)),
 		HTML),
 	print_html(HTML).
+
+name_ref(Name, Ref, Name_ref) :-
+	(	dif(Ref, 'nw@notdef')
+	->	Name_ref = a(href="#~a"-Ref, Name)
+	;	Name_ref = Name
+	).
 
 <<`Noweb` $\rightarrow$ HTML>>
 @
@@ -517,10 +524,11 @@ quotedcode_html(text(Text), Text).
 quotedcode_html(use(Use),
 		span(class=nwquoteduse, [
 			&(lang), &(nbsp),
-			a(href="#~a"-Ref, Name),
+			Name_ref,
 			&(nbsp), &(rang)])) :-
 	use_ref(Use, Ref),
-	use_name(Use, Name).
+	use_name(Use, Name),
+	name_ref(Name, Ref, Name_ref).
 @
 Apparently, Pandoc does recognize markdown inside `<span>` contents, and adds the necessary HTML markup.
 
