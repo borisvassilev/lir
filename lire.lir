@@ -172,11 +172,18 @@ In the table [[keyword/3]], the first column is `noweb`'s keyword, the second co
 The structure of the Prolog terms mostly mirrors the structure of the tokens as described in "The `noweb` Hacker's Guide" [@Ramsey1992].
 The only tagging keyword recognized at the moment is `file`:
 <<Table of keywords>>=
+<<Structural keywords>>
+<<Tagging keywords>>
+@
+
+<<Tagging keywords>>=
 keyword(file, [space, atom_rest(File)], file(File)).
+keyword(xref, [space, xref(XRef)], xref(XRef)).
+<<Table of cross-referencing keywords>>
 @
 
 The structural keywords represent the documentation and code chunks in the `noweb` source:
-<<>>=
+<<Structural keywords>>=
 keyword(begin, [space, chunk_kind(Kind), space, chunk_number(N)], begin(Kind, N)).
 keyword(end, [space, chunk_kind(Kind), space, chunk_number(N)], end(Kind, N)).
 keyword(text, [space, string_rest(Text)], text(Text)).
@@ -189,10 +196,6 @@ keyword(endquote, [], endquote).
 
 All cross-referencing is represented in `noweb`'s pipeline by a single keyword, `xref`.
 It is then followed by a second keyword which is described in its own table.
-<<>>=
-keyword(xref, [space, xref(XRef)], xref(XRef)).
-<<Table of cross-referencing keywords>>
-@
 
 There are several categories of cross-referencing concepts.
 <<Table of cross-referencing keywords>>=
