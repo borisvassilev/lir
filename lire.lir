@@ -446,13 +446,13 @@ code_xref(nextdef(Label), T, codechunk(Attr, Content, Content), XRefs) :-
 code_xref(notused(_Name), T, codechunk(Attr, Content, Content), XRefs) :-
 	codechunk_uses(Attr, []),
 	code(T, codechunk(Attr, Content, Content), XRefs).
-code_xref(beginuses, T, Code, XRefs) :-
+code_xref(beginuses, xref(T), Code, XRefs) :-
 	code_xref_uses(T, Code, XRefs, []).
 
-code_xref_uses(xref(useitem(I)), Code, XRefs, Use_items) :-
-	next_input(T),
+code_xref_uses(useitem(I), Code, XRefs, Use_items) :-
+	next_input(xref(T)),
 	code_xref_uses(T, Code, XRefs, [I|Use_items]).
-code_xref_uses(xref(enduses), codechunk(Attr, Content, Content), XRefs, Use_items) :-
+code_xref_uses(enduses, codechunk(Attr, Content, Content), XRefs, Use_items) :-
 	codechunk_uses(Attr, Use_items),
 	next_input(T),
 	code(T, codechunk(Attr, Content, Content), XRefs).
@@ -499,13 +499,11 @@ Quoted code is put in a `<span>` with a class `quotedcode`.
 emit(codechunk(Attr, Content)) :-
 	codechunk_name(Attr, Name),
 	codechunk_label(Attr, Label),
-	codechunk_ref(Attr, Ref),
-	name_ref(Name, Ref, Name_ref),
 	codechunk_prevdef(Attr, Prevdef),
 	Codechunk = Back0,
 	Defn = span([class=nwdefn, id=Label],
 		[	&(lang), &(nbsp),
-			Name_ref,
+			Name,
 			&(nbsp), &(rang)
 		]),
 	(	nonvar(Prevdef)
