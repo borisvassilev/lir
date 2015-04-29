@@ -148,17 +148,12 @@ To read lines from standard input we define [[next_input/1]] that unifies its ar
 
 next_input(T) :-
 	read_line_to_codes(user_input, Codes),
-	nwtoken_to_plterm(Codes, T0),
-	(	T0 = xref(T1), \+ used_xref(T1)
-	->	writeln(user_error, T0),
+	%format(user_error, "~s~n", [Codes]),
+	(	nwtoken_to_plterm(Codes, T)
+	->	true
+	;	format(user_error, "BAD TOKEN: ~s~n", [Codes]),
 		next_input(T)
-	;	T0 = T
 	).
-used_xref(label(_)). used_xref(ref(_)).
-used_xref(nextdef(_)). used_xref(prevdef(_)).
-used_xref(notused(_)).  used_xref(useitem(_)).
-used_xref(beginuses). used_xref(enduses).
-
 
 nwtoken_to_plterm(end_of_file, end_of_file).
 nwtoken_to_plterm([0'@|Token], T) :-
@@ -200,35 +195,38 @@ keyword(xref, [space, xref(XRef)], xref(XRef)).
 @
 
 There are several categories of cross-referencing concepts.
-The basic cross-reference for labels and references to labels:
 <<Table of cross-referencing keywords>>=
+<<Basic cross-referencing>>
+<<Linking previous and next definitions of a code chunk>>
+/* <<Continued definitions of the current chunk>> */
+/* <<The list of all code chunks>> */
+<<Chunks where the code is used>>
+@
+
+<<Basic cross-referencing>>=
 xref(label, [space, atom_rest(Label)], label(Label)).
 xref(ref, [space, atom_rest(Label)], ref(Label)).
 @
 
-Linking previous and next definitions of a code chunk:
-<<>>=
+<<Linking previous and next definitions of a code chunk>>=
 xref(prevdef, [space, atom_rest(Label)], prevdef(Label)).
 xref(nextdef, [space, atom_rest(Label)], nextdef(Label)).
 @
 
-Continued definitions of the current chunk:
-<<>>=
+<<Continued definitions of the current chunk>>=
 xref(begindefs, [], begindefs).
 xref(defitem, [space, atom_rest(Label)], defitem(Label)).
 xref(enddefs, [], enddefs).
 @
 
-Chunks where the code is used:
-<<>>=
+<<Chunks where the code is used>>=
 xref(beginuses, [], beginuses).
 xref(useitem, [space, atom_rest(Label)], useitem(Label)).
 xref(enduses, [], enduses).
 xref(notused, [space, string_rest(Name)], notused(Name)).
 @
 
-And the list of all code chunks:
-<<>>=
+<<The list of all code chunks>>=
 xref(beginchunks, [], beginchunks).
 xref(chunkbegin,
 	[space, atom(Label), space, string_rest(Name)],
@@ -360,9 +358,9 @@ begin_chunk(docs, N) :-
 	next_input(T),
 	docs(T, N).
 begin_chunk(code, N) :-
-	code_begin(N, Code),
+	make_codechunk([number(N)], Attr),
 	next_input(T),
-	code(T, Code, []).
+	code(T, codechunk(Attr, Content, Content), []).
 @
 
 Since the documentation chunks are expected to be valid Pandoc markdown, the contents are simply emitted unchanged to the output:
@@ -379,9 +377,8 @@ docs(text(Text), N) :-
 	next_input(T),
 	docs(T, N).
 docs(quote, N) :-
-	code_begin(N, Quoted),
 	next_input(T),
-	quote(T, Quoted, []).
+	quote(T, quotedcode(N, Content, Content), []).
 @
 
 For both quoted (inline) code and code chunks, the contents are first collected before emitted at the end of the quote or code chunk.
@@ -389,24 +386,20 @@ Since there are enough similarities between quoted code and proper code chunks, 
 It allows us to keep the state machine a bit cleaner.
 <<Quoted code>>=
 <<Data structure for code>>
-quote(endquote, Quoted, []) :-
-	code_end(N, Quoted),
-	code_content(Quoted, Content),
-	emit(quote(Content)),
+quote(endquote, quotedcode(N, Content, []), []) :-
+	emit(quotedcode(Content)),
 	next_input(T),
 	docs(T, N).
-quote(text(Text), Quoted0, XRef) :-
-	code_add(text(Text), Quoted0, Quoted),
+quote(text(Text), quotedcode(N, Content, [text(Text)|Rest]), XRef) :-
 	next_input(T),
-	quote(T, Quoted, XRef).
-quote(nl, Quoted0, XRef) :-
-	code_add(nl, Quoted0, Quoted),
+	quote(T, quotedcode(N, Content, Rest), XRef).
+quote(nl, codechunk(N, Content, [nl|Rest]), XRef) :-
 	next_input(T),
-	quote(T, Quoted, XRef).
-quote(use(Name), Quoted0, XRef) :-
-	code_use([name(Name)|XRef], Quoted0, Quoted),
+	quote(T, quotedcode(N, Content, Rest), XRef).
+quote(use(Name), quotedcode(N, Content, [use(Use)|Rest]), XRef) :-
+	make_use([name(Name)|XRef], Use),
 	next_input(T),
-	quote(T, Quoted, []).
+	quote(T, quotedcode(N, Content, Rest), []).
 quote(xref(XRef), Quoted, XRef_rest) :-
 	next_input(T),
 	quote(T, Quoted, [XRef|XRef_rest]).
@@ -414,58 +407,52 @@ quote(xref(XRef), Quoted, XRef_rest) :-
 
 Code chunks are numbered, have a name, can contain uses, can be labelled and referenced, and so on:
 <<Code chunk>>=
-code(end(code, N), Code, []) :-
-	code_end(N, Code),
-	emit(Code),
+code(end(code, N), codechunk(Attr, Content, []), []) :-
+	codechunk_number(Attr, N),
+	emit(codechunk(Attr, Content)),
 	next_input(T),
 	file(T).
 code(xref(XRef), Code, XRefs) :-
 	next_input(T),
 	code_xref(XRef, T, Code, XRefs).
-code(defn(Name), Code0, XRef) :-
-	code_defn([name(Name)|XRef], Code0, Code),
+code(defn(Name), codechunk(Attr0, Content, Content), XRef) :-
+	set_codechunk_fields([name(Name)|XRef], Attr0, Attr),
 	next_input(T),
-	code(T, Code, []).
-code(use(Name), Code0, XRef) :-
-	code_use([name(Name)|XRef], Code0, Code),
+	code(T, codechunk(Attr, Content, Content), []).
+code(use(Name), codechunk(Attr, Content, [use(Use)|Rest]), XRef) :-
+	make_use([name(Name)|XRef], Use),
 	next_input(T),
-	code(T, Code, []).
-code(nl, Code0, XRef) :-
-	code_add(nl, Code0, Code),
+	code(T, codechunk(Attr, Content, Rest), []).
+code(nl, codechunk(Attr, Content, [nl|Rest]), XRef) :-
 	next_input(T),
-	code(T, Code, XRef).
-code(text(Text), Code0, XRef) :-
-	code_add(text(Text), Code0, Code),
+	code(T, codechunk(Attr, Content, Rest), XRef).
+code(text(Text), codechunk(Attr, Content, [text(Text)|Rest]), XRef) :-
 	next_input(T),
-	code(T, Code, XRef).
+	code(T, codechunk(Attr, Content, Rest), XRef).
 
 code_xref(label(Label), T, Code, XRefs) :-
 	code(T, Code, [label(Label)|XRefs]).
 code_xref(ref(Label), T, Code, XRefs) :-
 	code(T, Code, [ref(Label)|XRefs]).
-code_xref(prevdef(Label), T, Code, XRefs) :-
-	Code = codechunk(Attr, _, _),
-	ccattr_prevdef(Attr, Label),
-	code(T, Code, XRefs).
-code_xref(nextdef(Label), T, Code, XRefs) :-
-	Code = codechunk(Attr, _, _),
-	ccattr_nextdef(Attr, Label),
-	code(T, Code, XRefs).
-code_xref(notused(_Name), T, Code, XRefs) :-
-	Code = codechunk(Attr, _, _),
-	ccattr_uses(Attr, []),
-	code(T, Code, XRefs).
+code_xref(prevdef(Label), T, codechunk(Attr, Content, Content), XRefs) :-
+	codechunk_prevdef(Attr, Label),
+	code(T, codechunk(Attr, Content, Content), XRefs).
+code_xref(nextdef(Label), T, codechunk(Attr, Content, Content), XRefs) :-
+	codechunk_nextdef(Attr, Label),
+	code(T, codechunk(Attr, Content, Content), XRefs).
+code_xref(notused(_Name), T, codechunk(Attr, Content, Content), XRefs) :-
+	codechunk_uses(Attr, []),
+	code(T, codechunk(Attr, Content, Content), XRefs).
 code_xref(beginuses, T, Code, XRefs) :-
 	code_xref_uses(T, Code, XRefs, []).
 
 code_xref_uses(xref(useitem(I)), Code, XRefs, Use_items) :-
 	next_input(T),
 	code_xref_uses(T, Code, XRefs, [I|Use_items]).
-code_xref_uses(xref(enduses), Code, XRefs, Use_items) :-
-	Code = codechunk(Attr, _, _),
-	ccattr_uses(Attr, Use_items),
+code_xref_uses(xref(enduses), codechunk(Attr, Content, Content), XRefs, Use_items) :-
+	codechunk_uses(Attr, Use_items),
 	next_input(T),
-	code(T, Code, XRefs).
+	code(T, codechunk(Attr, Content, Content), XRefs).
 @
 
 To avoid having too many arguments in the predicates of the [[<<Pipeline FSM>>]], we define a few help predicates that serve as an interface to the data structure (Prolog term) that is used to represent a code chunk.
@@ -475,10 +462,6 @@ The attributes of a chunk, or uses inside a chunk, are maintained as Prolog _rec
 
 :- record
 	codechunk(
-		attr,
-		content,
-		content_back),
-	ccattr(
 		number:integer,
 		name:string,
 		label:atom,
@@ -490,29 +473,6 @@ The attributes of a chunk, or uses inside a chunk, are maintained as Prolog _rec
 		name:string,
 		label:atom,
 		ref:atom).
-
-<<Interface to the data>>
-@
-
-To allow for efficient appending to the end of the list of contents, it is kept as a _difference list_ pair:
-
-<<Interface to the data>>=
-code_begin(N, codechunk(Attr, Content, Content)) :-
-	make_ccattr([number(N)], Attr).
-code_defn(NameXRef,
-		codechunk(Attr0, Content, Content),
-		codechunk(Attr, Content, Content)) :-
-	set_ccattr_fields(NameXRef, Attr0, Attr).
-code_use(UseAttr,
-		codechunk(Attr, Content, [use(Use)|Rest]),
-		codechunk(Attr, Content, Rest)) :-
-	make_use(UseAttr, Use).
-code_add(New,
-		codechunk(Attr, Content, [New|Rest]),
-		codechunk(Attr, Content, Rest)).
-code_content(codechunk(_, Content, _), Content).
-code_end(N, codechunk(Attr, _, [])) :-
-	ccattr_number(Attr, N).
 @
 
 ## Writing Pandoc's Markdown
@@ -533,12 +493,12 @@ Quoted code is put in a `<span>` with a class `quotedcode`.
 <<Emit HTML for Pandoc>>=
 :- use_module(library(http/html_write)).
 
-emit(codechunk(Attr, C, _)) :-
-	ccattr_name(Attr, Name),
-	ccattr_label(Attr, Label),
-	ccattr_ref(Attr, Ref),
+emit(codechunk(Attr, Content)) :-
+	codechunk_name(Attr, Name),
+	codechunk_label(Attr, Label),
+	codechunk_ref(Attr, Ref),
 	name_ref(Name, Ref, Name_ref),
-	ccattr_prevdef(Attr, Prevdef),
+	codechunk_prevdef(Attr, Prevdef),
 	Codechunk = Back0,
 	Defn = span([class=nwdefn, id=Label],
 		[	&(lang), &(nbsp),
@@ -546,25 +506,25 @@ emit(codechunk(Attr, C, _)) :-
 			&(nbsp), &(rang)
 		]),
 	(	nonvar(Prevdef)
-	->	Back0 = [ Defn,
+	->	Back0 = [Defn,
 				&(nbsp),
 				a(href="#~a"-Prevdef, "prev"),
 				&(nbsp)|Back1]
 	;	Back0 = [Defn|Back1]
 	),
 	Back1 = [&(equiv)|Back2],
-	ccattr_nextdef(Attr, Nextdef),
+	codechunk_nextdef(Attr, Nextdef),
 	(	nonvar(Nextdef)
 	->	Back2 = [&(nbsp), a(href="#~a"-Nextdef, "next")|Back3]
 	;	Back2 = Back3
 	),
-	Back3 = [pre(Content)|Back4],
-	ccattr_uses(Attr, Uses),
+	maplist(codechunk_html, Content, HTML_Content),
+	Back3 = [pre(HTML_Content)|Back4],
+	codechunk_uses(Attr, Uses),
 	uses_to_links(Uses, Back4),
-	maplist(codechunk_html, C, Content),
 	phrase(html(div(class=codechunk, Codechunk)), HTML),
 	print_html(HTML).
-emit(quote(Q)) :-
+emit(quotedcode(Q)) :-
 	maplist(quotedcode_html, Q, Content),
 	phrase(html(span(class=quotedcode, Content)),
 		HTML),
