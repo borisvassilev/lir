@@ -410,7 +410,7 @@ quote(xref(XRef), Quoted, XRef_rest) :-
 
 Code chunks are numbered, have a name, can contain uses, can be labelled and referenced, and so on:
 <<Code chunk>>=
-code(end(code, N), codechunk(Attr, Content, []), []) :-
+code(end(code, N), codechunk(Attr, [nl|Content], []), []) :-
 	codechunk_number(Attr, N),
 	emit(codechunk(Attr, Content)),
 	next_input(T),
