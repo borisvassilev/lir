@@ -12,7 +12,7 @@ This document is self-hosting: the implementation presented here can be used to 
 This makes informal validation trivial ("does the final document look right?"), but it also means that the only guarantee is that it implements enough to be able to compile itself.
 
 # Bootstrapping
-The following small programs are the components used to provide the functionality of `lire`.
+The following small programs are the components used to provide the functionality of [[<<lire>>]].
 
 The first one, [[<<lire-tangle.sh>>]], is used to tangle a code chunk and, if necessary, deploy it to the working directory, `.lire`:
 <<lire-tangle.sh>>=
@@ -58,6 +58,8 @@ bash lire-make.sh
 
 To tangle and run it, do:
 
+<<lire>>=
+@
 ~~~{.bash}
 $ notangle -R"bootstrap" lire.lir > lire && chmod u+x lire && ./lire
 ~~~
@@ -135,7 +137,7 @@ Logically, converting `noweb`'s pipeline to valid Pandoc markdown be broken down
 - A finite state machine that consumes the Prolog terms and emits Pandoc markdown---[[<<Pipeline Finite State Machine>>]] (it is rather a finite state transducer, as it generates output, but let's not get too formal);
 - A writer that transforms each term to the actual emitted markdown---[[<<Emit Pandoc's markdown>>]].
 
-## Parsing `noweb` tokens
+## Reading `noweb`
 [[<<Parse `noweb` tokens>>]] reads the line-oriented pipeline representation of `noweb` from standard input and turns each line (token) into a Prolog term.
 <<Parse `noweb` tokens>>=
 <<Read lines from standard input>>
@@ -333,6 +335,9 @@ The input to the state machine are the terms representing the `noweb` tokens, ob
 nwpipeline_fsm :-
 	next_input(T),
 	start(T).
+
+<<Data structure for code>>
+
 % States
 <<Start>>
 <<File>>
@@ -343,11 +348,30 @@ nwpipeline_fsm :-
 % etc
 @
 
+To avoid having too many arguments in the predicates of the [[<<Pipeline Finite State Machine>>]], we define a [[<<Data structure for code>>]] that is used to represent a code chunk.
+The attributes of a chunk, or uses inside a chunk, are maintained as Prolog _records_.
+<<Data structure for code>>=
+:- use_module(library(record)).
+
+:- record
+	codechunk(
+		number:integer,
+		name:string,
+		label:atom,
+		ref:atom,
+		nextdef:atom,
+		prevdef:atom,
+		uses:list(atom)),
+	use(
+		name:string,
+		label:atom,
+		ref:atom).
+@
+
 The pipeline representation consists of one or more files:
 <<Start>>=
 start(file(_File)) :-
 	next_input(T),
-	flag(codechunknr, _, 0),
 	file(T).
 @
 
@@ -366,8 +390,7 @@ begin_chunk(docs, N) :-
 	next_input(T),
 	docs(T, N).
 begin_chunk(code, N) :-
-	flag(codechunknr, Old, Old), succ(Old, New),
-	make_codechunk([number(N),succ(New)], Attr),
+	make_codechunk([number(N)], Attr),
 	next_input(T),
 	code(T, codechunk(Attr, Content, Content), []).
 @
@@ -394,7 +417,6 @@ For both (inline) [[<<Quoted code>>]] and [[<<Code chunk>>]]s, the contents are 
 Since there are enough similarities between quoted code and proper code chunks, we use the same [[<<Data structure for code>>]].
 It allows us to keep the state machine a bit cleaner.
 <<Quoted code>>=
-<<Data structure for code>>
 quote(endquote, quotedcode(N, Content, []), []) :-
 	emit(quotedcode(Content)),
 	next_input(T),
@@ -418,9 +440,7 @@ quote(xref(XRef), Quoted, XRef_rest) :-
 <<Code chunk>>=
 code(end(code, N), codechunk(Attr, [nl|Content], []), []) :-
 	codechunk_number(Attr, N),
-	codechunk_succ(Attr, S),
-	flag(codechunknr, _, S),
-	emit(codechunk(S, Attr, Content)),
+	emit(html, codechunk(Attr, Content)),
 	next_input(T),
 	file(T).
 code(xref(XRef), Code, XRefs) :-
@@ -466,28 +486,6 @@ code_xref_uses(enduses, codechunk(Attr, Content, Content), XRefs, Use_items) :-
 	code(T, codechunk(Attr, Content, Content), XRefs).
 @
 
-To avoid having too many arguments in the predicates of the [[<<Pipeline Finite State Machine>>]], we define a [[<<Data structure for code>>]] that is used to represent a code chunk.
-The attributes of a chunk, or uses inside a chunk, are maintained as Prolog _records_.
-<<Data structure for code>>=
-:- use_module(library(record)).
-
-:- record
-	codechunk(
-		number:integer,
-		succ:integer,
-		succsucc:atom,
-		name:string,
-		label:atom,
-		ref:atom,
-		nextdef:atom,
-		prevdef:atom,
-		uses:list(atom)),
-	use(
-		name:string,
-		label:atom,
-		ref:atom).
-@
-
 ## Writing Pandoc's Markdown
 Unfortunately, Pandoc's markdown is not expressive enough to allow code chunks in the literate program to be expressed in pure markdown.
 Instead, native markup for each supported front end is used.
@@ -501,72 +499,79 @@ At the moment, only a Pandoc document that can be compiled to an HTML page is ge
 
 ### Emitting HTML
 A Prolog library is used to [[<<Emit HTML for Pandoc>>]].
-Code chunks are put in a `<div>` tag with a class `codechunk`, with `noweb`'s `defn` at the top, inside its own `<span>` tag with a class `nwdefn`, and all content in a `<pre>` tag.
-Quoted code is put in a `<span>` with a class `quotedcode`.
 <<Emit HTML for Pandoc>>=
-:- multifile html_write:expand//1.
-:- use_module(library(http/html_write), [html//1, print_html/1]).
+:- use_module(library(http/html_write),
+		[	html//1,
+			html_begin//1,
+			html_end//1,
+			print_html/1
+		]).
 
-emit(codechunk(_, Attr, Content)) :-
+emit(html, T) :-
+	emit_html(T).
+
+<<Emit HTML for a code chunk>>
+<<Emit HTML for quoted code>>
+<<`Noweb` $\rightarrow$ HTML>>
+@
+
+Code chunks are put in a `<div>` tag with a class `codechunk`, with `noweb`'s `defn` at the top, inside its own `<span>` tag with a class `nwdefn`, and all content in a `<pre>` tag.
+<<Emit HTML for a code chunk>>=
+codechunk(Content) -->
+	html_begin(pre),
+	codechunk_items(Content),
+	html_end(pre).
+codechunk_items([]) --> [].
+codechunk_items([H|T]) -->
+	codechunk_item(H),
+	codechunk_items(T).
+
+codechunk_item(nl) --> [nl(1)].
+codechunk_item(text(Text)) --> [Text].
+codechunk_item(use(Use)) -->
+	{	use_name(Use, Name),
+		use_label(Use, Label),
+		use_ref(Use, Ref),
+		through_pandoc(html5, Name, F)
+	},
+	html(span([class=nwuse, id=Label], [
+				&(lang), &(nbsp),
+				a(href="#~a"-Ref, \[F]), % add directly to the output
+				&(nbsp), &(rang)])).
+
+emit_html(codechunk(Attr, Content)) :-
 	codechunk_name(Attr, Name),
 	codechunk_label(Attr, Label),
-	codechunk_prevdef(Attr, Prevdef),
-	Codechunk = Back0,
-	Defn = span([class=nwdefn, id=Label],
-		[	&(lang), &(nbsp),
-			Name,
-			&(nbsp), &(rang)
-		]),
-	(	nonvar(Prevdef)
-	->	Back0 = [Defn,
-				&(nbsp),
-				a(href="#~a"-Prevdef, "prev"),
-				&(nbsp)|Back1]
-	;	Back0 = [Defn|Back1]
-	),
-	Back1 = [&(equiv)|Back2],
-	codechunk_nextdef(Attr, Nextdef),
-	(	nonvar(Nextdef)
-	->	Back2 = [&(nbsp), a(href="#~a"-Nextdef, "next")|Back3]
-	;	Back2 = Back3
-	),
-	maplist(codechunk_html, Content, HTML_Content),
-	Back3 = [pre(HTML_Content)|Back4],
 	codechunk_uses(Attr, Uses),
-	uses_to_links(Uses, Back4),
-	phrase(html(div(class=codechunk, Codechunk)), HTML),
+	codechunk_prevdef(Attr, Prevdef),
+	codechunk_nextdef(Attr, Nextdef),
+	Codechunk = div(class=codechunk,
+		[	span([class=nwdefn, id=Label],
+				[	&(lang), &(nbsp),
+					Name,
+					&(nbsp), &(rang), &(equiv)
+				]),
+			br([]),
+			\uses(Uses),
+			br([]),
+			\prevdef(Prevdef),
+			\codechunk(Content),
+			\nextdef(Nextdef)
+		]),
+	phrase(html(Codechunk), HTML),
 	print_html(HTML).
+@
+
+Quoted code is put in a `<span>` with a class `quotedcode`.
+<<Emit HTML for quoted code>>=
+
 emit(quotedcode(Q)) :-
 	maplist(quotedcode_html, Q, Content),
 	phrase(html(span(class=quotedcode, Content)),
 		HTML),
 	print_html(HTML).
 
-uses_to_links(Uses, span(class=uses, Links)) :-
-	(	nonvar(Uses), Uses = [First|Rest]
-	->	Links = ["Used ", a(href="#~a"-First, "here")|Links_rest],
-		uses_to_links_1(Rest, Links_rest)
-	;	Links = ["Not used: root chunk"]
-	).
-uses_to_links_1([], []).
-uses_to_links_1([Second|Rest], Links_rest) :-
-	uses_to_links_2(Rest, Second, Links_rest).
-uses_to_links_2([], Last, [", and ", a(href="#~a"-Last, "here")]).
-uses_to_links_2([This|Rest], Prev, [a(href="#~a"-Prev, ", here")|Links]) :-
-	uses_to_links_2(Rest, This, Links).
 
-name_ref(Name, Ref, Name_ref) :-
-	(	dif(Ref, 'nw@notdef')
-	->	Name_ref = a(href="#~a"-Ref, Name)
-	;	Name_ref = Name
-	).
-
-<<`Noweb` $\rightarrow$ HTML>>
-@
-
-Transforming [[<<`Noweb` $\rightarrow$ HTML>>]] could be quite straight-forward: just map the `noweb` token to an HTML tag with the appropriate attributes.
-For quoted code, this is good enough:
-<<`Noweb` $\rightarrow$ HTML>>=
 quotedcode_html(nl, '\n').
 quotedcode_html(text(Text), Text).
 quotedcode_html(use(Use), span(class=nwquoteduse,
@@ -577,6 +582,46 @@ quotedcode_html(use(Use), span(class=nwquoteduse,
 	use_ref(Use, Ref),
 	use_name(Use, Name),
 	name_ref(Name, Ref, Name_ref).
+
+uses(Uses) -->
+	{	nonvar(Uses)
+	}, !,
+	html_begin(span(class(uses))),
+	uses_links(Uses),
+	html_end(span).
+
+uses(_) --> uses_links([]).
+
+uses_links([H|T]) -->
+	html(["**Used** ", a(href="#~a"-H, "here")]),
+	uses_links_rest(T).
+uses_links([]) --> html(["**Root** chunk"]).
+
+uses_links_rest([]) --> [].
+uses_links_rest([H|T]) --> uses_links_rest_1(T, H).
+uses_links_rest_1([], Last) --> html([", and ", a(href="#~a"-Last, "here")]).
+uses_links_rest_1([H|T], Prev) --> html([", ", a(href="#~a"-Prev, "here")]),
+	uses_links_rest_1(T, H).
+
+prevdef(Prevdef) --> { nonvar(Prevdef) }, !,
+	html(span(class=prevdef, [". . . ", a(href="#~a"-Prevdef, "cont.")])).
+prevdef(_) --> [].
+
+nextdef(Nextdef) --> { nonvar(Nextdef) }, !,
+	html(span(class=nextdef, [a(href="#~a"-Nextdef, "more"), " . . ."])).
+nextdef(_) --> [].
+
+@
+
+Transforming [[<<`Noweb` $\rightarrow$ HTML>>]] could be quite straight-forward: just map the `noweb` token to an HTML tag with the appropriate attributes.
+For quoted code, this is good enough:
+<<`Noweb` $\rightarrow$ HTML>>=
+
+name_ref(Name, Ref, Name_ref) :-
+	(	dif(Ref, 'nw@notdef')
+	->	Name_ref = a(href="#~a"-Ref, Name)
+	;	Name_ref = Name
+	).
 @
 Apparently, Pandoc does recognize markdown inside `<span>` contents, and adds the necessary HTML markup.
 
@@ -587,17 +632,6 @@ For example, we can put a "use" inside quoted code, complete with its own Pandoc
 
 Unfortunately, it does not do that for the contents of `<span>` which is inside a `<pre>` (I guess rightfully so?).
 <<`Noweb` $\rightarrow$ HTML>>=
-codechunk_html(nl, '\n').
-codechunk_html(text(Text), Text).
-codechunk_html(use(Use),
-		span([class=nwuse, id=Label], [
-				&(lang), &(nbsp),
-				a(href="#~a"-Ref, \[F]), % add directly to the output
-				&(nbsp), &(rang)])) :-
-	use_name(Use, Name),
-	use_label(Use, Label),
-	use_ref(Use, Ref),
-	through_pandoc(html5, Name, F).
 @
 
 ### Ad-hoc markup with Pandoc
@@ -638,6 +672,9 @@ It also aims to provide a sensible default layout for the human-readable documen
 ## HTML
 For HTML documentation, [[<<lire.css>>]] is used. Here it is:
 <<lire.css>>=
+span.nwuse a, span.uses a, span.nwquoteduse a {
+	text-decoration-line: none;
+}
 h1, h2, h3 {
 	font-family: sans-serif;
 }
@@ -664,18 +701,18 @@ span.nwdefn {
 	font-family: serif;
 	font-weight: bold;
 }
-span.uses {
+span.uses, span.prevdef, span.nextdef {
 	font-size: small;
 }
 @
 
 # Common definitions
-All building block for `noweb` (front ends, filters, back ends) are usually installed in the same place:
+All building block for `noweb` (front ends, filters, back ends) are usually installed in the same [[<<`Noweb` location>>]]:
 <<`Noweb` location>>=
 /usr/lib/noweb
 @
 
-The portable Bash shebang is, according to [Stack Overflow](http://stackoverflow.com/questions/10376206/preferred-bash-shebang):
+The portable [[<<Bash shebang>>]] is, according to [Stack Overflow](http://stackoverflow.com/questions/10376206/preferred-bash-shebang):
 <<Bash shebang>>=
 #! /usr/bin/env bash
 @
