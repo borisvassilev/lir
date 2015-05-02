@@ -343,10 +343,12 @@ item(xref(XRef)) -->
 
 ### Finite State Machine
 To represent the [[<<Finite State Machine>>]] in Prolog we use predicates for states and predicate clauses for arcs (transitions), another idea borrowed from "The Craft of Prolog" [@OKeefe1990, pp. 353].
-To avoid having too many arguments in the predicates of the [[<<Finite State Machine>>]], we define [[<<Data structures>>]] that are used to represent the attributes and contents of code chunks.
+To avoid having too many arguments in the predicates of the [[<<Finite State Machine>>]], we "hide" the difference list pair of a rudimentary _queue_.
 The input to the state machine are the terms representing the `noweb` tokens, obtained by consecutive calls to [[next_input/1]].
 <<Finite State Machine>>=
-<<Data structures>>
+queue_init(q(Q,Q)).
+queue_back(q(Q,[New|Back]), New, q(Q,Back)).
+queue_list(q(Q,[]), Q).
 
 nwpipeline_fsm :-
 	next_input(T),
@@ -358,29 +360,6 @@ nwpipeline_fsm :-
 <<Docs chunk>>
 <<Quoted code>>
 <<Code chunk>>
-@
-
-The attributes of a chunk, or uses inside a chunk, are maintained as Prolog _records_.
-We "hide" the difference list pair of a rudimentary _queue_.
-<<Data structures>>=
-:- use_module(library(record)).
-:- record
-	codechunk(
-		number:integer,
-		name:string,
-		label:atom,
-		ref:atom,
-		nextdef:atom,
-		prevdef:atom,
-		uses:list(atom)),
-	use(
-		name:string,
-		label:atom,
-		ref:atom).
-
-queue_init(q(Q,Q)).
-queue_back(q(Q,[New|Back]), New, q(Q,Back)).
-queue_list(q(Q,[]), Q).
 @
 
 The first structural keyword is always `file`:
@@ -405,10 +384,9 @@ begin_kind_number(docs, N) :-
 	next_input(T),
 	docs(T, N).
 begin_kind_number(code, N) :-
-	make_codechunk([number(N)], C),
 	queue_init(Q),
 	next_input(T),
-	code(T, C, Q, []).
+	code(T, code{number:N}, Q, []).
 @
 
 Since the [[<<Docs chunk>>]]s are expected to be valid Pandoc markdown, the contents are simply emitted unchanged to the output:
@@ -431,7 +409,6 @@ docs(quote, N) :-
 @
 
 For both (inline) [[<<Quoted code>>]] and [[<<Code chunk>>]]s, the contents are first collected before emitted at the end of the quote or code chunk.
-Since there are enough similarities between quoted code and proper code chunks, we use the same [[<<Data structures>>]] for both.
 It allows us to keep the state machine a bit cleaner.
 <<Quoted code>>=
 quote(endquote, N, Q, []) :-
@@ -448,8 +425,8 @@ quote(nl, N, Q0, XRef) :-
 	next_input(T),
 	quote(T, N, Q, XRef).
 quote(use(Name), N, Q0, XRef) :-
-	make_use([name(Name)|XRef], Use),
-	queue_back(Q0, use(Use), Q),
+	dict_create(U, use, [name(Name)|XRef]),
+	queue_back(Q0, use(U), Q),
 	next_input(T),
 	quote(T, N, Q, []).
 quote(xref(XRef), N, Q, XRef_rest) :-
@@ -459,56 +436,50 @@ quote(xref(XRef), N, Q, XRef_rest) :-
 
 [[<<Code chunk>>]]s are numbered, have a name, can contain uses, can be labelled and referenced, and so on:
 <<Code chunk>>=
-code(end_kind_number(code, N), C, Q, []) :-
-	codechunk_number(C, N),
+code(end_kind_number(code, A.number), A, Q, []) :-
 	queue_list(Q, [nl|Content]),
-	emit(codechunk(C, Content)),
+	emit(codechunk(A, Content)),
 	next_input(T),
 	file(T).
-code(xref(XRef), C, Q, XRefs) :-
+code(xref(XRef), A, Q, XRefs) :-
 	next_input(T),
-	code_xref(XRef, T, C, Q, XRefs).
-code(defn(Name), C0, Q, XRef) :-
-	set_codechunk_fields([name(Name)|XRef], C0, C),
+	code_xref(XRef, T, A, Q, XRefs).
+code(defn(Name), A, Q, XRef) :-
 	next_input(T),
-	code(T, C, Q, []).
-code(use(Name), C, Q0, XRef) :-
-	make_use([name(Name)|XRef], Use),
-	queue_back(Q0, use(Use), Q),
+	code(T, A.put([name(Name)|XRef]), Q, []).
+code(use(Name), A, Q0, XRef) :-
+	dict_create(U, use, [name(Name)|XRef]),
+	queue_back(Q0, use(U), Q),
 	next_input(T),
-	code(T, C, Q, []).
-code(nl, C, Q0, XRef) :-
+	code(T, A, Q, []).
+code(nl, A, Q0, XRef) :-
 	next_input(T),
 	queue_back(Q0, nl, Q),
-	code(T, C, Q, XRef).
-code(text(Text), C, Q0, XRef) :-
+	code(T, A, Q, XRef).
+code(text(Text), A, Q0, XRef) :-
 	next_input(T),
 	queue_back(Q0, text(Text), Q),
-	code(T, C, Q, XRef).
+	code(T, A, Q, XRef).
 
-code_xref(label(Label), T, C, Q, XRefs) :-
-	code(T, C, Q, [label(Label)|XRefs]).
-code_xref(ref(Label), T, C, Q, XRefs) :-
-	code(T, C, Q, [ref(Label)|XRefs]).
-code_xref(prevdef(Label), T, C, Q, XRefs) :-
-	codechunk_prevdef(C, Label),
-	code(T, C, Q, XRefs).
-code_xref(nextdef(Label), T, C, Q, XRefs) :-
-	codechunk_nextdef(C, Label),
-	code(T, C, Q, XRefs).
-code_xref(notused(_Name), T, C, Q, XRefs) :-
-	codechunk_uses(C, []),
-	code(T, C, Q, XRefs).
-code_xref(beginuses, xref(T), C, Q, XRefs) :-
-	code_xref_uses(T, C, Q, XRefs, []).
+code_xref(label(Label), T, A, Q, XRefs) :-
+	code(T, A, Q, [label(Label)|XRefs]).
+code_xref(ref(Label), T, A, Q, XRefs) :-
+	code(T, A, Q, [ref(Label)|XRefs]).
+code_xref(prevdef(Label), T, A, Q, XRefs) :-
+	code(T, A.put([prevdef(Label)]), Q, XRefs).
+code_xref(nextdef(Label), T, A, Q, XRefs) :-
+	code(T, A.put([nextdef(Label)]), Q, XRefs).
+code_xref(notused(_Name), T, A, Q, XRefs) :-
+	code(T, A, Q, XRefs).
+code_xref(beginuses, xref(T), A, Q, XRefs) :-
+	code_xref_uses(T, A, Q, XRefs, []).
 
-code_xref_uses(useitem(I), C, Q, XRefs, Use_items) :-
+code_xref_uses(useitem(I), A, Q, XRefs, Use_items) :-
 	next_input(xref(T)),
-	code_xref_uses(T, C, Q, XRefs, [I|Use_items]).
-code_xref_uses(enduses, C, Q, XRefs, Use_items) :-
-	codechunk_uses(C, Use_items),
+	code_xref_uses(T, A, Q, XRefs, [I|Use_items]).
+code_xref_uses(enduses, A, Q, XRefs, Use_items) :-
 	next_input(T),
-	code(T, C, Q, XRefs).
+	code(T, A.put([uses(Use_items)]), Q, XRefs).
 @
 
 
@@ -528,7 +499,6 @@ A Prolog library is used to [[<<Emit HTML for Pandoc>>]].
 			print_html/1
 		]).
 
-<<Data structures>>
 <<Emit HTML for a code chunk>>
 <<Emit HTML for quoted code>>
 name_ref(Name, Ref, Name_ref) :-
@@ -551,35 +521,27 @@ codechunk_items([H|T]) -->
 
 codechunk_item(nl) --> [nl(1)].
 codechunk_item(text(Text)) --> [Text].
-codechunk_item(use(Use)) -->
-	{	use_name(Use, Name),
-		use_label(Use, Label),
-		use_ref(Use, Ref),
-		through_pandoc(html5, Name, F)
+codechunk_item(use(U)) -->
+	{	through_pandoc(html5, U.name, F)
 	},
-	html(span([class=nwuse, id=Label], [
+	html(span([class=nwuse, id=U.label], [
 				&(lang), &(nbsp),
-				a(href="#~a"-Ref, \[F]), % add directly to the output
+				a(href="#~a"-U.ref, \[F]), % add directly to the output
 				&(nbsp), &(rang)])).
 
-emit(codechunk(Attr, Content)) :-
-	codechunk_name(Attr, Name),
-	codechunk_label(Attr, Label),
-	codechunk_uses(Attr, Uses),
-	codechunk_prevdef(Attr, Prevdef),
-	codechunk_nextdef(Attr, Nextdef),
+emit(codechunk(A, Content)) :-
 	Codechunk = div(class=codechunk,
-		[	span([class=nwdefn, id=Label],
+		[	span([class=nwdefn, id=A.label],
 				[	&(lang), &(nbsp),
-					Name,
+					A.name,
 					&(nbsp), &(rang), &(equiv)
 				]),
 			br([]),
-			\uses(Uses),
+			\uses(A),
 			br([]),
-			\prevdef(Prevdef),
+			\prevdef(A),
 			\codechunk(Content),
-			\nextdef(Nextdef)
+			\nextdef(A)
 		]),
 	phrase(html(Codechunk), HTML),
 	print_html(HTML).
@@ -597,22 +559,19 @@ emit(quotedcode(Q)) :-
 
 quotedcode_html(nl, '\n').
 quotedcode_html(text(Text), Text).
-quotedcode_html(use(Use), span(class=nwquoteduse,
+quotedcode_html(use(U), span(class=nwquoteduse,
 		[	&(lang), &(nbsp),
 			Name_ref,
 			&(nbsp), &(rang)
 		])) :-
-	use_ref(Use, Ref),
-	use_name(Use, Name),
-	name_ref(Name, Ref, Name_ref).
+	name_ref(U.name, U.ref, Name_ref).
 
-uses(Uses) -->
-	{	nonvar(Uses)
+uses(A) -->
+	{	_{uses:Uses} :< A
 	}, !,
 	html_begin(span(class(uses))),
 	uses_links(Uses),
 	html_end(span).
-
 uses(_) --> uses_links([]).
 
 uses_links([H|T]) -->
@@ -626,11 +585,11 @@ uses_links_rest_1([], Last) --> html([", and ", a(href="#~a"-Last, "here")]).
 uses_links_rest_1([H|T], Prev) --> html([", ", a(href="#~a"-Prev, "here")]),
 	uses_links_rest_1(T, H).
 
-prevdef(Prevdef) --> { nonvar(Prevdef) }, !,
+prevdef(A) --> { _{prevdef:Prevdef} :< A }, !,
 	html(span(class=prevdef, [". . . ", a(href="#~a"-Prevdef, "cont.")])).
 prevdef(_) --> [].
 
-nextdef(Nextdef) --> { nonvar(Nextdef) }, !,
+nextdef(A) --> { _{nextdef:Nextdef} :< A }, !,
 	html(span(class=nextdef, [a(href="#~a"-Nextdef, "more"), " . . ."])).
 nextdef(_) --> [].
 
