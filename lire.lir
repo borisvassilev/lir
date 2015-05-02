@@ -567,10 +567,10 @@ quotedcode_html(use(U), span(class=nwquoteduse,
 	name_ref(U.name, U.ref, Name_ref).
 
 uses(A) -->
-	{	_{uses:Uses} :< A
+	{	code{uses:U} :< A
 	}, !,
 	html_begin(span(class(uses))),
-	uses_links(Uses),
+	uses_links(U),
 	html_end(span).
 uses(_) --> uses_links([]).
 
@@ -585,12 +585,12 @@ uses_links_rest_1([], Last) --> html([", and ", a(href="#~a"-Last, "here")]).
 uses_links_rest_1([H|T], Prev) --> html([", ", a(href="#~a"-Prev, "here")]),
 	uses_links_rest_1(T, H).
 
-prevdef(A) --> { _{prevdef:Prevdef} :< A }, !,
-	html(span(class=prevdef, [". . . ", a(href="#~a"-Prevdef, "cont.")])).
+prevdef(A) --> { code{prevdef:D} :< A }, !,
+	html(span(class=prevdef, [". . . ", a(href="#~a"-D, "cont.")])).
 prevdef(_) --> [].
 
-nextdef(A) --> { _{nextdef:Nextdef} :< A }, !,
-	html(span(class=nextdef, [a(href="#~a"-Nextdef, "more"), " . . ."])).
+nextdef(A) --> { code{nextdef:D} :< A }, !,
+	html(span(class=nextdef, [a(href="#~a"-D, "more"), " . . ."])).
 nextdef(_) --> [].
 
 @
