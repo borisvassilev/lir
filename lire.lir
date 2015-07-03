@@ -152,16 +152,18 @@ nwpipeline_pandoc(_) :-
     write_lire(Ts, Terms_file),
     close(Terms_file).
 
+<<driver.pl>>=
 write_lire([], _).
 write_lire([H|T], Out) :-
-    (   H = code(Cs)
-    ->  format(Out, "CODE~n", []),
+    (   H = code_meta(Cs, M)
+    ->  format(Out, "CODE~n~q~n", [M]),
         forall(member(C, Cs), format(Out, "~q~n", [C])),
         format(Out, "ENDCODE~n", [])
     ;   format(Out, "~q~n", [H])
     ),
     write_lire(T, Out).
 
+<<driver.pl>>=
 input_to_terms(I, Ts) :-
     read_string(I, _, S),
     split_string(S, "\r\n", "\r\n", Str_Ls),
@@ -169,6 +171,7 @@ input_to_terms(I, Ts) :-
     nwtokens_terms(Ls, Ts0),
     phrase(lire(Ts), Ts0).
 
+<<driver.pl>>=
 lire(L) -->
     [file(_)],
     lire_rest(L).
@@ -180,7 +183,7 @@ lire_rest([]) --> [].
 lire_file(docs, L) --> [X],
     docs(X, L).
 lire_file(code, [code_meta(C, M)|L]) -->
-    code(C),
+    code(C, M),
     lire_rest(L).
 lire_file(nl, [nl(N)|L]) -->
     nls(N),
@@ -226,10 +229,49 @@ ref(L, N, Ref) :-
     ;   Ref = use(N)
     ).
 
-code(X
-code(end, []) --> !, [].
-code(X, [X|Cs]) --> [Y], !,
-    code(Y, Cs).
+code(C, M) --> [X],
+    defn(X, M_pairs),
+    {   dict_create(M, code, M_pairs)
+    },
+    [Y],
+    codecontent(Y, C).
+
+defn(nl, []) --> !,
+    [].
+defn(xref_label(L), [label(L)|M]) --> !, [X],
+    defn(X, M).
+defn(xref_ref(L), [ref(L)|M]) --> !, [X],
+    defn(X, M).
+defn(defn(N), [name(N)|M]) --> !, [X],
+    defn(X, M).
+defn(xref_notused(_N), [uses(notused)|M]) --> !, [X],
+    defn(X, M).
+defn(xref_beginuses, [uses(Us)|M]) --> !, [X],
+    uses(X, Us, Us),
+    [Y],
+    defn(Y, M).
+defn(xref_prevdef(L), [prev(L)|M]) --> !, [X],
+    defn(X, M).
+defn(xref_nextdef(L), [next(L)|M]) --> !, [X],
+    defn(X, M).
+defn(language(L), [language(L)|M]) --> !, [X],
+    defn(X, M).
+defn(xref_begindefs, [defs(Ds)|M]) --> !, [X],
+    defs(X, Ds, Ds),
+    [Y],
+    defn(Y, M).
+
+uses(xref_enduses, _, []) --> [].
+uses(xref_useitem(L), Us, [L|Us0]) --> [X],
+    uses(X, Us, Us0).
+
+defs(xref_enddefs, _, []) --> [].
+defs(xref_defitem(L), Ds, [L|Ds0]) --> [X],
+    defs(X, Ds, Ds0).
+
+codecontent(end, []) --> !, [].
+codecontent(X, [X|Cs]) --> [Y], !,
+    codecontent(Y, Cs).
 
 more_text([T|Ts]) -->
     [text(T)], !, % cut
@@ -270,6 +312,7 @@ index(X, [X|Is]) --> [Y],
     xref_chunks(Y, Is).
 */
 @
+@
 
 Parsing the pipeline:
 <<nwpipe.pl>>=
@@ -278,6 +321,7 @@ Parsing the pipeline:
 nwtokens_terms([], []).
 nwtokens_terms([[0'@|Token]|Tokens], [Term|Terms]) :-
     phrase(token(Back, Term), Token, Back),
+    %format(user_error, "~q~n", [Term]),
     nwtokens_terms(Tokens, Terms).
 <<`Noweb` tokens $\rightarrow$ Prolog terms>>
 @
@@ -469,6 +513,7 @@ span.uses, span.prevdef, span.nextdef {
     font-size: small;
 }
 @
+
 
 # Common definitions
 All building block for `noweb` (front ends, filters, back ends) are usually installed in the same [[<<`Noweb` location>>]]:
