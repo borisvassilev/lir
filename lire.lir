@@ -162,7 +162,7 @@ write_lire([H|T], Out) :-
     ;   format(Out, "~q~n", [H])
     ),
     write_lire(T, Out).
-
+@
 <<driver.pl>>=
 input_to_terms(I, Ts) :-
     read_string(I, _, S),
@@ -198,7 +198,7 @@ lire_file(index_beginindex, [index(I)|L]) --> [X],
 docs(end, L) -->
     lire_rest(L).
 docs(text(T), [text(Text)|L]) -->
-    more_text(Ts),
+    docs_text(Ts),
     {   atomics_to_string([T|Ts], Text)
     },
     [X],
@@ -236,27 +236,26 @@ code(C, M) --> [X],
     [Y],
     codecontent(Y, C).
 
-defn(nl, []) --> !,
-    [].
-defn(xref_label(L), [label(L)|M]) --> !, [X],
+defn(nl, []) --> [].
+defn(xref_label(L), [label(L)|M]) --> [X],
     defn(X, M).
-defn(xref_ref(L), [ref(L)|M]) --> !, [X],
+defn(xref_ref(L), [ref(L)|M]) --> [X],
     defn(X, M).
-defn(defn(N), [name(N)|M]) --> !, [X],
+defn(defn(N), [name(N)|M]) --> [X],
     defn(X, M).
-defn(xref_notused(_N), [uses(notused)|M]) --> !, [X],
+defn(xref_notused(_N), [uses(notused)|M]) --> [X],
     defn(X, M).
-defn(xref_beginuses, [uses(Us)|M]) --> !, [X],
+defn(xref_beginuses, [uses(Us)|M]) --> [X],
     uses(X, Us, Us),
     [Y],
     defn(Y, M).
-defn(xref_prevdef(L), [prev(L)|M]) --> !, [X],
+defn(xref_prevdef(L), [prev(L)|M]) --> [X],
     defn(X, M).
-defn(xref_nextdef(L), [next(L)|M]) --> !, [X],
+defn(xref_nextdef(L), [next(L)|M]) --> [X],
     defn(X, M).
-defn(language(L), [language(L)|M]) --> !, [X],
+defn(language(L), [language(L)|M]) --> [X],
     defn(X, M).
-defn(xref_begindefs, [defs(Ds)|M]) --> !, [X],
+defn(xref_begindefs, [defs(Ds)|M]) --> [X],
     defs(X, Ds, Ds),
     [Y],
     defn(Y, M).
@@ -273,17 +272,17 @@ codecontent(end, []) --> !, [].
 codecontent(X, [X|Cs]) --> [Y], !,
     codecontent(Y, Cs).
 
-more_text([T|Ts]) -->
+docs_text([T|Ts]) -->
     [text(T)], !, % cut
-    more_text(Ts).
-more_text(["\n"|Ts]) -->
+    docs_text(Ts).
+docs_text(["\n"|Ts]) -->
     [nl], !, % cut
     eol(Ts).
-more_text([]) --> [].
+docs_text([]) --> [].
 
 eol([T|Ts]) -->
     [text(T)], !, % cut
-    more_text(Ts).
+    docs_text(Ts).
 eol([]) --> [].
 
 nls(N) -->
