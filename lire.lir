@@ -11,6 +11,9 @@ This is a collection of tools that support programming language-agnostic reprodu
 This document is self-hosting: the implementation presented here can be used to produce the final human-readable documentation.
 This makes informal validation trivial ("does the final document look right?"), but it also means that the only guarantee is that it implements enough to be able to compile itself.
 
+It might or might not have [[quoted code with <<uses>>, or maybe without any]].
+I haven't decided on it yet.
+
 # Bootstrapping
 The following small programs are the components used to provide the functionality of [[<<lire>>]].
 
@@ -21,9 +24,9 @@ f=$(mktemp)
 notangle -t8 -filter emptydefn -R"$1" lire.lir > "$f"
 cmp --quiet "$f" .lire/"$1"
 if [ $? -eq 0 ]; then
-	rm "$f"
+    rm "$f"
 else
-	mv --verbose "$f" .lire/"$1"
+    mv --verbose "$f" .lire/"$1"
 fi
 @
 
@@ -31,17 +34,17 @@ This next program, [[<<lire-use.sh>>]], is meant for files that do not need to b
 <<lire-use.sh>>=
 cmp --quiet "$1" .lire/"$1"
 if [ $? -ne 0 ]; then
-	cp --verbose "$1" .lire/"$1"
+    cp --verbose "$1" .lire/"$1"
 fi
 @
 
 Finally, a script [[<<lire-make.sh>>]] that uses these building blocks to put the necessary files in the working directory (all scripts and the Makefile) and make everything:
 <<lire-make.sh>>=
-for tangled in lire-nwpipe.sh nwpipe-pandoc.pl fsm.pl nwpipe.pl tohtml.pl pandoc-html.sh lire.css Makefile; do
-	bash lire-tangle.sh "$tangled"
+for tangled in lire-nwpipe.sh nwpipe-pandoc.pl driver.pl nwpipe.pl pandoc-html.sh lire.css Makefile; do
+    bash lire-tangle.sh "$tangled"
 done
 for used in lire.lir lire.bib; do
-	bash lire-use.sh "$used"
+    bash lire-use.sh "$used"
 done
 make -C .lire
 @
@@ -51,7 +54,7 @@ Here is the [[<<bootstrap>>]] script:
 <<bootstrap>>=
 <<Bash shebang>>
 for file in lire-tangle.sh lire-use.sh lire-make.sh; do
-	notangle -t8 -R"$file" lire.lir > "$file"
+    notangle -t8 -R"$file" lire.lir > "$file"
 done
 bash lire-make.sh
 @
@@ -71,21 +74,22 @@ In its first incarnation, it consist only of a [Pandoc](http://johnmacfarlane.ne
 The [[<<Back end>>]]  generates `noweb` pipeline representation from a `.lir` source file ([[lire-nwpipe.sh]]), converts it to a document in Pandoc's markdown with embedded markup ([[nwpipe-pandoc]]), and uses Pandoc to compile the final HTML file:
 <<Back end>>=
 bash lire-nwpipe.sh lire.lir \
-	| ./nwpipe-pandoc \
-	| bash pandoc-html.sh \
-		--bibliography=lire.bib \
-		--css=lire.css \
-		--output=lire.html
+    | ./nwpipe-pandoc \
+    | bash pandoc-html.sh \
+        --bibliography=lire.bib \
+        --css=lire.css \
+        --output=lire.html
 @
 It assumes that all documentation chunks in the source document are written in Pandoc's markdown.
 
 In the first stage [[<<lire-nwpipe.sh>>]] takes `.lir` source file(s) and writes to standard output `noweb`'s pipeline representation.
 At the moment, this uses `noweb`'s own back end, `markup`, followed by the `emptydefn` and `noidx` filters.
-(All empty `@text` lines are removed from the output of `markup`; this should not change the structure of the pipeline or the final result, and it will make it unnecessary to look out for empty `@text` tokens in other parts of the program: `sed -n '/^@text $/!p'`.)
+All empty `@text` lines are removed from the output of the `noweb` components pipe; this should not change the structure of the pipeline or the final result, and it will make it unnecessary to look out for empty `@text` tokens in other parts of the program:
 <<lire-nwpipe.sh>>=
 <<`Noweb` location>>/markup "$@" \
-	| <<`Noweb` location>>/emptydefn \
-	| <<`Noweb` location>>/noidx
+    | <<`Noweb` location>>/emptydefn \
+    | <<`Noweb` location>>/noidx \
+    | sed -n '/^@text $/!p'
 @
 
 The program [[<<nwpipe-pandoc.pl>>]] is written in Prolog, using the SWI-Prolog implementation [@Wielemaker2012].
@@ -94,18 +98,20 @@ It is written as a stand-alone command line program: once compiled, can be run f
 % no messages of type `informational` or `banner`
 :- set_prolog_flag(verbose, silent).
 
+:- use_module(driver, [nwpipeline_pandoc/1]).
 main :-
-	current_prolog_flag(argv, Argv), % command line arguments
-	prompt(_Old, ''), %  turn off prompt
-	nwpipeline_to_pandoc(Argv),
-	halt. % exit with success
+    current_prolog_flag(argv, Argv), % command line arguments
+    prompt(_Old, ''), %  turn off prompt
+    nwpipeline_pandoc(Argv),
+    deterministic(D),
+    (   D == false
+    ->  format(user_error, "DANGLING CHOICE POINT(S)!~n", [])
+    ;   true
+    ),
+    halt. % exit with success
 main :-
-	halt(1). % otherwise, exit with failure (1)
-
-:- use_module(fsm, [nwpipeline_fsm/0]).
-
-nwpipeline_to_pandoc(_) :- % command line arguments ignored TODO
-	nwpipeline_fsm.
+    format(user_error, "FAILURE~n", []),
+    halt(1). % otherwise, exit with failure (1)
 @
 
 The final documentation is produced by Pandoc.
@@ -114,10 +120,10 @@ It expects to read Pandoc's markdown, with optional raw HTML embedded in it, fro
 It adds any additional arguments you provide it with:
 <<pandoc-html.sh>>=
 pandoc \
-	--table-of-contents \
-	--standalone --smart --self-contained \
-	--to=html5 \
-	"$@"
+    --table-of-contents \
+    --standalone --smart --self-contained \
+    --to=html5 \
+    "$@"
 @
 
 We use the GNU `make` utility with [[<<Makefile>>]] to generate the human readable documentation and generate any files that are required.
@@ -126,161 +132,233 @@ lire.html: lire.lir lire.css lire.bib lire-nwpipe.sh nwpipe-pandoc pandoc-html.s
 	<<Back end>>
 	cp lire.html ..
 
-nwpipe-pandoc: nwpipe-pandoc.pl fsm.pl nwpipe.pl tohtml.pl
+nwpipe-pandoc: nwpipe-pandoc.pl driver.pl nwpipe.pl
 	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
 @
 
-## Generating Pandoc
-Logically, converting `noweb`'s pipeline to valid Pandoc markdown is done by three components, each taking care of one of the following:
+## From `lire` source to documentation
+Add to the database a table with all code chunks.
 
-- Reading each _token_ in `noweb`'s pipeline representation from standard input and parsing it, to obtain an equivalent Prolog term: [[<<Parse `noweb` tokens>>]];
-- A finite state machine that consumes the Prolog terms and emits Pandoc markdown: [[<<Finite State Machine>>]] (it is rather a finite state transducer, as it generates output, but let's not get too formal);
-- A writer that transforms each term to the actual emitted markdown: [[<<Emit Pandoc markdown>>]].
+The driver:
+<<driver.pl>>=
+:- module(driver, [nwpipeline_pandoc/1]).
 
-### Program structure
-The program is separated in three modules implementing the three components.
-The driver is implemented in [[<<fsm.pl>>]] and provides the main program loop through [[nwpipeline_fsm/0]], which initializes and starts the [[<<Finite State Machine>>]].
-It uses [[next_input/1]] from [[module(nwpipe)]] to read the `noweb` pipeline representation and [[emit/1]] from [[module(tohtml)]] to write Pandoc markdown with embedded HTML markup.
-<<fsm.pl>>=
-:- module(fsm, [nwpipeline_fsm/0]).
+:- use_module(nwpipe, [nwtokens_terms/2]).
 
-:- use_module(nwpipe, [next_input/1]).
-:- use_module(tohtml, [emit/1]).
+nwpipeline_pandoc(_) :-
+    user_input = I,
+    input_to_terms(I, Ts),
+    open('terms.txt', write, Terms_file),
+    forall(member(T, Ts), format(Terms_file, "~q~n", [T])),
+    close(Terms_file).
 
-<<Finite State Machine>>
+input_to_terms(I, Ts) :-
+    read_string(I, _, S),
+    split_string(S, "\r\n", "\r\n", Str_Ls),
+    maplist(string_codes, Str_Ls, Ls),
+    nwtokens_terms(Ls, Ts0),
+    phrase(lire(Ts), Ts0).
+
+lire(L) -->
+    [file(_)],
+    lire_rest(L).
+
+lire_rest(L) --> [X], !, % cut
+    lire_file(X, L).
+lire_rest([]) --> [].
+
+lire_file(docs, [docs(D)|L]) --> [X],
+    docs(X, D),
+    lire_rest(L).
+lire_file(code, [code(C)|L]) --> [X],
+    code(X, C),
+    lire_rest(L).
+lire_file(nl, L) -->
+    lire_rest(L).
+lire_file(xref_beginchunks, [chunks_list(Cs)|L]) --> [X],
+    xref_chunks(X, Cs),
+    lire_rest(L).
+lire_file(index_beginindex, [index(I)|L]) --> [X],
+    index(X, I),
+    lire_rest(L).
+
+docs(end, []) --> !, [].
+docs(text(T), [text(Text)|Ds]) --> !,
+    more_text(Ts),
+    {   atomics_to_string([T|Ts], Text)
+    },
+    [X],
+    docs(X, Ds).
+docs(nl, [nl(N)|Ds]) --> !,
+    nls(N),
+    [X],
+    docs(X, Ds).
+docs(quote, [quote(Q)|Ds]) --> !,
+    [X],
+    quote(X, Q),
+    [Y],
+    docs(Y, Ds).
+docs(X, [X|Ds]) --> [Y], !,
+    docs(Y, Ds).
+
+quote(text(T), [text(T)|Q]) --> [X],
+    quote(X, Q).
+quote(xref_ref(L), [Ref|Q]) -->
+    [use(N)],
+    {   ref(L, N, Ref)
+    },
+    [X],
+    quote(X, Q).
+quote(endquote, []) --> [].
+
+ref(L, N, Ref) :-
+    (   L \== 'nw@notdef'
+    ->  Ref = use_ref(N, L)
+    ;   Ref = use(N)
+    ).
+
+code(end, []) --> !, [].
+code(X, [X|Cs]) --> [Y], !,
+    code(Y, Cs).
+
+more_text([T|Ts]) -->
+    [text(T)], !, % cut
+    more_text(Ts).
+more_text(["\n"|Ts]) -->
+    [nl], !, % cut
+    eol(Ts).
+more_text([]) --> [].
+
+eol([T|Ts]) -->
+    [text(T)], !, % cut
+    more_text(Ts).
+eol([]) --> [].
+
+nls(N) -->
+    [nl], !, % cut
+    nls(N0),
+    {   succ(N0, N)
+    }.
+nls(1) --> [].
+
+xref_chunks(xref_endchunks, []) --> [].
+xref_chunks(xref_chunkbegin(L, N), [chunk(L, N, Us, Ds)|Cs]) --> [X],
+    xref_chunk(X, Us, Ds),
+    [Y],
+    xref_chunks(Y, Cs).
+
+xref_chunk(xref_chunkend, [], []) --> [].
+xref_chunk(xref_chunkuse(U), [U|Us], Ds) --> [X],
+    xref_chunk(X, Us, Ds).
+xref_chunk(xref_chunkdefn(D), Us, [D|Ds]) --> [X],
+    xref_chunk(X, Us, Ds).
+
+index(index_endindex, []) --> [].
+% we don't have an index for now
+/*
+index(X, [X|Is]) --> [Y],
+    xref_chunks(Y, Is).
+*/
 @
 
-Transforming the `noweb` tokens to Prolog terms is implemented in [[<<nwpipe.pl>>]].
+Parsing the pipeline:
 <<nwpipe.pl>>=
-:- module(nwpipe, [next_input/1]).
+:- module(nwpipe, [nwtokens_terms/2]).
 
-<<Parse `noweb` tokens>>
-@
-
-Emitting Pandoc is implemented in [[<<tohtml.pl>>]].
-<<tohtml.pl>>=
-:- module(tohtml, [emit/1]).
-
-<<Emit Pandoc markdown>>
-@
-
-<<Emit Pandoc markdown>>=
-<<The ugliness called `through_pandoc/3`>>
-<<Emit HTML for Pandoc>>
-@
-
-### Parsing `noweb` tokens
-To [[<<Parse `noweb` tokens>>]] the standard input is first read linewise with the help of the standard library.
-Each line is then converted to a Prolog token.
-`Noweb` keywords that are not yet implemented are skipped and reported to the standard error output stream.
-<<Parse `noweb` tokens>>=
-:- use_module(library(readutil), [read_line_to_codes/2]).
-next_input(T) :-
-	read_line_to_codes(user_input, Codes),
-	(	nwtoken_to_plterm(Codes, T)
-	->	true
-	;	format(user_error, "BAD TOKEN: ~s~n", [Codes]),
-		next_input(T)
-	).
-
+nwtokens_terms([], []).
+nwtokens_terms([[0'@|Token]|Tokens], [Term|Terms]) :-
+    phrase(token(Back, Term), Token, Back),
+    nwtokens_terms(Tokens, Terms).
 <<`Noweb` tokens $\rightarrow$ Prolog terms>>
 @
 
-To convert [[<<`Noweb` tokens $\rightarrow$ Prolog terms>>]] we use an approach directly borrowed from the chapter on definite clause grammers in "The Craft of Prolog" [@OKeefe1990, pp. 299-300].
-
-With this approach each of the [[<<Structural keywords>>]] and [[<<Tagging keywords>>]] is associated with a description of how to parse the rest of the token and a Prolog term representing the result. The description is used to parse the [[<<Individual items>>]] to instantiate the result.
-
-The parser for the miniature programs in the second argument of the keyword tables is defined as a Prolog [**d**efinite **c**lause **g**rammar](http://en.wikipedia.org/wiki/Definite_clause_grammar).
-A couple of the DCG primitives offered by the SWI-Prolog library [DCG Basics](http://www.swi-prolog.org/pldoc/doc/swi/library/dcg/basics.pl) are used.
 <<`Noweb` tokens $\rightarrow$ Prolog terms>>=
-nwtoken_to_plterm(end_of_file, end_of_file).
-nwtoken_to_plterm([0'@|Token], T) :-
-	phrase(token(T), Token).
-
 :- use_module(library(dcg/basics), [nonblanks//1, integer//1]).
-token(Term) -->
-	nonblanks(NB),
-	{	atom_codes(Key, NB),
-		keyword(Key, Items, Term)
-	},
-	items(Items).
+token(Back, Term) -->
+    nonblanks(NB),
+    {   atom_codes(Key, NB),
+        keyword(Key, Items, Back, Term)
+    },
+    items(Items).
 <<Structural keywords>>
 <<Tagging keywords>>
 
 <<Individual items>>
 @
 
-In the table of keywords, the first column is `noweb`'s keyword, the second column represents the items in this token, and the third argument is the resulting Prolog term.
-The structure of the Prolog terms mostly mirrors the structure of the tokens as described in "The `noweb` Hacker's Guide" [@Ramsey1992].
-The [[<<Structural keywords>>]] represent the documentation and code chunks in the `noweb` source:
 <<Structural keywords>>=
-keyword(begin,
-		[space, chunk_kind(K), space, chunk_number(N)],
-		begin_kind_number(K, N)).
-keyword(end,
-		[space, chunk_kind(K), space, chunk_number(N)],
-		end_kind_number(K, N)).
-keyword(text, [space, string_rest(S)], text(S)).
-keyword(nl, [], nl).
-keyword(defn, [space, string_rest(S)], defn(S)).
-keyword(use, [space, string_rest(S)], use(S)).
-keyword(quote, [], quote).
-keyword(endquote, [], endquote).
+keyword(begin, [space, chunk_kind(K)]/*, space, chunk_number(N)]*/, _, K).
+keyword(end, []/*[space, chunk_kind(_K), space, chunk_number(N)]*/, _, end).
+keyword(text, [space, string_rest(S, Rest)], Rest, text(S)).
+keyword(nl, [], [], nl).
+keyword(defn, [space, string_rest(S, Rest)], Rest, defn(S)).
+keyword(use, [space, string_rest(S, Rest)], Rest, use(S)).
+keyword(quote, [], [], quote).
+keyword(endquote, [], [], endquote).
 @
 
 For the [[<<Tagging keywords>>]], most are represented in `noweb`'s pipeline by a single keyword, `xref`.
 There are several categories of cross-referencing concepts.
 <<Tagging keywords>>=
-keyword(file, [space, atom_rest(File)], file(File)).
-keyword(xref, [space, xref(XRef)], xref(XRef)).
+keyword(file, [space, atom_rest(File, Rest)], Rest, file(File)).
+keyword(xref, [space, xref(XRef, Rest)], Rest, XRef).
+keyword(index, [space, index(Index, Rest)], Rest, Index).
 
 <<Basic cross-referencing>>
 <<Linking previous and next definitions of a code chunk>>
-/* <<Continued definitions of the current chunk>> */
-/* <<The list of all code chunks>> */
+<<Continued definitions of the current chunk>>
+<<The list of all code chunks>>
 <<Chunks where the code is used>>
+
+<<The index of identifiers>>
 @
 
 <<Basic cross-referencing>>=
-xref(label, [space, atom_rest(Label)], label(Label)).
-xref(ref, [space, atom_rest(Label)], ref(Label)).
+xref(label, [space, atom_rest(L, Rest)], Rest, xref_label(L)).
+xref(ref, [space, atom_rest(L, Rest)], Rest, xref_ref(L)).
 @
 
 <<Linking previous and next definitions of a code chunk>>=
-xref(prevdef, [space, atom_rest(Label)], prevdef(Label)).
-xref(nextdef, [space, atom_rest(Label)], nextdef(Label)).
+xref(prevdef, [space, atom_rest(L, Rest)], Rest, xref_prevdef(L)).
+xref(nextdef, [space, atom_rest(L, Rest)], Rest, xref_nextdef(L)).
 @
 
 <<Continued definitions of the current chunk>>=
-xref(begindefs, [], begindefs).
-xref(defitem, [space, atom_rest(Label)], defitem(Label)).
-xref(enddefs, [], enddefs).
+xref(begindefs, [], [], xref_begindefs).
+xref(defitem, [space, atom_rest(L, Rest)], Rest, xref_defitem(L)).
+xref(enddefs, [], [], xref_enddefs).
 @
 
 <<Chunks where the code is used>>=
-xref(beginuses, [], beginuses).
-xref(useitem, [space, atom_rest(Label)], useitem(Label)).
-xref(enduses, [], enduses).
-xref(notused, [space, string_rest(Name)], notused(Name)).
+xref(beginuses, [], [], xref_beginuses).
+xref(useitem, [space, atom_rest(L, Rest)], Rest, xref_useitem(L)).
+xref(enduses, [], [], xref_enduses).
+xref(notused, [space, string_rest(Name, Rest)], Rest, xref_notused(Name)).
 @
 
 <<The list of all code chunks>>=
-xref(beginchunks, [], beginchunks).
+xref(beginchunks, [], [], xref_beginchunks).
 xref(chunkbegin,
-	[space, atom(Label), space, string_rest(Name)],
-	chunkbegin(Label, Name)).
-xref(chunkuse, [space, atom_rest(Label)], chunkuse(Label)).
-xref(chunkdefn, [space, atom_rest(Label)], chunkdefn(Label)).
-xref(chunkend, [], chunkend).
-xref(endchunks, [], endchunks).
+    [space, atom(L), space, string_rest(Name, Rest)],
+    Rest,
+    xref_chunkbegin(L, Name)).
+xref(chunkuse, [space, atom_rest(L, Rest)], Rest, xref_chunkuse(L)).
+xref(chunkdefn, [space, atom_rest(L, Rest)], Rest, xref_chunkdefn(L)).
+xref(chunkend, [], [], xref_chunkend).
+xref(endchunks, [], [], xref_endchunks).
+@
+
+<<The index of identifiers>>=
+index(beginindex, [], [], index_beginindex).
+index(endindex, [], [], index_endindex).
 @
 
 These are the rules used to transform [[<<Individual items>>]] that appear in the `noweb` tokens to Prolog terms.
 <<Individual items>>=
 items([]) --> [].
 items([I|Is]) -->
-	item(I),
-	items(Is).
+    item(I),
+    items(Is).
 
 <<Atoms and text>>
 <<"Space">>
@@ -292,349 +370,53 @@ items([I|Is]) -->
 
 Identifiers are converted to atoms, while "text" (text and names) are converted to strings:
 <<Atoms and text>>=
-item(atom_rest(A)) -->
-	rest(Codes),
-	{	atom_codes(A, Codes)
-	}.
-item(string_rest(Str)) -->
-	rest(Codes),
-	{	string_codes(Str, Codes)
-	}.
-<<Helper DCGs>>=
-rest([]) --> [].
-rest([C|Cs]) -->
-	[C],
-	rest(Cs).
+item(atom(A)) -->
+    nonblanks(Codes),
+    {   atom_codes(A, Codes)
+    }.
+
+item(atom_rest(A, Rest)) -->
+    {   when(ground(Rest), atom_codes(A, Rest))
+    }.
+
+item(string_rest(Str, Rest)) -->
+    {   when(ground(Rest), string_codes(Str, Rest))
+    }.
 @
 
 We assume that [[<<"Space">>]] is represented by a single "space" character; the "Hacker's Guide" is not explicit about this, but so far it has always worked.
 <<"Space">>=
-item(space) -->
-	[0'\s]. % could it be another "white"?...
+item(space) --> [0'\s]. % could it be another "white"?...
 @
 
 Integers are used to enumerate the code and documentation [[<<Chunk number>>]]:
 <<Chunk number>>=
-item(chunk_number(N)) -->
-	integer(N).
+item(chunk_number(N)) --> integer(N).
 @
 
 Code and documentation chunks are delimited by the same keywords; the [[<<Chunk kind>>]] is encoded in a secondary keyword:
 <<Chunk kind>>=
 item(chunk_kind(CK)) -->
-	nonblanks(Codes),
-	{	atom_codes(CK, Codes),
-		chunk_kind(CK) % validation; is it necessary?
-	}.
-<<Helper DCGs>>=
-chunk_kind(code). chunk_kind(docs).
+    nonblanks(Codes),
+    {   atom_codes(CK, Codes)
+    }.
 @
 
 Finally, [[<<Cross-reference>>]].
 Note that it employs quite a few secondary keywords collected in their own look up table.
 <<Cross-reference>>=
-item(xref(XRef)) -->
-	nonblanks(Codes),
-	{	atom_codes(X, Codes),
-		xref(X, Items, XRef)
-	},
-	items(Items).
-@
-
-### Finite State Machine
-To represent the [[<<Finite State Machine>>]] in Prolog we use predicates for states and predicate clauses for arcs (transitions), another idea borrowed from "The Craft of Prolog" [@OKeefe1990, pp. 353].
-To avoid having too many arguments in the predicates of the [[<<Finite State Machine>>]], we "hide" the difference list pair of a rudimentary _queue_.
-The input to the state machine are the terms representing the `noweb` tokens, obtained by consecutive calls to [[next_input/1]].
-<<Finite State Machine>>=
-queue_init(q(Q,Q)).
-queue_back(q(Q,[New|Back]), New, q(Q,Back)).
-queue_list(q(Q,[]), Q).
-
-nwpipeline_fsm :-
-	next_input(T),
-	start(T).
-
-<<Start>>
-<<File>>
-<<Begin chunk>>
-<<Docs chunk>>
-<<Quoted code>>
-<<Code chunk>>
-@
-
-The first structural keyword is always `file`:
-<<Start>>=
-start(file(_File)) :-
-	next_input(T),
-	file(T).
-@
-
-<<File>>=
-file(begin_kind_number(K, N)) :-
-	begin_kind_number(K, N).
-file(file(_File)) :-
-	next_input(T),
-	file(T).
-file(end_of_file).
-@
-
-[[<<Begin chunk>>]] is not a real state, since the transition happens without any input; it is here to make the transition deterministic:
-<<Begin chunk>>=
-begin_kind_number(docs, N) :-
-	next_input(T),
-	docs(T, N).
-begin_kind_number(code, N) :-
-	queue_init(Q),
-	next_input(T),
-	code(T, code{number:N}, Q, []).
-@
-
-Since the [[<<Docs chunk>>]]s are expected to be valid Pandoc markdown, the contents are simply emitted unchanged to the output:
-<<Docs chunk>>=
-docs(end_kind_number(docs, N), N) :-
-	next_input(T),
-	file(T).
-docs(nl, N) :-
-	format("~n"),
-	next_input(T),
-	docs(T, N).
-docs(text(Text), N) :-
-	format("~s", [Text]),
-	next_input(T),
-	docs(T, N).
-docs(quote, N) :-
-	next_input(T),
-	queue_init(Q),
-	quote(T, N, Q, []).
-@
-
-For both (inline) [[<<Quoted code>>]] and [[<<Code chunk>>]]s, the contents are first collected before emitted at the end of the quote or code chunk.
-It allows us to keep the state machine a bit cleaner.
-<<Quoted code>>=
-quote(endquote, N, Q, []) :-
-	queue_list(Q, L),
-	emit(quotedcode(L)),
-	next_input(T),
-	docs(T, N).
-quote(text(Text), N, Q0, XRef) :-
-	queue_back(Q0, text(Text), Q),
-	next_input(T),
-	quote(T, N, Q, XRef).
-quote(nl, N, Q0, XRef) :-
-	queue_back(Q0, nl, Q),
-	next_input(T),
-	quote(T, N, Q, XRef).
-quote(use(Name), N, Q0, XRef) :-
-	dict_create(U, use, [name(Name)|XRef]),
-	queue_back(Q0, use(U), Q),
-	next_input(T),
-	quote(T, N, Q, []).
-quote(xref(XRef), N, Q, XRef_rest) :-
-	next_input(T),
-	quote(T, N, Q, [XRef|XRef_rest]).
-@
-
-[[<<Code chunk>>]]s are numbered, have a name, can contain uses, can be labelled and referenced, and so on:
-<<Code chunk>>=
-code(end_kind_number(code, A.number), A, Q, []) :-
-	queue_list(Q, [nl|Content]),
-	emit(codechunk(A, Content)),
-	next_input(T),
-	file(T).
-code(xref(XRef), A, Q, XRefs) :-
-	next_input(T),
-	code_xref(XRef, T, A, Q, XRefs).
-code(defn(Name), A, Q, XRef) :-
-	next_input(T),
-	code(T, A.put([name(Name)|XRef]), Q, []).
-code(use(Name), A, Q0, XRef) :-
-	dict_create(U, use, [name(Name)|XRef]),
-	queue_back(Q0, use(U), Q),
-	next_input(T),
-	code(T, A, Q, []).
-code(nl, A, Q0, XRef) :-
-	next_input(T),
-	queue_back(Q0, nl, Q),
-	code(T, A, Q, XRef).
-code(text(Text), A, Q0, XRef) :-
-	next_input(T),
-	queue_back(Q0, text(Text), Q),
-	code(T, A, Q, XRef).
-
-code_xref(label(Label), T, A, Q, XRefs) :-
-	code(T, A, Q, [label(Label)|XRefs]).
-code_xref(ref(Label), T, A, Q, XRefs) :-
-	code(T, A, Q, [ref(Label)|XRefs]).
-code_xref(prevdef(Label), T, A, Q, XRefs) :-
-	code(T, A.put([prevdef(Label)]), Q, XRefs).
-code_xref(nextdef(Label), T, A, Q, XRefs) :-
-	code(T, A.put([nextdef(Label)]), Q, XRefs).
-code_xref(notused(_Name), T, A, Q, XRefs) :-
-	code(T, A, Q, XRefs).
-code_xref(beginuses, xref(T), A, Q, XRefs) :-
-	code_xref_uses(T, A, Q, XRefs, []).
-
-code_xref_uses(useitem(I), A, Q, XRefs, Use_items) :-
-	next_input(xref(T)),
-	code_xref_uses(T, A, Q, XRefs, [I|Use_items]).
-code_xref_uses(enduses, A, Q, XRefs, Use_items) :-
-	next_input(T),
-	code(T, A.put([uses(Use_items)]), Q, XRefs).
-@
-
-
-### Writing Pandoc's Markdown
-Unfortunately, Pandoc's markdown is not expressive enough to allow code chunks in the literate program to be expressed in pure markdown.
-Instead, native markup for each supported front end is used.
-To [[<<Emit Pandoc's markdown>>]], the single predicate [[emit/1]] is used, with one clause for each possible output, as produced by the finite state machine.
-There is [[<<The ugliness called `through_pandoc/3`>>]], which uses Pandoc to generate correct markup for the layout of elements that are unusual for normal documents, but necessary for a literate program.
-At the moment, only a Pandoc document that can be compiled to an HTML page is generated.
-
-A Prolog library is used to [[<<Emit HTML for Pandoc>>]].
-<<Emit HTML for Pandoc>>=
-:- use_module(library(http/html_write),
-		[	html//1,
-			html_begin//1,
-			html_end//1,
-			print_html/1
-		]).
-
-<<Emit HTML for a code chunk>>
-<<Emit HTML for quoted code>>
-name_ref(Name, Ref, Name_ref) :-
-	(	dif(Ref, 'nw@notdef')
-	->	Name_ref = a(href="#~a"-Ref, Name)
-	;	Name_ref = Name
-	).
-@
-
-Code chunks are put in a `<div>` tag with a class `codechunk`, with `noweb`'s `defn` at the top, inside its own `<span>` tag with a class `nwdefn`, and all content in a `<pre>` tag.
-<<Emit HTML for a code chunk>>=
-codechunk(Content) -->
-	html_begin(pre),
-	codechunk_items(Content),
-	html_end(pre).
-codechunk_items([]) --> [].
-codechunk_items([H|T]) -->
-	codechunk_item(H),
-	codechunk_items(T).
-
-codechunk_item(nl) --> [nl(1)].
-codechunk_item(text(Text)) --> [Text].
-codechunk_item(use(U)) -->
-	{	through_pandoc(html5, U.name, F)
-	},
-	html(span([class=nwuse, id=U.label], [
-				&(lang), &(nbsp),
-				a(href="#~a"-U.ref, \[F]), % add directly to the output
-				&(nbsp), &(rang)])).
-
-emit(codechunk(A, Content)) :-
-	Codechunk = div(class=codechunk,
-		[	span([class=nwdefn, id=A.label],
-				[	&(lang), &(nbsp),
-					A.name,
-					&(nbsp), &(rang), &(equiv)
-				]),
-			br([]),
-			\uses(A),
-			br([]),
-			\prevdef(A),
-			\codechunk(Content),
-			\nextdef(A)
-		]),
-	phrase(html(Codechunk), HTML),
-	print_html(HTML).
-@
-
-Quoted code is put in a `<span>` with a class `quotedcode`.
-<<Emit HTML for quoted code>>=
-
-emit(quotedcode(Q)) :-
-	maplist(quotedcode_html, Q, Content),
-	phrase(html(span(class=quotedcode, Content)),
-		HTML),
-	print_html(HTML).
-
-
-quotedcode_html(nl, '\n').
-quotedcode_html(text(Text), Text).
-quotedcode_html(use(U), span(class=nwquoteduse,
-		[	&(lang), &(nbsp),
-			Name_ref,
-			&(nbsp), &(rang)
-		])) :-
-	name_ref(U.name, U.ref, Name_ref).
-
-uses(A) -->
-	{	code{uses:U} :< A
-	}, !,
-	html_begin(span(class(uses))),
-	uses_links(U),
-	html_end(span).
-uses(_) --> uses_links([]).
-
-uses_links([H|T]) -->
-	html(["Used ", a(href="#~a"-H, "here")]),
-	uses_links_rest(T).
-uses_links([]) --> html(["Root chunk"]).
-
-uses_links_rest([]) --> [].
-uses_links_rest([H|T]) --> uses_links_rest_1(T, H).
-uses_links_rest_1([], Last) --> html([", and ", a(href="#~a"-Last, "here")]).
-uses_links_rest_1([H|T], Prev) --> html([", ", a(href="#~a"-Prev, "here")]),
-	uses_links_rest_1(T, H).
-
-prevdef(A) --> { code{prevdef:D} :< A }, !,
-	html(span(class=prevdef, [". . . ", a(href="#~a"-D, "cont.")])).
-prevdef(_) --> [].
-
-nextdef(A) --> { code{nextdef:D} :< A }, !,
-	html(span(class=nextdef, [a(href="#~a"-D, "more"), " . . ."])).
-nextdef(_) --> [].
-
-@
-
-Transforming [[<<`Noweb` $\rightarrow$ HTML>>]] could be quite straight-forward: just map the `noweb` token to an HTML tag with the appropriate attributes.
-For quoted code, this is good enough.
-Apparently, Pandoc does recognize markdown inside `<span>` contents, and adds the necessary HTML markup.
-
-For example, we can put a "use" inside quoted code, complete with its own Pandoc markdown, as in:
-<<foo>>=
-[[quoted @<<foo $\rightarrow \pi =$ `bar`@>>]]
-@ Which will turn into: [[quoted <<foo $\rightarrow \pi =$ `bar`>>]]
-
-Unfortunately, it does not do that for the contents of `<span>` which is inside a `<pre>` (I guess rightfully so?).
-
-[[<<The ugliness called `through_pandoc/3`>>]] works as follows:
-
-To make the contents of code chunks look like code, they are put inside a `<pre>` tag.
-But in a `lire` source file, a code chunk can contain a [[<<Use>>]], which will have to be typeset properly.
-Pandoc will not do this automatically for a `<span>` inside raw HTML `<pre>`.
-The hacky solution here is to pass the Name in a [[<<Use>>]] (formatted in markdown) to Pandoc, and embed the resulting markup in the output.
-
-#. Turn single quotes -- "`'`" -- into "`'\''`" sequences;
-#. Construct the pipe;
-#. Call it as a `bash` process;
-#. Parse the output, removing the enclosing `<p>`;
-#. Convert back to HTML
-<<The ugliness called `through_pandoc/3`>>=
-:- use_module(library(sgml), [load_structure/3]).
-:- use_module(library(sgml_write), [xml_write/3]).
-
-through_pandoc(To, Str, FStr) :-
-	atomics_to_string(L, "'", Str), % split
-	atomics_to_string(L, "'\\''", EscStr), % put together
-	atomics_to_string(["echo '", EscStr, "' | pandoc -t ", To], Pandoc),
-	process_create(path(bash), ['-c', Pandoc], [stdout(pipe(Out))]),
-	through_pandoc_1(To, Out, FStr),
-	close(Out).
-
-through_pandoc_1(html5, Out, FStr) :-
-	load_structure(Out, [element(p, [], StrDOM)], [dialect(xml)]),
-	with_output_to(string(FStr),
-		xml_write(current_output, StrDOM,
-			[header(false), layout(false)])).
+item(xref(XRef, Rest)) -->
+    nonblanks(Codes),
+    {   atom_codes(X, Codes),
+        xref(X, Items, Rest, XRef)
+    },
+    items(Items).
+item(index(Index, Rest)) -->
+    nonblanks(Codes),
+    {   atom_codes(X, Codes),
+        index(X, Items, Rest, Index)
+    },
+    items(Items).
 @
 
 ## Layout
@@ -645,44 +427,44 @@ It also aims to provide a sensible default layout for the human-readable documen
 For HTML documentation, [[<<lire.css>>]] is used. Here it is:
 <<lire.css>>=
 span.nwuse a, span.uses a, span.nwquoteduse a, span.prevdef a, span.nextdef a {
-	color: forestgreen;
-	text-decoration-line: none;
+    color: forestgreen;
+    text-decoration-line: none;
 }
 h1, h2, h3 {
-	font-family: sans-serif;
+    font-family: sans-serif;
 }
 p {
-	max-width: 14cm;
+    max-width: 14cm;
 }
 ul {
-	max-width: 12cm;
+    max-width: 12cm;
 }
 body {
-	padding-left: 2cm;
+    padding-left: 2cm;
 }
 span.quotedcode {
-	font-family: monospace;
+    font-family: monospace;
 }
 span.nwquoteduse {
-	font-family: serif;
+    font-family: serif;
 }
 span.nwuse {
-	font-family: serif;
-	font-style: italic;
+    font-family: serif;
+    font-style: italic;
 }
 span.nwdefn {
-	font-family: serif;
-	font-weight: bold;
+    font-family: serif;
+    font-weight: bold;
 }
 span.uses, span.prevdef, span.nextdef {
-	font-size: small;
+    font-size: small;
 }
 @
 
 # Common definitions
 All building block for `noweb` (front ends, filters, back ends) are usually installed in the same [[<<`Noweb` location>>]]:
 <<`Noweb` location>>=
-/home/boris/lib/noweb
+/usr/lib/noweb
 @
 
 The portable [[<<Bash shebang>>]] is, according to [Stack Overflow](http://stackoverflow.com/questions/10376206/preferred-bash-shebang):
