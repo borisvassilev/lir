@@ -176,11 +176,13 @@ lire(L) -->
     [file(_)],
     lire_rest(L).
 
-lire_rest(L) --> [X], !, % cut
+lire_rest(L) -->
+    [X], !, % cut
     lire_file(X, L).
 lire_rest([]) --> [].
 
-lire_file(docs, L) --> [X],
+lire_file(docs, L) -->
+    [X],
     docs(X, L).
 lire_file(code, [code_meta(C, M)|L]) -->
     code(C, M),
@@ -188,10 +190,12 @@ lire_file(code, [code_meta(C, M)|L]) -->
 lire_file(nl, [nl(N)|L]) -->
     nls(N),
     lire_rest(L).
-lire_file(xref_beginchunks, [chunks_list(Cs)|L]) --> [X],
+lire_file(xref_beginchunks, [chunks_list(Cs)|L]) -->
+    [X],
     xref_chunks(X, Cs),
     lire_rest(L).
-lire_file(index_beginindex, [index(I)|L]) --> [X],
+lire_file(index_beginindex, [index(I)|L]) -->
+    [X],
     index(X, I),
     lire_rest(L).
 
@@ -213,7 +217,8 @@ docs(quote, [quote(Q)|L]) -->
     [Y],
     docs(Y, L).
 
-quote(text(T), [text(T)|Q]) --> [X],
+quote(text(T), [text(T)|Q]) -->
+    [X],
     quote(X, Q).
 quote(xref_ref(L), [Ref|Q]) -->
     [use(N)],
@@ -229,7 +234,8 @@ ref(L, N, Ref) :-
     ;   Ref = use(N)
     ).
 
-code(C, M) --> [X],
+code(C, M) -->
+    [X],
     defn(X, M_pairs),
     {   dict_create(M, code, M_pairs)
     },
@@ -237,35 +243,46 @@ code(C, M) --> [X],
     codecontent(Y, C).
 
 defn(nl, []) --> [].
-defn(xref_label(L), [label(L)|M]) --> [X],
+defn(xref_label(L), [label(L)|M]) -->
+    [X],
     defn(X, M).
-defn(xref_ref(L), [ref(L)|M]) --> [X],
+defn(xref_ref(L), [ref(L)|M]) -->
+    [X],
     defn(X, M).
-defn(defn(N), [name(N)|M]) --> [X],
+defn(defn(N), [name(N)|M]) -->
+    [X],
     defn(X, M).
-defn(xref_notused(_N), [uses(notused)|M]) --> [X],
+defn(xref_notused(_N), [uses(notused)|M]) -->
+    [X],
     defn(X, M).
-defn(xref_beginuses, [uses(Us)|M]) --> [X],
+defn(xref_beginuses, [uses(Us)|M]) -->
+    [X],
     uses(X, Us, Us),
     [Y],
     defn(Y, M).
-defn(xref_prevdef(L), [prev(L)|M]) --> [X],
+defn(xref_prevdef(L), [prev(L)|M]) -->
+    [X],
     defn(X, M).
-defn(xref_nextdef(L), [next(L)|M]) --> [X],
+defn(xref_nextdef(L), [next(L)|M]) -->
+    [X],
     defn(X, M).
-defn(language(L), [language(L)|M]) --> [X],
+defn(language(L), [language(L)|M]) -->
+    [X],
     defn(X, M).
-defn(xref_begindefs, [defs(Ds)|M]) --> [X],
+defn(xref_begindefs, [defs(Ds)|M]) -->
+    [X],
     defs(X, Ds, Ds),
     [Y],
     defn(Y, M).
 
 uses(xref_enduses, _, []) --> [].
-uses(xref_useitem(L), Us, [L|Us0]) --> [X],
+uses(xref_useitem(L), Us, [L|Us0]) -->
+    [X],
     uses(X, Us, Us0).
 
 defs(xref_enddefs, _, []) --> [].
-defs(xref_defitem(L), Ds, [L|Ds0]) --> [X],
+defs(xref_defitem(L), Ds, [L|Ds0]) -->
+    [X],
     defs(X, Ds, Ds0).
 
 codecontent(end, []) --> !, [].
@@ -293,15 +310,18 @@ nls(N) -->
 nls(1) --> [].
 
 xref_chunks(xref_endchunks, []) --> [].
-xref_chunks(xref_chunkbegin(L, N), [chunk(L, N, Us, Ds)|Cs]) --> [X],
+xref_chunks(xref_chunkbegin(L, N), [chunk(L, N, Us, Ds)|Cs]) -->
+    [X],
     xref_chunk(X, Us, Ds),
     [Y],
     xref_chunks(Y, Cs).
 
 xref_chunk(xref_chunkend, [], []) --> [].
-xref_chunk(xref_chunkuse(U), [U|Us], Ds) --> [X],
+xref_chunk(xref_chunkuse(U), [U|Us], Ds) -->
+    [X],
     xref_chunk(X, Us, Ds).
-xref_chunk(xref_chunkdefn(D), Us, [D|Ds]) --> [X],
+xref_chunk(xref_chunkdefn(D), Us, [D|Ds]) -->
+    [X],
     xref_chunk(X, Us, Ds).
 
 index(index_endindex, []) --> [].
