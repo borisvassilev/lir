@@ -167,9 +167,8 @@ lire_rest(L) --> [X], !, % cut
     lire_file(X, L).
 lire_rest([]) --> [].
 
-lire_file(docs, [docs(D)|L]) --> [X],
-    docs(X, D),
-    lire_rest(L).
+lire_file(docs, L) --> [X],
+    docs(X, L).
 lire_file(code, [code(C)|L]) --> [X],
     code(X, C),
     lire_rest(L).
@@ -183,24 +182,23 @@ lire_file(index_beginindex, [index(I)|L]) --> [X],
     index(X, I),
     lire_rest(L).
 
-docs(end, []) --> !, [].
-docs(text(T), [text(Text)|Ds]) --> !,
+docs(end, L) -->
+    lire_rest(L).
+docs(text(T), [text(Text)|L]) -->
     more_text(Ts),
     {   atomics_to_string([T|Ts], Text)
     },
     [X],
-    docs(X, Ds).
-docs(nl, [nl(N)|Ds]) --> !,
+    docs(X, L).
+docs(nl, [nl(N)|L]) -->
     nls(N),
     [X],
-    docs(X, Ds).
-docs(quote, [quote(Q)|Ds]) --> !,
+    docs(X, L).
+docs(quote, [quote(Q)|L]) -->
     [X],
     quote(X, Q),
     [Y],
-    docs(Y, Ds).
-docs(X, [X|Ds]) --> [Y], !,
-    docs(Y, Ds).
+    docs(Y, L).
 
 quote(text(T), [text(T)|Q]) --> [X],
     quote(X, Q).
@@ -269,6 +267,7 @@ Parsing the pipeline:
 nwtokens_terms([], []).
 nwtokens_terms([[0'@|Token]|Tokens], [Term|Terms]) :-
     phrase(token(Back, Term), Token, Back),
+    format(user_error, "~q~n", [Term]),
     nwtokens_terms(Tokens, Terms).
 <<`Noweb` tokens $\rightarrow$ Prolog terms>>
 @
