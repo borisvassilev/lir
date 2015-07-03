@@ -234,13 +234,12 @@ ref(L, N, Ref) :-
     ;   Ref = use(N)
     ).
 
-code(C, M) -->
+code(Cs, M) -->
     [X],
     defn(X, M_pairs),
     {   dict_create(M, code, M_pairs)
     },
-    [Y],
-    codecontent(Y, C).
+    code_content(Cs).
 
 defn(nl, []) --> [].
 defn(xref_label(L), [label(L)|M]) -->
@@ -285,9 +284,36 @@ defs(xref_defitem(L), Ds, [L|Ds0]) -->
     [X],
     defs(X, Ds, Ds0).
 
-codecontent(end, []) --> !, [].
-codecontent(X, [X|Cs]) --> [Y], !,
-    codecontent(Y, Cs).
+code_content([text(Text)|Cs]) -->
+    text_token(T), !, % cut
+    code_text(Ts),
+    {   atomics_to_string([T|Ts], Text)
+    },
+    code_content(Cs).
+code_content([Use|Cs]) -->
+    use_token(U), !, % cut
+    use(Us),
+    {   dict_create(Use, use, [U|Us])
+    },
+    code_content(Cs).
+code_content([]) --> [end].
+
+use([U|Us]) -->
+    use_token(U), !, % cut
+    use(Us).
+use([]) --> [].
+
+use_token(ref(L)) --> [xref_ref(L)].
+use_token(label(L)) --> [xref_label(L)].
+use_token(name(N)) --> [use(N)].
+
+text_token("\n") --> [nl].
+text_token(T) --> [text(T)].
+    
+code_text([T|Ts]) -->
+    text_token(T), !, % cut
+    code_text(Ts).
+code_text([]) --> [].
 
 docs_text([T|Ts]) -->
     [text(T)], !, % cut
