@@ -15,7 +15,7 @@ It might or might not have [[quoted code with <<uses>>, or maybe without any]].
 I haven't decided on it yet.
 
 # Bootstrapping
-The following small programs are the components used to provide the functionality of [[<<lire>>]].
+The following small programs are the components used to provide the functionality of [[lire]].
 
 The first one, [[<<lire-tangle.sh>>]], is used to tangle a code chunk and, if necessary, deploy it to the working directory, `.lire`:
 <<lire-tangle.sh>>=
@@ -149,8 +149,18 @@ nwpipeline_pandoc(_) :-
     user_input = I,
     input_to_terms(I, Ts),
     open('terms.txt', write, Terms_file),
-    forall(member(T, Ts), format(Terms_file, "~q~n", [T])),
+    write_lire(Ts, Terms_file),
     close(Terms_file).
+
+write_lire([], _).
+write_lire([H|T], Out) :-
+    (   H = code(Cs)
+    ->  format(Out, "CODE~n", []),
+        forall(member(C, Cs), format(Out, "~q~n", [C])),
+        format(Out, "ENDCODE~n", [])
+    ;   format(Out, "~q~n", [H])
+    ),
+    write_lire(T, Out).
 
 input_to_terms(I, Ts) :-
     read_string(I, _, S),
@@ -169,8 +179,8 @@ lire_rest([]) --> [].
 
 lire_file(docs, L) --> [X],
     docs(X, L).
-lire_file(code, [code(C)|L]) --> [X],
-    code(X, C),
+lire_file(code, [code_meta(C, M)|L]) -->
+    code(C),
     lire_rest(L).
 lire_file(nl, [nl(N)|L]) -->
     nls(N),
@@ -216,6 +226,7 @@ ref(L, N, Ref) :-
     ;   Ref = use(N)
     ).
 
+code(X
 code(end, []) --> !, [].
 code(X, [X|Cs]) --> [Y], !,
     code(Y, Cs).
@@ -267,7 +278,6 @@ Parsing the pipeline:
 nwtokens_terms([], []).
 nwtokens_terms([[0'@|Token]|Tokens], [Term|Terms]) :-
     phrase(token(Back, Term), Token, Back),
-    format(user_error, "~q~n", [Term]),
     nwtokens_terms(Tokens, Terms).
 <<`Noweb` tokens $\rightarrow$ Prolog terms>>
 @
@@ -365,7 +375,6 @@ items([I|Is]) -->
 <<Chunk number>>
 <<Chunk kind>>
 <<Cross-reference>>
-<<Helper DCGs>>
 @
 
 Identifiers are converted to atoms, while "text" (text and names) are converted to strings:
