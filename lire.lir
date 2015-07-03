@@ -173,7 +173,8 @@ lire_file(docs, [docs(D)|L]) --> [X],
 lire_file(code, [code(C)|L]) --> [X],
     code(X, C),
     lire_rest(L).
-lire_file(nl, L) -->
+lire_file(nl, [nl(N)|L]) -->
+    nls(N),
     lire_rest(L).
 lire_file(xref_beginchunks, [chunks_list(Cs)|L]) --> [X],
     xref_chunks(X, Cs),
