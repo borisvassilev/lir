@@ -26,7 +26,8 @@ cmp --quiet "$f" .lire/"$1"
 if [ $? -eq 0 ]; then
     rm "$f"
 else
-    mv --verbose "$f" .lire/"$1"
+    echo "Updating $1 (changed)"
+    mv "$f" .lire/"$1"
 fi
 @
 
@@ -34,13 +35,14 @@ This next program, [[<<lire-use.sh>>]], is meant for files that do not need to b
 <<lire-use.sh>>=
 cmp --quiet "$1" .lire/"$1"
 if [ $? -ne 0 ]; then
-    cp --verbose "$1" .lire/"$1"
+    echo "Updating $1 (changed)"
+    cp "$1" .lire/"$1"
 fi
 @
 
 Finally, a script [[<<lire-make.sh>>]] that uses these building blocks to put the necessary files in the working directory (all scripts and the Makefile) and make everything:
 <<lire-make.sh>>=
-for tangled in lire-nwpipe.sh nwpipe-pandoc.pl driver.pl nwpipe.pl pandoc-html.sh lire.css Makefile; do
+for tangled in lire-nwpipe.sh nwpipe-pandoc.pl driver.pl nwpipe.pl lirehtml.pl pandoc-html.sh lire.css Makefile; do
     bash lire-tangle.sh "$tangled"
 done
 for used in lire.lir lire.bib; do
@@ -62,10 +64,8 @@ bash lire-make.sh
 To tangle and run it, do:
 
 <<lire>>=
+$ notangle -R"bootstrap" lire.lir > lire && chmod u+x lire && ./lire emithtml.pl
 @
-~~~{.bash}
-$ notangle -R"bootstrap" lire.lir > lire && chmod u+x lire && ./lire
-~~~
 
 Once `lire` is tangled, unless the [[<<bootstrap>>]] code chunk is changed, re-making everything (while taking care of any changes, and avoiding unnecessary work) should not take more than just running `lire` again.
 
@@ -88,7 +88,7 @@ All empty `@text` lines are removed from the output of the `noweb` components pi
 <<lire-nwpipe.sh>>=
 <<`Noweb` location>>/markup "$@" \
     | <<`Noweb` location>>/emptydefn \
-    | <<`Noweb` location>>/noidx \
+    | <<`Noweb` location>>/noidx -delay \
     | sed -n '/^@text $/!p'
 @
 
@@ -103,15 +103,21 @@ main :-
     current_prolog_flag(argv, Argv), % command line arguments
     prompt(_Old, ''), %  turn off prompt
     nwpipeline_pandoc(Argv),
-    deterministic(D),
-    (   D == false
-    ->  format(user_error, "DANGLING CHOICE POINT(S)!~n", [])
-    ;   true
-    ),
+    <<Warn about non-determinism>>,
     halt. % exit with success
 main :-
     format(user_error, "FAILURE~n", []),
     halt(1). % otherwise, exit with failure (1)
+@
+
+During development, it is good to know if the program has left behind any unintentional choice points -- they are almost certainly errors.
+They would be "hidden" by the `halt/0` used at the end of the main program.
+<<Warn about non-determinism>>=
+deterministic(D),
+(   D == false
+->  format(user_error, "DANGLING CHOICE POINT(S)!~n", [])
+;   true
+)
 @
 
 The final documentation is produced by Pandoc.
@@ -132,7 +138,7 @@ lire.html: lire.lir lire.css lire.bib lire-nwpipe.sh nwpipe-pandoc pandoc-html.s
 	<<Back end>>
 	cp lire.html ..
 
-nwpipe-pandoc: nwpipe-pandoc.pl driver.pl nwpipe.pl
+nwpipe-pandoc: nwpipe-pandoc.pl driver.pl nwpipe.pl lirehtml.pl
 	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
 @
 
@@ -143,232 +149,108 @@ The driver:
 <<driver.pl>>=
 :- module(driver, [nwpipeline_pandoc/1]).
 
-:- use_module(nwpipe, [nwtokens_terms/2]).
+:- use_module(nwpipe, [nwtokens_terms/2, lire//1]).
+:- use_module(lirehtml, [emit_html/2]).
 
 nwpipeline_pandoc(_) :-
-    user_input = I,
+    I = user_input,
     input_to_terms(I, Ts),
     open('terms.txt', write, Terms_file),
-    write_lire(Ts, Terms_file),
-    close(Terms_file).
+    forall(member(T, Ts), format(Terms_file, "~q~n", [T])),
+    close(Terms_file),
+    phrase(lire(L), Ts),
+    open('doc.txt', write, Doc_file),
+    write_lire(L, Doc_file),
+    close(Doc_file),
+    open('weaved.pandoc', write, Pandoc_file),
+    emit_html(Pandoc_file, L),
+    close(Pandoc_file),
+    emit_html(user_output, L).
 
-<<driver.pl>>=
 write_lire([], _).
 write_lire([H|T], Out) :-
-    (   H = code_meta(Cs, M)
-    ->  format(Out, "CODE~n~q~n", [M]),
-        forall(member(C, Cs), format(Out, "~q~n", [C])),
-        format(Out, "ENDCODE~n", [])
-    ;   format(Out, "~q~n", [H])
-    ),
+    format(Out, "~q~n", [H]),
     write_lire(T, Out).
-@
-<<driver.pl>>=
+
 input_to_terms(I, Ts) :-
     read_string(I, _, S),
     split_string(S, "\r\n", "\r\n", Str_Ls),
     maplist(string_codes, Str_Ls, Ls),
-    nwtokens_terms(Ls, Ts0),
-    phrase(lire(Ts), Ts0).
-
-<<driver.pl>>=
-lire(L) -->
-    [file(_)],
-    lire_rest(L).
-
-lire_rest(L) -->
-    [X], !, % cut
-    lire_file(X, L).
-lire_rest([]) --> [].
-
-lire_file(docs, L) -->
-    [X],
-    docs(X, L).
-lire_file(code, [code_meta(C, M)|L]) -->
-    code(C, M),
-    lire_rest(L).
-lire_file(nl, [nl(N)|L]) -->
-    nls(N),
-    lire_rest(L).
-lire_file(xref_beginchunks, [chunks_list(Cs)|L]) -->
-    [X],
-    xref_chunks(X, Cs),
-    lire_rest(L).
-lire_file(index_beginindex, [index(I)|L]) -->
-    [X],
-    index(X, I),
-    lire_rest(L).
-
-docs(end, L) -->
-    lire_rest(L).
-docs(text(T), [text(Text)|L]) -->
-    docs_text(Ts),
-    {   atomics_to_string([T|Ts], Text)
-    },
-    [X],
-    docs(X, L).
-docs(nl, [nl(N)|L]) -->
-    nls(N),
-    [X],
-    docs(X, L).
-docs(quote, [quote(Q)|L]) -->
-    [X],
-    quote(X, Q),
-    [Y],
-    docs(Y, L).
-
-quote(text(T), [text(T)|Q]) -->
-    [X],
-    quote(X, Q).
-quote(xref_ref(L), [Ref|Q]) -->
-    [use(N)],
-    {   ref(L, N, Ref)
-    },
-    [X],
-    quote(X, Q).
-quote(endquote, []) --> [].
-
-ref(L, N, Ref) :-
-    (   L \== 'nw@notdef'
-    ->  Ref = use_ref(N, L)
-    ;   Ref = use(N)
-    ).
-
-code(Cs, M) -->
-    [X],
-    defn(X, M_pairs),
-    {   dict_create(M, code, M_pairs)
-    },
-    code_content(Cs).
-
-defn(nl, []) --> [].
-defn(xref_label(L), [label(L)|M]) -->
-    [X],
-    defn(X, M).
-defn(xref_ref(L), [ref(L)|M]) -->
-    [X],
-    defn(X, M).
-defn(defn(N), [name(N)|M]) -->
-    [X],
-    defn(X, M).
-defn(xref_notused(_N), [uses(notused)|M]) -->
-    [X],
-    defn(X, M).
-defn(xref_beginuses, [uses(Us)|M]) -->
-    [X],
-    uses(X, Us, Us),
-    [Y],
-    defn(Y, M).
-defn(xref_prevdef(L), [prev(L)|M]) -->
-    [X],
-    defn(X, M).
-defn(xref_nextdef(L), [next(L)|M]) -->
-    [X],
-    defn(X, M).
-defn(language(L), [language(L)|M]) -->
-    [X],
-    defn(X, M).
-defn(xref_begindefs, [defs(Ds)|M]) -->
-    [X],
-    defs(X, Ds, Ds),
-    [Y],
-    defn(Y, M).
-
-uses(xref_enduses, _, []) --> [].
-uses(xref_useitem(L), Us, [L|Us0]) -->
-    [X],
-    uses(X, Us, Us0).
-
-defs(xref_enddefs, _, []) --> [].
-defs(xref_defitem(L), Ds, [L|Ds0]) -->
-    [X],
-    defs(X, Ds, Ds0).
-
-code_content([text(Text)|Cs]) -->
-    text_token(T), !, % cut
-    code_text(Ts),
-    {   atomics_to_string([T|Ts], Text)
-    },
-    code_content(Cs).
-code_content([Use|Cs]) -->
-    use_token(U), !, % cut
-    use(Us),
-    {   dict_create(Use, use, [U|Us])
-    },
-    code_content(Cs).
-code_content([]) --> [end].
-
-use([U|Us]) -->
-    use_token(U), !, % cut
-    use(Us).
-use([]) --> [].
-
-use_token(ref(L)) --> [xref_ref(L)].
-use_token(label(L)) --> [xref_label(L)].
-use_token(name(N)) --> [use(N)].
-
-text_token("\n") --> [nl].
-text_token(T) --> [text(T)].
-    
-code_text([T|Ts]) -->
-    text_token(T), !, % cut
-    code_text(Ts).
-code_text([]) --> [].
-
-docs_text([T|Ts]) -->
-    [text(T)], !, % cut
-    docs_text(Ts).
-docs_text(["\n"|Ts]) -->
-    [nl], !, % cut
-    eol(Ts).
-docs_text([]) --> [].
-
-eol([T|Ts]) -->
-    [text(T)], !, % cut
-    docs_text(Ts).
-eol([]) --> [].
-
-nls(N) -->
-    [nl], !, % cut
-    nls(N0),
-    {   succ(N0, N)
-    }.
-nls(1) --> [].
-
-xref_chunks(xref_endchunks, []) --> [].
-xref_chunks(xref_chunkbegin(L, N), [chunk(L, N, Us, Ds)|Cs]) -->
-    [X],
-    xref_chunk(X, Us, Ds),
-    [Y],
-    xref_chunks(Y, Cs).
-
-xref_chunk(xref_chunkend, [], []) --> [].
-xref_chunk(xref_chunkuse(U), [U|Us], Ds) -->
-    [X],
-    xref_chunk(X, Us, Ds).
-xref_chunk(xref_chunkdefn(D), Us, [D|Ds]) -->
-    [X],
-    xref_chunk(X, Us, Ds).
-
-index(index_endindex, []) --> [].
-% we don't have an index for now
-/*
-index(X, [X|Is]) --> [Y],
-    xref_chunks(Y, Is).
-*/
+    nwtokens_terms(Ls, Ts).
 @
+
+<<lirehtml.pl>>=
+:- module(lirehtml, [emit_html/2]).
+
+:- use_module(library(http/html_write)).
+:- multifile html_write:expand//1.
+
+emit_html(Out, L) :-
+    phrase(html(L), H),
+    print_html(Out, H).
+
+html_write:expand(nl(N)) --> [nl(N)].
+html_write:expand(text(T)) --> [T].
+html_write:expand(quote(Q)) -->
+    html(span(class(quote), Q)).
+html_write:expand(quote_use(N, L)) -->
+    html(span(class([quoteduse]),
+              [&(lang), &(nbsp), ref_name(L, N), &(nbsp), &(rang)])).
+html_write:expand(code_meta(C, M, CN)) -->
+    html(div(class(codechunk), [defn(M, CN), pre(C)])).
+html_write:expand(defn(M, CN)) -->
+    {   code{label:L, ref:R, name:N} :< M,
+        (   code{uses:Us} :< M, Us = [_|_]
+        ->  Uses = chunkuses(["used by "|Us])
+        ;   Uses = chunkuses(["not used"])
+        )
+    },
+    html(span(class(defn),
+              [chunknr(CN), &(nbsp),
+               &(lang), &(nbsp),
+               a(id(L),[]), ref_name(R, N),
+               &(nbsp), &(rang),
+               prev_this_next(M),
+               br([]),
+               Uses])).
+html_write:expand(prev_this_next(M)) -->
+    html(&(equiv)).
+html_write:expand(chunknr(N)) -->
+    html(b("C~d:"-N)).
+html_write:expand(code_use(L, R, N)) -->
+    html(span(class([embeddeduse]), 
+              [&(lang), &(nbsp),
+               a(id(L), ref_name(R, N)),
+               &(nbsp), &(rang)])).
+html_write:expand(ref_name(R, N)) -->
+    html(a(href("#~a"-R), N)).
+html_write:expand(chunks_list(Cs)) -->
+    html([text("# List of chunks\n"), ul(class(chunkslist), Cs)]).
+html_write:expand(chunk(L, N, Us, Ds)) -->
+    html(li([ref_name(L, N), xrefchunkuses(Us), xrefchunkdefns(Ds)])).
+html_write:expand(xrefchunkuses(Us)) -->
+    html(["Used:"|Us]).
+html_write:expand(chunkuse(U)) -->
+    html(a(href("#~a"-U), " here")).
+html_write:expand(xrefchunkdefns(Ds)) -->
+    html(["Defined:"|Ds]).
+html_write:expand(chunkdefn(D)) -->
+    html(a(href("#~a"-D), " here")).
+html_write:expand(index(_)) --> [].
 @
 
 Parsing the pipeline:
 <<nwpipe.pl>>=
-:- module(nwpipe, [nwtokens_terms/2]).
+:- module(nwpipe, [nwtokens_terms/2, lire//1]).
 
 nwtokens_terms([], []).
 nwtokens_terms([[0'@|Token]|Tokens], [Term|Terms]) :-
     phrase(token(Back, Term), Token, Back),
     %format(user_error, "~q~n", [Term]),
     nwtokens_terms(Tokens, Terms).
+
 <<`Noweb` tokens $\rightarrow$ Prolog terms>>
+<<Build the document structure>>
 @
 
 <<`Noweb` tokens $\rightarrow$ Prolog terms>>=
@@ -473,6 +355,9 @@ item(atom(A)) -->
     {   atom_codes(A, Codes)
     }.
 
+% Using when here is probably an ugly hack.
+% Could not figure out a better way to deal with
+% "rest of line" situations.
 item(atom_rest(A, Rest)) -->
     {   when(ground(Rest), atom_codes(A, Rest))
     }.
@@ -517,20 +402,196 @@ item(index(Index, Rest)) -->
     items(Items).
 @
 
+<<Build the document structure>>=
+lire(L) -->
+    [file(_)],
+    lire_rest(L, 1).
+
+lire_rest(L, CN) -->
+    [X], !, % cut
+    lire_file(X, L, CN).
+lire_rest([], _) --> [].
+
+lire_file(docs, L, CN) -->
+    [X],
+    docs(X, L, CN).
+lire_file(code, [code_meta(C, M, CN)|L], CN) -->
+    code(C, M),
+    {   succ(CN, CN1)
+    },
+    lire_rest(L, CN1).
+lire_file(nl, [nl(N)|L], CN) -->
+    nls(N),
+    lire_rest(L, CN).
+lire_file(xref_beginchunks, [chunks_list(Cs)|L], CN) -->
+    [X],
+    xref_chunks(X, Cs),
+    lire_rest(L, CN).
+lire_file(index_beginindex, [index(I)|L], CN) -->
+    [X],
+    index_list(X, I),
+    lire_rest(L, CN).
+@
+
+<<Build the document structure>>=
+docs(end, L, CN) -->
+    lire_rest(L, CN).
+docs(text(T), [text(Text)|L], CN) -->
+    docs_text(Ts),
+    {   atomics_to_string([T|Ts], Text)
+    },
+    [X],
+    docs(X, L, CN).
+docs(nl, [nl(N)|L], CN) -->
+    nls(N),
+    [X],
+    docs(X, L, CN).
+docs(quote, [quote(Q)|L], CN) -->
+    [X],
+    quote(X, Q),
+    [Y],
+    docs(Y, L, CN).
+
+quote(text(T), [text(T)|Q]) -->
+    [X],
+    quote(X, Q).
+quote(xref_ref(L), [quote_use(N, L)|Q]) -->
+    [use(N), X],
+    quote(X, Q).
+quote(endquote, []) --> [].
+@
+
+<<Build the document structure>>=
+code(Cs, M) -->
+    [X],
+    defn(X, M_pairs),
+    {   dict_create(M, code, M_pairs)
+    },
+    code_content(Cs).
+
+defn(nl, []) --> [].
+defn(xref_label(L), [label(L)|M]) -->
+    [X],
+    defn(X, M).
+defn(xref_ref(L), [ref(L)|M]) -->
+    [X],
+    defn(X, M).
+defn(defn(N), [name(N)|M]) -->
+    [X],
+    defn(X, M).
+defn(xref_notused(_N), [uses(notused)|M]) -->
+    [X],
+    defn(X, M).
+defn(xref_beginuses, [uses(Us)|M]) -->
+    [X],
+    uses(X, Us, Us),
+    [Y],
+    defn(Y, M).
+defn(xref_prevdef(L), [prev(L)|M]) -->
+    [X],
+    defn(X, M).
+defn(xref_nextdef(L), [next(L)|M]) -->
+    [X],
+    defn(X, M).
+defn(language(L), [language(L)|M]) -->
+    [X],
+    defn(X, M).
+defn(xref_begindefs, [defs(Ds)|M]) -->
+    [X],
+    defs(X, Ds, Ds),
+    [Y],
+    defn(Y, M).
+@
+
+<<Build the document structure>>=
+uses(xref_enduses, _, []) --> [].
+uses(xref_useitem(L), Us, [L|Us0]) -->
+    [X],
+    uses(X, Us, Us0).
+
+defs(xref_enddefs, _, []) --> [].
+defs(xref_defitem(L), Ds, [L|Ds0]) -->
+    [X],
+    defs(X, Ds, Ds0).
+
+code_content([text(Text)|Cs]) -->
+    text_token(T), !, % cut
+    code_text(Ts),
+    {   atomics_to_string([T|Ts], Text)
+    },
+    code_content(Cs).
+code_content([code_use(L, R, N)|Cs]) -->
+    [xref_label(L), xref_ref(R), use(N)], !, % cut
+    code_content(Cs).
+code_content([]) --> [end].
+@
+
+<<Build the document structure>>=
+text_token("\n") --> [nl].
+text_token(T) --> [text(T)].
+    
+code_text([T|Ts]) -->
+    text_token(T), !, % cut
+    code_text(Ts).
+code_text([]) --> [].
+
+docs_text([T|Ts]) -->
+    [text(T)], !, % cut
+    docs_text(Ts).
+docs_text(["\n"|Ts]) -->
+    [nl], !, % cut
+    eol(Ts).
+docs_text([]) --> [].
+
+eol([T|Ts]) -->
+    [text(T)], !, % cut
+    docs_text(Ts).
+eol([]) --> [].
+
+nls(N) -->
+    [nl], !, % cut
+    nls(N0),
+    {   succ(N0, N)
+    }.
+nls(1) --> [].
+@
+
+<<Build the document structure>>=
+xref_chunks(xref_endchunks, []) --> [].
+xref_chunks(xref_chunkbegin(L, N), [chunk(L, N, Us, Ds)|Cs]) -->
+    [X],
+    xref_chunk(X, Us, Ds),
+    [Y],
+    xref_chunks(Y, Cs).
+
+xref_chunk(xref_chunkend, [], []) --> [].
+xref_chunk(xref_chunkuse(U), [chunkuse(U)|Us], Ds) -->
+    [X],
+    xref_chunk(X, Us, Ds).
+xref_chunk(xref_chunkdefn(D), Us, [chunkdefn(D)|Ds]) -->
+    [X],
+    xref_chunk(X, Us, Ds).
+
+index_list(index_endindex, []) --> [].
+% we don't have an index for now
+@
+
 ## Layout
 The system tries to separate content and layout as much as possible.
 It also aims to provide a sensible default layout for the human-readable documentation.
 
 ### HTML
-For HTML documentation, [[<<lire.css>>]] is used. Here it is:
+For HTML documentation, [[<<lire.css>>]] is used.
 <<lire.css>>=
-span.nwuse a, span.uses a, span.nwquoteduse a, span.prevdef a, span.nextdef a {
-    color: forestgreen;
-    text-decoration-line: none;
-}
-h1, h2, h3 {
-    font-family: sans-serif;
-}
+<<Text width and margin>>
+<<Headers in sans-serif>>
+<<Quoted code in monospace>>
+<<Use names formatting>>
+<<List of chunks formatting>>
+@
+
+The text width is limited and a left margin is inserted to improve readability.
+<<Text width and margin>>=
 p {
     max-width: 14cm;
 }
@@ -540,25 +601,56 @@ ul {
 body {
     padding-left: 2cm;
 }
-span.quotedcode {
-    font-family: monospace;
-}
-span.nwquoteduse {
-    font-family: serif;
-}
-span.nwuse {
-    font-family: serif;
-    font-style: italic;
-}
-span.nwdefn {
-    font-family: serif;
-    font-weight: bold;
-}
-span.uses, span.prevdef, span.nextdef {
-    font-size: small;
+@
+
+<<Headers in sans-serif>>=
+h1, h2, h3 {
+    font-family: sans-serif;
 }
 @
 
+<<Use names formatting>>=
+span.defn a, span.quoteduse a, span.embeddeduse a {
+    text-decoration-line: None;
+    font-family: Serif;
+}
+@
+
+Use names in quoted code and code chunks are typeset in different colors and are high-lighted when the mouse is over them.
+<<>>=
+span.quoteduse a {
+    color: DarkGreen;
+}
+span.quoteduse a:hover {
+    color: LimeGreen;
+}
+span.embeddeduse a {
+    color: DarkBlue;
+    font-style: Italic;
+}
+span.embeddeduse a:hover {
+    color: DodgerBlue;
+}
+span.defn a {
+    color: black;
+    font-weight: Bold;
+}
+span.defn a:hover {
+    color: DarkGoldenRod;
+}
+@
+
+<<Quoted code in monospace>>=
+span.quote {
+    font-family: Monospace;
+}
+@
+
+<<List of chunks formatting>>=
+ul.chunkslist {
+    list-style-type: square;
+}
+@
 
 # Common definitions
 All building block for `noweb` (front ends, filters, back ends) are usually installed in the same [[<<`Noweb` location>>]]:
