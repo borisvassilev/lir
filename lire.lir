@@ -226,12 +226,16 @@ lire_pandoc(quote(Q), [span(class(quote), QC)|P]) --> !,
     },
     lire_pandoc(P).
 lire_pandoc(quote_use(Name, Label),
-            span(class(quoteduse),
-                 [&(lang), &(nbsp),
-                  a(href("#~a"-Label), Name),
-                  &(nbsp), &(rang)|P])) --> !,
+            [span(class(quoteduse),
+                  [&(lang), NBS,
+                   a(href("#~a"-Label), Name),
+                   NBS, &(rang)])|P]) --> !,
+    {   thinnbsp(NBS)
+    },
     lire_pandoc(P).
 lire_pandoc(X, [X|P]) --> lire_pandoc(P).
+
+thinnbsp(span(style("white-space:nowrap"), &(thinsp))).
 
 /*
 html_write:expand(nl(N)) --> [nl(N)].
@@ -666,6 +670,9 @@ h1, h2, h3 {
 <<Use names formatting>>=
 span.defn a, span.quoteduse a, span.embeddeduse a {
     text-decoration-line: None;
+    font-family: Serif;
+}
+span.quoteduse {
     font-family: Serif;
 }
 @
