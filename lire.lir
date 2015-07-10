@@ -159,13 +159,38 @@ nwpipeline_pandoc(_) :-
     forall(member(T, Ts), format(Terms_file, "~q~n", [T])),
     close(Terms_file),
     phrase(lire(L), Ts),
-    open('doc.txt', write, Doc_file),
-    write_lire(L, Doc_file),
-    close(Doc_file),
-    open('weaved.pandoc', write, Pandoc_file),
-    emit_html(Pandoc_file, L),
-    close(Pandoc_file),
-    emit_html(user_output, L).
+    number_code(L, NL),
+    forall( (   member(code_meta_n(_C, M, N), NL),
+                %format(user_error, "C~d::~n~q~n~q~n", [Nr, C, M])
+                code{label:Label, name:Name} :< M
+            ),
+            format(user_error, "~d : ~a / ~s~n", [N, Label, Name])),
+    setup_call_cleanup(open('doc.txt', write, Doc_file),
+            (   maplist(format_to_string("~q~n"), NL, LS),
+                atomics_to_string(LS, S),
+                format(Doc_file, "~s~n", [S])
+            ),
+            %write_lire(L, Doc_file),
+            close(Doc_file)),
+    setup_call_cleanup(open('weaved.pandoc', write, Pandoc_file),
+            emit_html(Pandoc_file, NL),
+            close(Pandoc_file)),
+    emit_html(user_output, NL).
+
+number_code(L, NL) :-
+    number_code_(L, NL, 1).
+number_code_([], [], _).
+number_code_([H|T], NL, N) :-
+    (   H = code_meta(C, M)
+    ->  NL = [code_meta_n(C, M, N)|NL0],
+        succ(N, N1)
+    ;   NL = [H|NL0],
+        N = N1
+    ),
+    number_code_(T, NL0, N1).
+
+format_to_string(F, T, S) :-
+    format(string(S), F, [T]).
 
 write_lire([], _).
 write_lire([H|T], Out) :-
@@ -186,9 +211,29 @@ input_to_terms(I, Ts) :-
 :- multifile html_write:expand//1.
 
 emit_html(Out, L) :-
-    phrase(html(L), H),
+    phrase(lire_pandoc(P), L),
+    phrase(html(P), H),
     print_html(Out, H).
 
+lire_pandoc(P) -->
+    [X], !,
+    lire_pandoc(X, P).
+lire_pandoc([]) --> [].
+lire_pandoc(nl, ["\n"|P]) --> !, lire_pandoc(P).
+lire_pandoc(text(T), [T|P]) --> !, lire_pandoc(P).
+lire_pandoc(quote(Q), [span(class(quote), QC)|P]) --> !,
+    {   phrase(lire_pandoc(QC), Q)
+    },
+    lire_pandoc(P).
+lire_pandoc(quote_use(Name, Label),
+            span(class(quoteduse),
+                 [&(lang), &(nbsp),
+                  a(href("#~a"-Label), Name),
+                  &(nbsp), &(rang)|P])) --> !,
+    lire_pandoc(P).
+lire_pandoc(X, [X|P]) --> lire_pandoc(P).
+
+/*
 html_write:expand(nl(N)) --> [nl(N)].
 html_write:expand(text(T)) --> [T].
 html_write:expand(quote(Q)) -->
@@ -196,7 +241,8 @@ html_write:expand(quote(Q)) -->
 html_write:expand(quote_use(N, L)) -->
     html(span(class([quoteduse]),
               [&(lang), &(nbsp), ref_name(L, N), &(nbsp), &(rang)])).
-html_write:expand(code_meta(C, M, CN)) -->
+*/
+html_write:expand(code_meta_n(C, M, CN)) -->
     html(div(class(codechunk), [defn(M, CN), pre(C)])).
 html_write:expand(defn(M, CN)) -->
     {   code{label:L, ref:R, name:N} :< M,
@@ -213,10 +259,20 @@ html_write:expand(defn(M, CN)) -->
                prev_this_next(M),
                br([]),
                Uses])).
-html_write:expand(prev_this_next(M)) -->
-    html(&(equiv)).
 html_write:expand(chunknr(N)) -->
     html(b("C~d:"-N)).
+html_write:expand(prev_this_next(M)) -->
+    {   (   code{next:N} :< M
+        ->  Out0 = [&(nbsp), a(href("#~a"-N), &(8827))]
+        ;   Out0 = []
+        ),
+        Out1 = [&(nbsp), a(href("#~a"-M.label), &(equiv))|Out0],
+        (   code{prev:P} :< M
+        ->  Out = [&(nbsp), a(href("#~a"-P), &(8826))|Out1]
+        ;   Out = Out1
+        )
+    },
+    html(Out).
 html_write:expand(code_use(L, R, N)) -->
     html(span(class([embeddeduse]), 
               [&(lang), &(nbsp),
@@ -405,52 +461,50 @@ item(index(Index, Rest)) -->
 <<Build the document structure>>=
 lire(L) -->
     [file(_)],
-    lire_rest(L, 1).
+    lire_rest(L).
 
-lire_rest(L, CN) -->
+lire_rest(L) -->
     [X], !, % cut
-    lire_file(X, L, CN).
-lire_rest([], _) --> [].
+    lire_file(X, L).
+lire_rest([]) --> [].
 
-lire_file(docs, L, CN) -->
+lire_file(docs, L) -->
     [X],
-    docs(X, L, CN).
-lire_file(code, [code_meta(C, M, CN)|L], CN) -->
+    docs(X, L).
+lire_file(code, [code_meta(C, M)|L]) -->
     code(C, M),
-    {   succ(CN, CN1)
-    },
-    lire_rest(L, CN1).
-lire_file(nl, [nl(N)|L], CN) -->
-    nls(N),
-    lire_rest(L, CN).
-lire_file(xref_beginchunks, [chunks_list(Cs)|L], CN) -->
+    lire_rest(L).
+lire_file(nl, [nl|L]) -->
+    %nls(N),
+    lire_rest(L).
+lire_file(xref_beginchunks, [chunks_list(Cs)|L]) -->
     [X],
     xref_chunks(X, Cs),
-    lire_rest(L, CN).
-lire_file(index_beginindex, [index(I)|L], CN) -->
+    lire_rest(L).
+lire_file(index_beginindex, [index(I)|L]) -->
     [X],
     index_list(X, I),
-    lire_rest(L, CN).
+    lire_rest(L).
 @
 
 <<Build the document structure>>=
-docs(end, L, CN) -->
-    lire_rest(L, CN).
-docs(text(T), [text(Text)|L], CN) -->
+docs(end, L) -->
+    lire_rest(L).
+docs(text(T), [text(Text)|L]) -->
     docs_text(Ts),
     {   atomics_to_string([T|Ts], Text)
     },
     [X],
-    docs(X, L, CN).
-docs(nl, [nl(N)|L], CN) -->
-    nls(N),
+    docs(X, L).
+docs(nl, [nl|L]) -->
+    %nls(N),
     [X],
-    docs(X, L, CN).
-docs(quote, [quote(Q)|L], CN) -->
+    docs(X, L).
+docs(quote, [quote(Q)|L]) -->
     [X],
     quote(X, Q),
     [Y],
-    docs(Y, L, CN).
+    docs(Y, L).
 
 quote(text(T), [text(T)|Q]) -->
     [X],
