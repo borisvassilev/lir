@@ -159,35 +159,17 @@ nwpipeline_pandoc(_) :-
     forall(member(T, Ts), format(Terms_file, "~q~n", [T])),
     close(Terms_file),
     phrase(lire(L), Ts),
-    number_code(L, NL),
-    forall( (   member(code_meta_n(_C, M, N), NL),
-                %format(user_error, "C~d::~n~q~n~q~n", [Nr, C, M])
-                code{label:Label, name:Name} :< M
-            ),
-            format(user_error, "~d : ~a / ~s~n", [N, Label, Name])),
     setup_call_cleanup(open('doc.txt', write, Doc_file),
-            (   maplist(format_to_string("~q~n"), NL, LS),
+            (   maplist(format_to_string("~q~n"), L, LS),
                 atomics_to_string(LS, S),
                 format(Doc_file, "~s~n", [S])
             ),
             %write_lire(L, Doc_file),
             close(Doc_file)),
     setup_call_cleanup(open('weaved.pandoc', write, Pandoc_file),
-            emit_html(Pandoc_file, NL),
+            emit_html(Pandoc_file, L),
             close(Pandoc_file)),
-    emit_html(user_output, NL).
-
-number_code(L, NL) :-
-    number_code_(L, NL, 1).
-number_code_([], [], _).
-number_code_([H|T], NL, N) :-
-    (   H = code_meta(C, M)
-    ->  NL = [code_meta_n(C, M, N)|NL0],
-        succ(N, N1)
-    ;   NL = [H|NL0],
-        N = N1
-    ),
-    number_code_(T, NL0, N1).
+    emit_html(user_output, L).
 
 format_to_string(F, T, S) :-
     format(string(S), F, [T]).
@@ -211,81 +193,155 @@ input_to_terms(I, Ts) :-
 :- multifile html_write:expand//1.
 
 emit_html(Out, L) :-
-    phrase(lire_pandoc(P), L),
+    formatting(L, F),
+    phrase(lire_pandoc(P), F),
     phrase(html(P), H),
     print_html(Out, H).
+
+formatting(L, L) :-
+    code_metas(L, Ms),
+    retractall(label_nr_name_fname(_,_,_,_)),
+    forall(nth1(N, Ms, M),
+            (   through_pandoc(html5, M.name, FN),
+                assertz(label_nr_name_fname(M.label, N, M.name, FN))
+            )).
+
+code_metas([], []).
+code_metas([H|T], Ms) :-
+    (   H = code_meta(_, M)
+    ->  Ms = [M|Ms0]
+    ;   Ms = Ms0
+    ),
+    code_metas(T, Ms0).
+
+:- use_module(library(sgml), [load_structure/3]).
+:- use_module(library(sgml_write), [xml_write/3]).
+
+through_pandoc(To, Str, FStr) :-
+	atomics_to_string(L, "'", Str), % split
+	atomics_to_string(L, "'\\''", EscStr), % put together
+	atomics_to_string(["echo '", EscStr, "' | pandoc -t ", To], Pandoc),
+	process_create(path(bash), ['-c', Pandoc], [stdout(pipe(Out))]),
+	through_pandoc_1(To, Out, FStr),
+	close(Out).
+
+through_pandoc_1(html5, Out, FStr) :-
+	load_structure(Out, [element(p, [], StrDOM)], [dialect(xml)]),
+	with_output_to(string(FStr),
+		xml_write(current_output, StrDOM,
+			[header(false), layout(false)])).
 
 lire_pandoc(P) -->
     [X], !,
     lire_pandoc(X, P).
 lire_pandoc([]) --> [].
-lire_pandoc(nl, ["\n"|P]) --> !, lire_pandoc(P).
-lire_pandoc(text(T), [T|P]) --> !, lire_pandoc(P).
-lire_pandoc(quote(Q), [span(class(quote), QC)|P]) --> !,
+lire_pandoc(nl, ["\n"|P]) --> lire_pandoc(P).
+lire_pandoc(text(T), [T|P]) --> lire_pandoc(P).
+lire_pandoc(quote(Q), [span(class(quote), QC)|P]) -->
     {   phrase(lire_pandoc(QC), Q)
     },
     lire_pandoc(P).
 lire_pandoc(quote_use(Name, Label),
             [span(class(quoteduse),
-                  [&(lang), NBS,
+                  [&(lang), \thinnbsp,
                    a(href("#~a"-Label), Name),
-                   NBS, &(rang)])|P]) --> !,
-    {   thinnbsp(NBS)
+                   \thinnbsp, &(rang)])|P]) -->
+    lire_pandoc(P).
+lire_pandoc(code_meta(C, M),
+            [div(class(codechunk),
+             [\chunk_defn(M),
+              \chunk_uses(M),
+              \chunk_defs(M),
+              \chunk_prev(M),
+              pre(CC),
+              \chunk_next(M)])|P]) -->
+    {   phrase(lire_pandoc(CC), C)
     },
     lire_pandoc(P).
-lire_pandoc(X, [X|P]) --> lire_pandoc(P).
-
-thinnbsp(span(style("white-space:nowrap"), &(thinsp))).
-
+lire_pandoc(code_use(L, R, N),
+            [span(class(embeddeduse),
+                  [&(lang), \thinnbsp,
+                   a([id(L), href("#~a"-R)], \[FN]),
+                   \thinnbsp, &(rang)])|P]) -->
+    {   label_nr_name_fname(R, _, N, FN)
+    },
+    lire_pandoc(P).
+lire_pandoc(chunks_list(_Cs), P) -->
 /*
-html_write:expand(nl(N)) --> [nl(N)].
-html_write:expand(text(T)) --> [T].
-html_write:expand(quote(Q)) -->
-    html(span(class(quote), Q)).
-html_write:expand(quote_use(N, L)) -->
-    html(span(class([quoteduse]),
-              [&(lang), &(nbsp), ref_name(L, N), &(nbsp), &(rang)])).
+            ["# List of Chunks\n\n",
+             div(class(listofchunks), \chunks_list(Cs))|P]) -->
 */
-html_write:expand(code_meta_n(C, M, CN)) -->
-    html(div(class(codechunk), [defn(M, CN), pre(C)])).
-html_write:expand(defn(M, CN)) -->
-    {   code{label:L, ref:R, name:N} :< M,
-        (   code{uses:Us} :< M, Us = [_|_]
-        ->  Uses = chunkuses(["used by "|Us])
-        ;   Uses = chunkuses(["not used"])
-        )
+    lire_pandoc(P).
+lire_pandoc(index(_), P) --> [], lire_pandoc(P).
+
+thinnbsp --> html(span(style("white-space:nowrap"), &(thinsp))).
+
+chunk_defn(M) -->
+    {   label_nr_name_fname(M.label, Nr, _, FName)
     },
-    html(span(class(defn),
-              [chunknr(CN), &(nbsp),
-               &(lang), &(nbsp),
-               a(id(L),[]), ref_name(R, N),
-               &(nbsp), &(rang),
-               prev_this_next(M),
-               br([]),
-               Uses])).
-html_write:expand(chunknr(N)) -->
-    html(b("C~d:"-N)).
-html_write:expand(prev_this_next(M)) -->
-    {   (   code{next:N} :< M
-        ->  Out0 = [&(nbsp), a(href("#~a"-N), &(8827))]
-        ;   Out0 = []
-        ),
-        Out1 = [&(nbsp), a(href("#~a"-M.label), &(equiv))|Out0],
-        (   code{prev:P} :< M
-        ->  Out = [&(nbsp), a(href("#~a"-P), &(8826))|Out1]
-        ;   Out = Out1
-        )
+    html(span([class(defn), id(M.label)],
+              [span(class(chunknr), "C~d:"-Nr), &(nbsp),
+               &(lang), \thinnbsp,
+               a(href("#~a"-M.label), \[FName]),
+               \thinnbsp, &(rang), &(equiv)])).
+chunk_uses(M) -->
+    {   code{uses:Us} :< M
+    }, !,
+    html(span(class(chunkuses), \chunk_uses_(Us))).
+chunk_uses(_) --> [].
+chunk_uses_([U|Us]) -->
+    {   label_nr_name_fname(U, Nr, _, _)
+    }, !,
+    html([br([]), "used by ", a(href("#~a"-U),"C~d"-Nr)]),
+    chunk_uses_rest(Us).
+chunk_uses_(notused) --> html([br([]), "root chunk"]).
+chunk_uses_rest([]) --> [].
+chunk_uses_rest([U|Us]) -->
+    {   label_nr_name_fname(U, Nr, _, _)
     },
-    html(Out).
-html_write:expand(code_use(L, R, N)) -->
-    html(span(class([embeddeduse]), 
-              [&(lang), &(nbsp),
-               a(id(L), ref_name(R, N)),
-               &(nbsp), &(rang)])).
+    html([", ", a(href("#~a"-U), "C~d"-Nr)]),
+    chunk_uses_rest(Us).
+
+chunk_next(M) -->
+    {   code{next:L} :< M,
+        label_nr_name_fname(L, Nr, _, _)
+    }, !,
+    html(span(class(chunknext),
+         a(href("#~a"-L), [&(8681), \thinnbsp, "C~d"-Nr]))).
+chunk_next(_) -->
+    html(&(9646)).
+
+chunk_prev(M) -->
+    {   code{prev:L} :< M,
+        label_nr_name_fname(L, Nr, _, _)
+    },
+    html([br([]),
+          span(class(chunkprev),
+               a(href("#~a"-L), [&(8679), \thinnbsp, "C~d"-Nr]))]).
+chunk_prev(_) --> [].
+
+chunk_defs(M) -->
+    {   code{defs:Ds} :< M
+    }, !,
+    html(span(class(chunkdefs), \chunk_defs_(Ds))).
+chunk_defs(_) --> [].
+
+chunk_defs_([D|Ds]) -->
+    {   label_nr_name_fname(D, Nr, _, _)
+    },
+    html([br([]), "definition continued in ", a(href("#~a"-D), "C~d"-Nr)]),
+    chunk_defs_rest(Ds).
+chunk_defs_rest([]) --> [].
+chunk_defs_rest([D|Ds]) -->
+    {   label_nr_name_fname(D, Nr, _, _)
+    },
+    html(["+", a(href("#~a"-D), "C~d"-Nr)]),
+    chunk_defs_rest(Ds).
+    
 html_write:expand(ref_name(R, N)) -->
     html(a(href("#~a"-R), N)).
 html_write:expand(chunks_list(Cs)) -->
-    html([text("# List of chunks\n"), ul(class(chunkslist), Cs)]).
+    html([text("\n# List of chunks\n"), ul(class(chunkslist), Cs)]).
 html_write:expand(chunk(L, N, Us, Ds)) -->
     html(li([ref_name(L, N), xrefchunkuses(Us), xrefchunkdefns(Ds)])).
 html_write:expand(xrefchunkuses(Us)) -->
@@ -468,7 +524,7 @@ lire(L) -->
     lire_rest(L).
 
 lire_rest(L) -->
-    [X], !, % cut
+    [X], !,
     lire_file(X, L).
 lire_rest([]) --> [].
 
@@ -479,7 +535,6 @@ lire_file(code, [code_meta(C, M)|L]) -->
     code(C, M),
     lire_rest(L).
 lire_file(nl, [nl|L]) -->
-    %nls(N),
     lire_rest(L).
 lire_file(xref_beginchunks, [chunks_list(Cs)|L]) -->
     [X],
@@ -501,7 +556,6 @@ docs(text(T), [text(Text)|L]) -->
     [X],
     docs(X, L).
 docs(nl, [nl|L]) -->
-    %nls(N),
     [X],
     docs(X, L).
 docs(quote, [quote(Q)|L]) -->
@@ -573,13 +627,13 @@ defs(xref_defitem(L), Ds, [L|Ds0]) -->
     defs(X, Ds, Ds0).
 
 code_content([text(Text)|Cs]) -->
-    text_token(T), !, % cut
+    text_token(T), !,
     code_text(Ts),
     {   atomics_to_string([T|Ts], Text)
     },
     code_content(Cs).
 code_content([code_use(L, R, N)|Cs]) -->
-    [xref_label(L), xref_ref(R), use(N)], !, % cut
+    [xref_label(L), xref_ref(R), use(N)], !,
     code_content(Cs).
 code_content([]) --> [end].
 @
@@ -589,29 +643,22 @@ text_token("\n") --> [nl].
 text_token(T) --> [text(T)].
     
 code_text([T|Ts]) -->
-    text_token(T), !, % cut
+    text_token(T), !,
     code_text(Ts).
 code_text([]) --> [].
 
 docs_text([T|Ts]) -->
-    [text(T)], !, % cut
+    [text(T)], !,
     docs_text(Ts).
 docs_text(["\n"|Ts]) -->
-    [nl], !, % cut
+    [nl], !,
     eol(Ts).
 docs_text([]) --> [].
 
 eol([T|Ts]) -->
-    [text(T)], !, % cut
+    [text(T)], !,
     docs_text(Ts).
 eol([]) --> [].
-
-nls(N) -->
-    [nl], !, % cut
-    nls(N0),
-    {   succ(N0, N)
-    }.
-nls(1) --> [].
 @
 
 <<Build the document structure>>=
@@ -644,6 +691,7 @@ For HTML documentation, [[<<lire.css>>]] is used.
 <<Text width and margin>>
 <<Headers in sans-serif>>
 <<Quoted code in monospace>>
+<<Code chunks>>
 <<Use names formatting>>
 <<List of chunks formatting>>
 @
@@ -662,18 +710,31 @@ body {
 @
 
 <<Headers in sans-serif>>=
-h1, h2, h3 {
+h1,
+h2,
+h3 {
     font-family: sans-serif;
 }
 @
 
 <<Use names formatting>>=
-span.defn a, span.quoteduse a, span.embeddeduse a {
+span.chunkdefs a,
+span.chunkuses a,
+span.chunkprev a,
+span.chunknext a,
+span.defn a,
+span.quoteduse a,
+span.embeddeduse a {
     text-decoration-line: None;
-    font-family: Serif;
 }
 span.quoteduse {
     font-family: Serif;
+}
+span.embeddeduse {
+    font-family: Serif;
+}
+span.chunknr {
+    font-weight: bold;
 }
 @
 
@@ -692,11 +753,18 @@ span.embeddeduse a {
 span.embeddeduse a:hover {
     color: DodgerBlue;
 }
-span.defn a {
-    color: black;
-    font-weight: Bold;
+span.chunkdefs a,
+span.chunkprev a,
+span.chunknext a,
+span.defn a,
+span.chunkuses a {
+    color: DarkRed;
 }
-span.defn a:hover {
+span.chunkdefs a:hover,
+span.chunkprev a:hover,
+span.chunknext a:hover,
+span.defn a:hover,
+span.chunkuses a:hover {
     color: DarkGoldenRod;
 }
 @
@@ -704,6 +772,15 @@ span.defn a:hover {
 <<Quoted code in monospace>>=
 span.quote {
     font-family: Monospace;
+}
+@
+
+<<Code chunks>>=
+div.codechunk {
+    /*
+    max-width: 16cm;
+    background-color: HoneyDew;
+    */
 }
 @
 
