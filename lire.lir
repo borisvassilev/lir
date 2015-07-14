@@ -143,7 +143,6 @@ nwpipe-pandoc: nwpipe-pandoc.pl driver.pl nwpipe.pl lirehtml.pl
 @
 
 ## From `lire` source to documentation
-Add to the database a table with all code chunks.
 
 The driver:
 <<driver.pl>>=
@@ -197,7 +196,10 @@ emit_html(Out, L) :-
     phrase(lire_pandoc(P), F),
     phrase(html(P), H),
     print_html(Out, H).
+@
 
+Add to the database a table with all code chunks.
+<<>>=
 formatting(L, L) :-
     code_metas(L, Ms),
     retractall(label_nr_name_fname(_,_,_,_)),
@@ -213,7 +215,10 @@ code_metas([H|T], Ms) :-
     ;   Ms = Ms0
     ),
     code_metas(T, Ms0).
+@
 
+Use Pandoc to pre-format chunk names.
+<<>>=
 :- use_module(library(sgml), [load_structure/3]).
 :- use_module(library(sgml_write), [xml_write/3]).
 
