@@ -3,5 +3,10 @@
 # generated documentation files
 *.html
 *.pdf
-# working directory
+*.bib.bak
+# lire files and directories
 .lire
+lire
+old.lir
+# build file
+build
