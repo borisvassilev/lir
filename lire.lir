@@ -448,22 +448,6 @@ chunk_defs_rest([D|Ds]) -->
     },
     html(["+", a(href("#~a"-D), "C~d"-Nr)]),
     chunk_defs_rest(Ds).
-    
-html_write:expand(ref_name(R, N)) -->
-    html(a(href("#~a"-R), N)).
-html_write:expand(chunks_list(Cs)) -->
-    html([text("\n# List of chunks\n"), ul(class(chunkslist), Cs)]).
-html_write:expand(chunk(L, N, Us, Ds)) -->
-    html(li([ref_name(L, N), xrefchunkuses(Us), xrefchunkdefns(Ds)])).
-html_write:expand(xrefchunkuses(Us)) -->
-    html(["Used:"|Us]).
-html_write:expand(chunkuse(U)) -->
-    html(a(href("#~a"-U), " here")).
-html_write:expand(xrefchunkdefns(Ds)) -->
-    html(["Defined:"|Ds]).
-html_write:expand(chunkdefn(D)) -->
-    html(a(href("#~a"-D), " here")).
-html_write:expand(index(_)) --> [].
 @
 
 Parsing the pipeline:
