@@ -270,7 +270,6 @@ nwpipeline_pandoc(_) :-
                 atomics_to_string(LS, S),
                 format(Doc_file, "~s~n", [S])
             ),
-            %write_lire(L, Doc_file),
             close(Doc_file)),
     setup_call_cleanup(open('weaved.pandoc', write, Pandoc_file),
             emit_html(Pandoc_file, L),
@@ -279,11 +278,6 @@ nwpipeline_pandoc(_) :-
 
 format_to_string(F, T, S) :-
     format(string(S), F, [T]).
-
-write_lire([], _).
-write_lire([H|T], Out) :-
-    format(Out, "~q~n", [H]),
-    write_lire(T, Out).
 
 input_to_terms(I, Ts) :-
     read_string(I, _, S),
@@ -389,9 +383,9 @@ lire_pandoc(index(_), P) --> [], lire_pandoc(P).
 thinnbsp --> html(span(style("white-space:nowrap"), &(thinsp))).
 
 chunk_defn(M) -->
-    {   label_nr_name_fname(M.label, Nr, _, FName)
+    {   label_nr_name_fname(_, Nr, _, FName)
     },
-    html(span([class(defn), id(M.label)],
+    html(span(class(defn),
               [span(class(chunknr), "C~d:"-Nr), &(nbsp),
                &(lang), \thinnbsp,
                a(href("#~a"-M.label), \[FName]),
