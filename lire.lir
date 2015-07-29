@@ -11,86 +11,209 @@ This is a collection of tools that support programming language-agnostic reprodu
 This document is self-hosting: the implementation presented here can be used to produce the final human-readable documentation.
 This makes informal validation trivial ("does the final document look right?"), but it also means that the only guarantee is that it implements enough to be able to compile itself.
 
-It might or might not have [[quoted code with <<uses>>, or maybe without any]].
-I haven't decided on it yet.
+# Overview
+The tools provided by `lire` aim to support two goals:
 
-# Bootstrapping
-The following small programs are the components used to provide the functionality of [[lire]].
+1. Generating results by running the code defined in a `lire` file.
+2. Presenting all code and possibly results in a human-readable form.
 
-The first one, [[<<lire-tangle.sh>>]], is used to tangle a code chunk and, if necessary, deploy it to the working directory, `.lire`:
-<<lire-tangle.sh>>=
+The program installed as the bash script [[<<lire>>]] that takes the `lire` source file name as its only argument and performs three steps:
+<<lire.sh>>=
 <<Bash shebang>>
-f=$(mktemp)
-notangle -t8 -filter emptydefn -R"$1" lire.lir > "$f"
-cmp --quiet "$f" .lire/"$1"
-if [ $? -eq 0 ]; then
-    rm "$f"
-else
-    echo "Updating $1 (changed)"
-    mv "$f" .lire/"$1"
-fi
+<<`Lire` setup>>
+# step 1:
+<<Extract code from the `lire` source file>>
+# step 2:
+<<Run all code>>
+# step 3:
+### Weave to HTML ###
+make -C .lire html
+cp .lire/*.html .
 @
 
-This next program, [[<<lire-use.sh>>]], is meant for files that do not need to be tangled; for example, the `lire` source file itself, or a bibliography file maintained separately.
-<<lire-use.sh>>=
-cmp --quiet "$1" .lire/"$1"
-if [ $? -ne 0 ]; then
-    echo "Updating $1 (changed)"
-    cp "$1" .lire/"$1"
-fi
+`Lire` maintains a "state" in order to avoid unnecessary computation in a subdirectory named `.lire`.
+The `--parents` option is used so that `mkdir` does nothing _and_ does not report an error if the directory already exists.
+<<`Lire` setup>>=
+mkdir --parents .lire
 @
 
-Finally, a script [[<<lire-make.sh>>]] that uses these building blocks to put the necessary files in the working directory (all scripts and the Makefile) and make everything:
-<<lire-make.sh>>=
-for tangled in lire-nwpipe.sh nwpipe-pandoc.pl driver.pl nwpipe.pl lirehtml.pl pandoc-html.sh lire.css Makefile; do
-    bash lire-tangle.sh "$tangled"
-done
-for used in lire.lir lire.bib; do
-    bash lire-use.sh "$used"
-done
-make -C .lire
+# Extract code from the `lire` source file
+"Code chunks" inside a `lire` source file form a ["forest"](https://en.wikipedia.org/wiki/Tree_%28graph_theory%29#forest) of trees (directed, acyclic graphs).
+The tools provided by `noweb` will not allow circular code chunk definitions, so `lire` does not need to worry about this.
+<<Extract code from the `lire` source file>>=
+<<Get names of code chunks to be tangled>>
+<<Tangle code chunks>>
+<<Take in use externally maintained files>>
+@
+Not everything fits in a single source file.
+A bibliography file, for example, is best maintained by a proper reference manager.
+Such files can be listed explicitly in a code chunk named `lire::use` like so:
+<<lire::use>>=
+lire.bib
 @
 
-Of course, the building blocks themselves need to be "tangled" first.
-Here is the [[<<bootstrap>>]] script:
-<<bootstrap>>=
-<<Bash shebang>>
-for file in lire-tangle.sh lire-use.sh lire-make.sh; do
-    notangle -t8 -R"$file" lire.lir > "$file"
-done
-bash lire-make.sh
+## Tangling code
+`Lire` makes the assumption that all root chunks are source files that are meant to be tangled and eventually used.
+The list is then sorted; this is necessary for the next step of filtering out explicitly ignored chunk names.
+<<Get names of code chunks to be tangled>>=
+allnames=$(mktemp)
+noroots "$1" \
+    | <<Drop double angle brackets>> \
+    | <<Remove empty lines>> \
+    | <<Remove names starting with `lire::`>> \
+    | sort -u \
+    > "$allnames"
+<<Filter out explicitly ignored chunk names>>
 @
 
-To tangle and run it, do:
-
-<<lire>>=
-$ notangle -R"bootstrap" lire.lir > lire && chmod u+x lire && ./lire emithtml.pl
+One implicitly ignored chunk is the "anonymous", unnamed code chunk as in `@<<>>=`; this is interpreted as a continuation of the previous chunk by `lire`, but `@<<>>=` will appear in the list of root chunks as listed by `noweb`'s own `noroots`.
+A `lire` source file can also contain root chunks that have names beginning with `lire::`.
+These are used by the user to customize `lire`'s functionality, as for example the [[<<lire::use>>]] chunk mentioned above.
+<<Drop double angle brackets>>=
+sed -n 's/^@<<\(.*\)@>>$/\1/p'
+@
+<<Remove empty lines>>=
+sed '/^\s*$/d'
+@
+<<Remove names starting with `lire::`>>=
+sed -n '/^lire::.*/!p'
 @
 
-Once `lire` is tangled, unless the [[<<bootstrap>>]] code chunk is changed, re-making everything (while taking care of any changes, and avoiding unnecessary work) should not take more than just running `lire` again.
+If for some reason a root chunk should not be tangled, it can be listed in a chunk named `lire::ignore`.
+<<lire::ignore>>=
+@
+The chunk `lire::ignore` is tangled to a temporary file and any names in it are subtracted from the list of root chunk names obtained in the previous step.
+Since the command line tool used to do this, `comm`, expects sorted input files, it is sorted as well.
+<<Filter out explicitly ignored chunk names>>=
+ignored=$(mktemp)
+notangle -R"lire::ignore" "$1" \
+    | <<Remove empty lines>> \
+    | sort -u \
+    > "$ignored"
+tangled=$(mktemp)
+comm -23 "$allnames" "$ignored" > "$tangled"
+rm "$allnames" "$ignored"
+@
+At that point, the names of root chunks that are meant to tangled are in the file `$tangled`, one name per line, without empty lines.
 
-# The Back End
+It is not feasible to simply re-run all programs in an analysis pipeline every time we change a small part of it.
+Similarly, it would be grossly inefficient to re-run code simply because the documentation in the source file has changed.
+One established approach to dealing with dependencies is to use the `make` utility and provide the project with a `Makefile`.
+<<Makefile>>=
+all : nwpipe-pandoc
+.PHONY : all
+
+@
+
+However, this approach does not work out of the box with a literate source file:
+`make` has no way of knowing that an irrelevant _part_ of a file has changed.
+To circumvent this, when code chunks are tangled, their contents are compared to already existing tangled files.
+Files are only replaced if their contents have changed.
+<<Tangle code chunks>>=
+while IFS='' read -r chunkname
+do
+    f=$(mktemp)
+    notangle -t8 -filter emptydefn -R"$chunkname" lire.lir > "$f"
+    cmp --quiet "$f" .lire/"$chunkname"
+    if [ $? -eq 0 ]; then
+        rm "$f"
+    else
+        mv "$f" .lire/"$chunkname" && echo "Tangling : $chunkname"
+    fi
+done < "$tangled"
+rm "$tangled"
+@
+
+## Using externally maintained files
+We want to allow for externally maintained files to be part of a project.
+There are two reasons why it is better to explicitly mention these files inside the `lire` source file:
+1. For posterity;
+2. For managing dependencies
+
+An externally maintained file has to be mentioned explicitly by file name, on its own line, in a code chunk called `lire::use`.
+A special case is the `lire` source file itself; its name is appended to the list of used files.
+<<Take in use externally maintained files>>=
+used=$(mktemp)
+notangle -R"lire::use" "$1" \
+    | <<Remove empty lines>> \
+    > "$used"
+echo "$1" >> "$used"
+while IFS='' read -r usedname
+do
+    cmp --quiet "$usedname" .lire/"$usedname"
+    if [ $? -ne 0 ]; then
+        cp "$usedname" .lire/"$usedname" && echo "Using : $usedname"
+    fi
+done < "$used"
+rm "$used"
+@
+
+# Run all code
+To run all code necessary to create all results we need, we use the `make` utiliy by calling it inside `.lire`:
+<<Run all code>>=
+make -C .lire all
+@
+For now, one must define a [[<<Makefile>>]] in the `lire` source file.
+It _should_ be possible to generate the `Makefile`.
+This is on the TODO list.
+
+# Generate the human-readable documentation
 In its first incarnation, it consist only of a [Pandoc](http://johnmacfarlane.net/pandoc/) back end for [Noweb](https://www.cs.tufts.edu/~nr/noweb/) [@Noweb2008].
-The [[<<Back end>>]]  generates `noweb` pipeline representation from a `.lir` source file ([[lire-nwpipe.sh]]), converts it to a document in Pandoc's markdown with embedded markup ([[nwpipe-pandoc]]), and uses Pandoc to compile the final HTML file:
-<<Back end>>=
-bash lire-nwpipe.sh lire.lir \
-    | ./nwpipe-pandoc \
-    | bash pandoc-html.sh \
-        --bibliography=lire.bib \
-        --css=lire.css \
-        --output=lire.html
+It is a bash script that will read from standard input.
+Any command line arguments passed to the script will be used as additional arguments to the invocation of `pandoc`.
+<<Weave to HTML>>=
+<<`Lire` source file $\rightarrow$ `noweb`'s pipeline representation>> \
+    | <<`Noweb`'s pipeline representation $\rightarrow$ "valid" Pandoc>> \
+    | <<Pandoc $\rightarrow$ HTML>>
 @
-It assumes that all documentation chunks in the source document are written in Pandoc's markdown.
 
-In the first stage [[<<lire-nwpipe.sh>>]] takes `.lir` source file(s) and writes to standard output `noweb`'s pipeline representation.
-At the moment, this uses `noweb`'s own back end, `markup`, followed by the `emptydefn` and `noidx` filters.
-All empty `@text` lines are removed from the output of the `noweb` components pipe; this should not change the structure of the pipeline or the final result, and it will make it unnecessary to look out for empty `@text` tokens in other parts of the program:
-<<lire-nwpipe.sh>>=
-<<`Noweb` location>>/markup "$@" \
+A custom `noweb` pipeline is used, as we definitely want to be able to use "anonymous" chunks as continuations of the previous chunk.
+<<`Lire` source file $\rightarrow$ `noweb`'s pipeline representation>>=
+<<`Noweb` location>>/markup \
     | <<`Noweb` location>>/emptydefn \
-    | <<`Noweb` location>>/noidx -delay \
-    | sed -n '/^@text $/!p'
+    | <<`Noweb` location>>/noidx -delay
 @
+
+To make it marginally easier to deal with the pipeline representation, we completely remove any empty text tokens from it before converting it to Pandoc.
+<<`Noweb`'s pipeline representation $\rightarrow$ "valid" Pandoc>>=
+sed -n '/^@text $/!p' \
+    | <<`Lire` location>>/nwpipe-pandoc
+@
+<<`Lire` location>>=
+"$HOME"/lib/lire
+@
+
+<<Pandoc $\rightarrow$ HTML>>=
+pandoc \
+    --table-of-contents \
+    --standalone \
+    --self-contained \
+    --smart \
+    --to=html5 \
+    --output=- \
+    --bibliography=lire.bib \
+    --css=lire.css
+@
+
+We use the GNU `make` utility to generate the human readable documentation and generate any files that are required.
+<<Makefile>>=
+html : lire.lir
+	lire-weave lire.lir lire.html
+.PHONY : html
+
+@
+
+<<lire-weave>>=
+<<lire-weave.sh>>
+@
+<<lire-weave.sh>>=
+<<Bash shebang>>
+
+< "$1" \
+    <<Weave to HTML>> \
+    > "$2"
+@
+
 
 The program [[<<nwpipe-pandoc.pl>>]] is written in Prolog, using the SWI-Prolog implementation [@Wielemaker2012].
 It is written as a stand-alone command line program: once compiled, can be run from the command line as a part of a pipe.
@@ -109,6 +232,11 @@ main :-
     format(user_error, "FAILURE~n", []),
     halt(1). % otherwise, exit with failure (1)
 @
+<<Makefile>>=
+nwpipe-pandoc : nwpipe-pandoc.pl driver.pl nwpipe.pl lirehtml.pl
+	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
+
+@
 
 During development, it is good to know if the program has left behind any unintentional choice points -- they are almost certainly errors.
 They would be "hidden" by the `halt/0` used at the end of the main program.
@@ -118,28 +246,6 @@ deterministic(D),
 ->  format(user_error, "DANGLING CHOICE POINT(S)!~n", [])
 ;   true
 )
-@
-
-The final documentation is produced by Pandoc.
-The script [[<<pandoc-html.sh>>]] calls Pandoc for you to generate an HTML.
-It expects to read Pandoc's markdown, with optional raw HTML embedded in it, from standard input.
-It adds any additional arguments you provide it with:
-<<pandoc-html.sh>>=
-pandoc \
-    --table-of-contents \
-    --standalone --smart --self-contained \
-    --to=html5 \
-    "$@"
-@
-
-We use the GNU `make` utility with [[<<Makefile>>]] to generate the human readable documentation and generate any files that are required.
-<<Makefile>>=
-lire.html: lire.lir lire.css lire.bib lire-nwpipe.sh nwpipe-pandoc pandoc-html.sh
-	<<Back end>>
-	cp lire.html ..
-
-nwpipe-pandoc: nwpipe-pandoc.pl driver.pl nwpipe.pl lirehtml.pl
-	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
 @
 
 ## From `lire` source to documentation
@@ -696,7 +802,6 @@ For HTML documentation, [[<<lire.css>>]] is used.
 <<Text width and margin>>
 <<Headers in sans-serif>>
 <<Quoted code in monospace>>
-<<Code chunks>>
 <<Use names formatting>>
 <<List of chunks formatting>>
 @
@@ -731,6 +836,12 @@ span.defn a,
 span.quoteduse a,
 span.embeddeduse a {
     text-decoration-line: None;
+}
+span.chunkdefs,
+span.chunkuses,
+span.chunkprev,
+span.chunknext {
+    font-size: small;
 }
 span.quoteduse {
     font-family: Serif;
@@ -777,15 +888,6 @@ span.chunkuses a:hover {
 <<Quoted code in monospace>>=
 span.quote {
     font-family: Monospace;
-}
-@
-
-<<Code chunks>>=
-div.codechunk {
-    /*
-    max-width: 16cm;
-    background-color: HoneyDew;
-    */
 }
 @
 
