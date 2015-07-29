@@ -458,7 +458,6 @@ Parsing the pipeline:
 nwtokens_terms([], []).
 nwtokens_terms([[0'@|Token]|Tokens], [Term|Terms]) :-
     phrase(token(Back, Term), Token, Back),
-    %format(user_error, "~q~n", [Term]),
     nwtokens_terms(Tokens, Terms).
 
 <<`Noweb` tokens $\rightarrow$ Prolog terms>>
@@ -480,8 +479,8 @@ token(Back, Term) -->
 @
 
 <<Structural keywords>>=
-keyword(begin, [space, chunk_kind(K)]/*, space, chunk_number(N)]*/, _, K).
-keyword(end, []/*[space, chunk_kind(_K), space, chunk_number(N)]*/, _, end).
+keyword(begin, [space, chunk_kind(K)], _, K).
+keyword(end, [], _, end).
 keyword(text, [space, string_rest(S, Rest)], Rest, text(S)).
 keyword(nl, [], [], nl).
 keyword(defn, [space, string_rest(S, Rest)], Rest, defn(S)).
