@@ -290,32 +290,30 @@ input_to_terms(I, Ts) :-
 :- module(lirehtml, [emit_html/2]).
 
 :- use_module(library(http/html_write)).
-:- multifile html_write:expand//1.
 
 emit_html(Out, L) :-
-    formatting(L, F),
+    formatting(L, F0),
+    pull_codechunk_labels(F0, F),
     phrase(lire_pandoc(P), F),
     phrase(html(P), H),
     print_html(Out, H).
+
+pull_codechunk_labels(L, L).
 @
 
 Add to the database a table with all code chunks.
 <<>>=
 formatting(L, L) :-
-    code_metas(L, Ms),
+    include(is_code_meta, L, L0),
+    maplist(code_meta_meta, L0, Ms),
     retractall(label_nr_name_fname(_,_,_,_)),
     forall(nth1(N, Ms, M),
             (   through_pandoc(html5, M.name, FN),
                 assertz(label_nr_name_fname(M.label, N, M.name, FN))
             )).
 
-code_metas([], []).
-code_metas([H|T], Ms) :-
-    (   H = code_meta(_, M)
-    ->  Ms = [M|Ms0]
-    ;   Ms = Ms0
-    ),
-    code_metas(T, Ms0).
+is_code_meta(code_meta(_, _)).
+code_meta_meta(code_meta(_, M), M).
 @
 
 Use Pandoc to pre-format chunk names.
