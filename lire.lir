@@ -66,7 +66,7 @@ noroots "$1" \
 <<Filter out explicitly ignored chunk names>>
 @
 
-One implicitly ignored chunk is the "anonymous", unnamed code chunk as in `@<<>>=`; this is interpreted as a continuation of the previous chunk by `lire`, but `@<<>>=` will appear in the list of root chunks as listed by `noweb`'s own `noroots`.
+One implicitly ignored chunk is the "anonymous", unnamed code chunk as in [[@<<>>=]]; this is interpreted as a continuation of the previous chunk by `lire`, but [[@<<>>=]] will appear in the list of root chunks as listed by `noweb`'s own `noroots`.
 A `lire` source file can also contain root chunks that have names beginning with `lire::`.
 These are used by the user to customize `lire`'s functionality, as for example the [[<<lire::use>>]] chunk mentioned above.
 <<Drop double angle brackets>>=
