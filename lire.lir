@@ -26,18 +26,22 @@ The program installed as the bash script [[<<lire>>]] that takes the `lire` sour
 # step 2:
 <<Run all code>>
 # step 3:
-### Weave to HTML ###
-make -C .lire html
+<<Weave to HTML>>
 cp .lire/*.html .
 @
 
 `Lire` maintains a "state" in order to avoid unnecessary computation in a subdirectory named `.lire`.
 The `--parents` option is used so that `mkdir` does nothing _and_ does not report an error if the directory already exists.
 <<`Lire` setup>>=
+IN="$1"
+NAME=$(basename "$1" .lir)
+ARGS="${@:2}"
+echo "$IN -- $NAME -- $ARGS"
 mkdir --parents .lire
+touch .lire/Makefile
 @
 
-# Extract code from the `lire` source file
+# Use embedded code
 "Code chunks" inside a `lire` source file form a ["forest"](https://en.wikipedia.org/wiki/Tree_%28graph_theory%29#forest) of trees (directed, acyclic graphs).
 The tools provided by `noweb` will not allow circular code chunk definitions, so `lire` does not need to worry about this.
 <<Extract code from the `lire` source file>>=
@@ -157,14 +161,26 @@ For now, one must define a [[<<Makefile>>]] in the `lire` source file.
 It _should_ be possible to generate the `Makefile`.
 This is on the TODO list.
 
-# Generate the human-readable documentation
+# Weave
 In its first incarnation, it consist only of a [Pandoc](http://johnmacfarlane.net/pandoc/) back end for [Noweb](https://www.cs.tufts.edu/~nr/noweb/) [@Noweb2008].
 It is a bash script that will read from standard input.
 Any command line arguments passed to the script will be used as additional arguments to the invocation of `pandoc`.
 <<Weave to HTML>>=
-<<`Lire` source file $\rightarrow$ `noweb`'s pipeline representation>> \
+<<Inject weaving rule into Makefile>>
+make -C .lire html
+@
+<<Inject weaving rule into Makefile>>=
+echo -e "\nhtml : $IN\n\t<<`Lire` location>>/lire-weave $IN $NAME.html $ARGS\n" >> .lire/Makefile
+@
+
+<<lire-weave.sh>>=
+<<Bash shebang>>
+
+< "$1" tee input.debug \
+    | <<`Lire` source file $\rightarrow$ `noweb`'s pipeline representation>> \
     | <<`Noweb`'s pipeline representation $\rightarrow$ "valid" Pandoc>> \
-    | <<Pandoc $\rightarrow$ HTML>>
+    | <<Pandoc $\rightarrow$ HTML>> \
+    > "$2"
 @
 
 A custom `noweb` pipeline is used, as we definitely want to be able to use "anonymous" chunks as continuations of the previous chunk.
@@ -176,7 +192,7 @@ A custom `noweb` pipeline is used, as we definitely want to be able to use "anon
 
 To make it marginally easier to deal with the pipeline representation, we completely remove any empty text tokens from it before converting it to Pandoc using [[<<nwpipe-pandoc.pl>>]].
 <<`Noweb`'s pipeline representation $\rightarrow$ "valid" Pandoc>>=
-sed -n '/^@text $/!p' \
+sed -n '/^@text $/!p' | tee pipeline.debug \
     | <<`Lire` location>>/nwpipe-pandoc
 @
 <<`Lire` location>>=
@@ -190,28 +206,15 @@ pandoc \
     --self-contained \
     --smart \
     --to=html5 \
+    --css=<<`Lire` location>>/lire.css \
     --output=- \
-    --bibliography=lire.bib \
-    --css=lire.css
+    "${@:3}"
 @
 
 We use the GNU `make` utility to generate the human readable documentation and generate any files that are required.
-<<Makefile>>=
-html : lire.lir
-	lire-weave lire.lir lire.html
-.PHONY : html
-
-@
 
 <<lire-weave>>=
 <<lire-weave.sh>>
-@
-<<lire-weave.sh>>=
-<<Bash shebang>>
-
-< "$1" \
-    <<Weave to HTML>> \
-    > "$2"
 @
 
 
@@ -292,25 +295,24 @@ input_to_terms(I, Ts) :-
 :- use_module(library(http/html_write)).
 
 emit_html(Out, L) :-
-    formatting(L, F0),
-    pull_codechunk_labels(F0, F),
+    formatting(L, F),
     phrase(lire_pandoc(P), F),
     phrase(html(P), H),
     print_html(Out, H).
-
-pull_codechunk_labels(L, L).
 @
 
 Add to the database a table with all code chunks.
 <<>>=
-formatting(L, L) :-
+formatting(L, R) :-
     include(is_code_meta, L, L0),
     maplist(code_meta_meta, L0, Ms),
     retractall(label_nr_name_fname(_,_,_,_)),
     forall(nth1(N, Ms, M),
             (   through_pandoc(html5, M.name, FN),
                 assertz(label_nr_name_fname(M.label, N, M.name, FN))
-            )).
+            )),
+    L = R,
+    true.
 
 is_code_meta(code_meta(_, _)).
 code_meta_meta(code_meta(_, M), M).
@@ -381,9 +383,9 @@ lire_pandoc(index(_), P) --> [], lire_pandoc(P).
 thinnbsp --> html(span(style("white-space:nowrap"), &(thinsp))).
 
 chunk_defn(M) -->
-    {   label_nr_name_fname(_, Nr, _, FName)
+    {   label_nr_name_fname(M.label, Nr, _, FName)
     },
-    html(span(class(defn),
+    html(span([class(defn),id(M.label)],
               [span(class(chunknr), "C~d:"-Nr), &(nbsp),
                &(lang), \thinnbsp,
                a(href("#~a"-M.label), \[FName]),

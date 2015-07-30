@@ -12,8 +12,9 @@ lire : lire.lir
 install :
 	mkdir --parents $(libpath)
 	cp .lire/nwpipe-pandoc $(libpath)
-	cp .lire/lire-weave $(binpath)
-	chmod u+x $(binpath)/lire-weave
+	cp .lire/lire.css $(libpath)
+	cp .lire/lire-weave $(libpath)
+	chmod u+x $(libpath)/lire-weave
 	mkdir --parents $(binpath)
 	cp lire $(binpath)/lire
 
@@ -28,3 +29,4 @@ uninstall :
 	-rm -r $(libpath)
 	-rm $(binpath)/lire
 .PHONY : uninstall
+
