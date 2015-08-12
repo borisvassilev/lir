@@ -36,7 +36,6 @@ The `--parents` option is used so that `mkdir` does nothing _and_ does not repor
 IN="$1"
 NAME=$(basename "$1" .lir)
 ARGS="${@:2}"
-echo "$IN -- $NAME -- $ARGS"
 mkdir --parents .lire
 touch .lire/Makefile
 @
@@ -45,8 +44,13 @@ touch .lire/Makefile
 "Code chunks" inside a `lire` source file form a ["forest"](https://en.wikipedia.org/wiki/Tree_%28graph_theory%29#forest) of trees (directed, acyclic graphs).
 The tools provided by `noweb` will not allow circular code chunk definitions, so `lire` does not need to worry about this.
 <<Extract code from the `lire` source file>>=
-<<Get names of code chunks to be tangled>>
-<<Tangle code chunks>>
+cmp --quiet "$IN" .lire/"$IN"
+if [ $? -ne 0 ]; then 
+    allnames=$(mktemp)
+    <<Get names of code chunks to be tangled>>
+    <<Tangle code chunks>>
+    rm "$allnames"
+fi
 <<Take in use externally maintained files>>
 @
 Not everything fits in a single source file.
@@ -60,7 +64,6 @@ lire.bib
 `Lire` makes the assumption that all root chunks are source files that are meant to be tangled and eventually used.
 The list is then sorted; this is necessary for the next step of filtering out explicitly ignored chunk names.
 <<Get names of code chunks to be tangled>>=
-allnames=$(mktemp)
 noroots "$1" \
     | <<Drop double angle brackets>> \
     | <<Remove empty lines>> \
@@ -96,14 +99,14 @@ notangle -R"lire::ignore" "$1" \
     > "$ignored"
 tangled=$(mktemp)
 comm -23 "$allnames" "$ignored" > "$tangled"
-rm "$allnames" "$ignored"
+rm "$ignored"
 @
 At that point, the names of root chunks that are meant to tangled are in the file `$tangled`, one name per line, without empty lines.
 
 It is not feasible to simply re-run all programs in an analysis pipeline every time we change a small part of it.
 Similarly, it would be grossly inefficient to re-run code simply because the documentation in the source file has changed.
 One established approach to dealing with dependencies is to use the `make` utility and provide the project with a `Makefile`.
-<<Makefile>>=
+<<lire::make>>=
 all : nwpipe-pandoc
 .PHONY : all
 
@@ -114,18 +117,21 @@ However, this approach does not work out of the box with a literate source file:
 To circumvent this, when code chunks are tangled, their contents are compared to already existing tangled files.
 Files are only replaced if their contents have changed.
 <<Tangle code chunks>>=
-while IFS='' read -r chunkname
-do
-    f=$(mktemp)
-    notangle -t8 -filter emptydefn -R"$chunkname" lire.lir > "$f"
-    cmp --quiet "$f" .lire/"$chunkname"
-    if [ $? -eq 0 ]; then
-        rm "$f"
-    else
-        mv "$f" .lire/"$chunkname" && echo "Tangling : $chunkname"
-    fi
-done < "$tangled"
+(cd .lire \
+    && < ../"$IN" xargs --arg-file="$tangled" \
+                        --delimiter='\n' \
+        <<`Lire` location>>/lire-mnt )
 rm "$tangled"
+@
+
+<<lire::ignore>>=
+lire-mnt.sh
+@
+<<lire-mnt.sh>>=
+#! /usr/bin/env bash
+<<`Noweb` location>>/markup -t \
+    | <<`Noweb` location>>/emptydefn \
+    | <<`Noweb` location>>/mnt -t -L "$@"
 @
 
 ## Using externally maintained files
@@ -137,16 +143,28 @@ There are two reasons why it is better to explicitly mention these files inside 
 An externally maintained file has to be mentioned explicitly by file name, on its own line, in a code chunk called `lire::use`.
 A special case is the `lire` source file itself; its name is appended to the list of used files.
 <<Take in use externally maintained files>>=
+makefile=$(mktemp)
+notangle -t8 -R"lire::make" "$IN" > "$makefile"
+echo -e "\n.PHONY : all\n" >> "$makefile"
+echo -e "html : $NAME.html\n.PHONY : html\n" >> "$makefile"
+echo "$NAME".html : "$IN" >> "$makefile"
+echo -e "\t<<`Lire` location>>/lire-weave $IN $NAME.html $ARGS\n\n" >> "$makefile"
+cmp --quiet "$makefile" .lire/Makefile
+if [ $? -ne 0 ]; then
+    mv "$makefile" .lire/Makefile && echo Re-making Makefile
+else
+    rm "$makefile"
+fi
 used=$(mktemp)
-notangle -R"lire::use" "$1" \
+notangle -R"lire::use" "$IN" \
     | <<Remove empty lines>> \
     > "$used"
-echo "$1" >> "$used"
+echo "$IN" >> "$used"
 while IFS='' read -r usedname
 do
     cmp --quiet "$usedname" .lire/"$usedname"
     if [ $? -ne 0 ]; then
-        cp "$usedname" .lire/"$usedname" && echo "Using : $usedname"
+        cp "$usedname" .lire/"$usedname" && echo Using : "$usedname"
     fi
 done < "$used"
 rm "$used"
@@ -155,28 +173,49 @@ rm "$used"
 # Run all code
 To run all code necessary to create all results we need, we use the `make` utiliy by calling it inside `.lire`:
 <<Run all code>>=
-make -C .lire all
+make -j 4 -C .lire all
 @
 For now, one must define a [[<<Makefile>>]] in the `lire` source file.
 It _should_ be possible to generate the `Makefile`.
 This is on the TODO list.
+
+### Input
+<<input2lire.awk>>=
+BEGIN {
+    RS="\n";
+    FS="\n";
+}
+/^@<<lire::input@>>=$/ {
+    while(getline) {
+        if ($0 ~ /^@/) {
+            print $0
+            next
+        }
+        if (NF > 0) {
+            name=$0
+            print "@<<lire::input::`" name "`@>>="
+            while (getline < name) {
+                print $0
+            }
+            close(name)
+        }
+    }
+}
+{ print $0 }
+@
 
 # Weave
 In its first incarnation, it consist only of a [Pandoc](http://johnmacfarlane.net/pandoc/) back end for [Noweb](https://www.cs.tufts.edu/~nr/noweb/) [@Noweb2008].
 It is a bash script that will read from standard input.
 Any command line arguments passed to the script will be used as additional arguments to the invocation of `pandoc`.
 <<Weave to HTML>>=
-<<Inject weaving rule into Makefile>>
-make -C .lire html
-@
-<<Inject weaving rule into Makefile>>=
-echo -e "\nhtml : $IN\n\t<<`Lire` location>>/lire-weave $IN $NAME.html $ARGS\n" >> .lire/Makefile
+make -j 4 -C .lire html
 @
 
 <<lire-weave.sh>>=
 <<Bash shebang>>
 
-< "$1" tee input.debug \
+< "$1" awk -f <<`Lire` location>>/input2lire.awk \
     | <<`Lire` source file $\rightarrow$ `noweb`'s pipeline representation>> \
     | <<`Noweb`'s pipeline representation $\rightarrow$ "valid" Pandoc>> \
     | <<Pandoc $\rightarrow$ HTML>> \
@@ -236,7 +275,7 @@ main :-
     format(user_error, "FAILURE~n", []),
     halt(1). % otherwise, exit with failure (1)
 @
-<<Makefile>>=
+<<lire::make>>=
 nwpipe-pandoc : nwpipe-pandoc.pl driver.pl nwpipe.pl lirehtml.pl
 	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
 
@@ -415,7 +454,7 @@ chunk_next(M) -->
     html(span(class(chunknext),
          a(href("#~a"-L), [&(8681), \thinnbsp, "C~d"-Nr]))).
 chunk_next(_) -->
-    html(&(9646)).
+    html(&(9633)). % white square
 
 chunk_prev(M) -->
     {   code{prev:L} :< M,
@@ -878,7 +917,7 @@ ul.chunkslist {
 # Common definitions
 All building block for `noweb` (front ends, filters, back ends) are usually installed in the same [[<<`Noweb` location>>]]:
 <<`Noweb` location>>=
-/usr/lib/noweb
+/home/boris/lib/noweb
 @
 
 The portable [[<<Bash shebang>>]] is, according to [Stack Overflow](http://stackoverflow.com/questions/10376206/preferred-bash-shebang):
