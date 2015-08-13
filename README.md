@@ -12,3 +12,7 @@ For more information on dependencies and installation, see INSTALL.
 For a detailed description of the approach, the tools, and the
 possible uses, see the Tutorial and the Manual.
 
+This work is done at the University of Helsinki, Finland by Boris Vassilev and Erkka Valo, under the supervision of Sampsa Hautaniemi and Elina Ikonen.
+It is licenced under the terms of the GPL (see COPYING).
+
+Copyright 2015 Boris Vassilev
