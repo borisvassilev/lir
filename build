@@ -1,12 +1,16 @@
 #! /usr/bin/env bash
-echo "Cleaning and uninstalling before re-building..."
-make uninstall
-make clean
-echo "Done"
-echo "Making and installing lire..."
+export LIRE_LIBPATH="$HOME"/lib/lire
+export LIRE_BINPATH="$HOME"/bin
+export NOWEB_LIBPATH=/usr/lib/noweb
+
+echo "*** Making lire..."
 make
-echo "Done"
-echo "Using lire to tangle and weave lire..."
+echo "--> Done"
+exit
+echo "*** Installing lire..."
+make install
+echo "--> Done"
+echo "*** Using lire to tangle and weave lire..."
 lire lire.lir --bibliography=lire.bib
-echo "Done"
+echo "--> Done"
 echo "*** Weaved document is in lire.html ***"

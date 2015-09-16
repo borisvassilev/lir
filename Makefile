@@ -1,34 +1,41 @@
-libpath = $(HOME)/lib/lire
-binpath = $(HOME)/bin
+binpath = $(LIRE_BINPATH)
+libpath = $(LIRE_LIBPATH)
+noweblibpath = $(NOWEB_LIBPATH)
 
-all : lire
+tangled = \
+	$(scripts) \
+	$(nwpipesources) \
+	lire.css
+
+scripts = \
+	lire \
+	lire-weave \
+	$(bashscripts) \
+	$(awkscripts)
+
+bashscripts = \
+	lire-tangle \
+	lire-cmpcp \
+	lire-mtangle \
+	lire-use \
+	lire-chunknames 
+
+awkscripts = lire-listing.awk lire-include.awk
+
+nwpipesources = nwpipe-pandoc.pl driver.pl nwpipe.pl lirehtml.pl
+
+all : $(tangled) nwpipe-pandoc
 .PHONY : all
 
-lire : lire.lir
-	notangle -t -R"lire.sh" lire.lir > lire
-	chmod u+x lire
-	notangle -t -R"lire-mnt.sh" lire.lir > lire-mnt
-	chmod u+x lire-mnt
-	cp lire-mnt $(libpath)
-	./lire lire.lir
-	cp lire $(binpath)/lire
-	mkdir --parents $(libpath)
-	cp .lire/nwpipe-pandoc $(libpath)
-	cp .lire/lire.css $(libpath)
-	cp .lire/lire-weave $(libpath)
-	chmod u+x $(libpath)/lire-weave
-	cp .lire/input2lire.awk $(libpath)
-	chmod u+x $(libpath)/input2lire.awk
-	mkdir --parents $(binpath)
+$(tangled) : lire.lir
+	$(noweblibpath)/markup -t lire.lir \
+	    | $(noweblibpath)/emptydefn \
+	    | $(noweblibpath)/mnt -t $(tangled)
+
+nwpipe-pandoc : $(nwpipesources)
+	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
 
 clean :
-	-rm lire lire-mnt
-	rm .lire/*
+	-rm $(tangled) nwpipe-pandoc
 .PHONY : clean
-
-
-uninstall :
-	-rm -r $(libpath)
-	-rm $(binpath)/lire
-.PHONY : uninstall
 

@@ -1,0 +1,7 @@
+#! /usr/bin/env bash
+echo "Uninstalling..."
+make uninstall
+echo "Done"
+echo "Cleaning..."
+make clean
+echo "Done"

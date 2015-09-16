@@ -8,74 +8,152 @@ rights: (c) 2015 Boris Vassilev, University of Helsinki
 # Introduction
 This is a collection of tools that support programming language-agnostic reproducible computing.
 
-This document is self-hosting: the implementation presented here can be used to produce the final human-readable documentation.
+This document is self-hosting: the implementation presented here can be used to produce the final human-readable version of itself.
 This makes informal validation trivial ("does the final document look right?"), but it also means that the only guarantee is that it implements enough to be able to compile itself.
 
 # Overview
 The tools provided by `lire` aim to support two goals:
 
-1. Generating results by running the code defined in a `lire` file.
+1. Generating results by running the code in a `lire` source file.
 2. Presenting all code and possibly results in a human-readable form.
 
-The program installed as the bash script [[<<lire>>]] that takes the `lire` source file name as its only argument and performs three steps:
-<<lire.sh>>=
+This is achieved by using the components made available by `noweb`, using Pandoc for weaving the final documentation, and implementing filters and components that glue the existing tools together and provide some missing functionality.
+
+The overall workflow for `lire` is as follows:
+
+  * Extract all source code from the `lire` source file.
+
+    This might be scripts that are immediately executable, or code that needs to be compiled.
+
+  * Bring in any external dependencies declared in the `lire` source file.
+
+    For externally maintained files to be managed by `lire`, they need to be explicitly declared in the `lire` source file.
+    Example use cases would be input data files, or a bibliography file maintained by a reference manager.
+
+  * "Make" all results.
+
+    This is a step that usually will include resolving dependencies.
+    In the case of intermediate analysis steps, a final result will depend on an intermediate result.
+    For example, a figure might be generated from the results of an analysis of the input data.
+
+    In the case of programs that need to be compiled, a compilation step will have to occur before actually running the program.
+
+    All dependencies have to be explicitly declared in the `lire` source file.
+
+  * "Weave" the final documentation
+
+    Once all results and figures have been generated, the original `lire` source file is processed to obtain a valid Pandoc markdown source file.
+    At that point, Pandoc is used to compile this to a final human readable file with any results and figures generated in the previous step.
+
+# Implementation
+To implement this, `lire` provides a few tools on top of the tools made available by `noweb` and Pandoc, and a wrapper script, [[<<lire>>]], which implements the complete workflow described above.
+
+## Tangling
+"Tangling" is the process of extracting the source code embedded in the `lire` literate source file so that it can be compiled and executed to obtain results.
+
+First, we have [[<<lire-tangle>>]], which accepts three arguments, in this order: (1) the name of a `lire` source file; (2) the name of a chunk; and (3) the name of the file that the chunk will be extracted to.
+It uses `noweb`'s `notangle` to extract from (1) the chunk (2) to a temporary file, compares it to (3) and only writes (2) to (3) if (3) does not exist, or is different from the temporary file.
+<<lire-tangle>>=
 <<Bash shebang>>
-<<`Lire` setup>>
-# step 1:
-<<Extract code from the `lire` source file>>
-# step 2:
-<<Run all code>>
-# step 3:
-<<Weave to HTML>>
-cp .lire/*.html .
+<<lire-tangle.bash>>
+<<lire-tangle.bash>>=
+tmpfile=$(mktemp)
+notangle -R"$2" "$1" > "$tmpfile" \
+    && "$LIRE_LIBPATH"/lire-cmpcp "$tmpfile" "$3"
+status=$?
+rm "$tmpfile"
+exit $status
 @
 
-`Lire` maintains a "state" in order to avoid unnecessary computation in a subdirectory named `.lire`.
-The `--parents` option is used so that `mkdir` does nothing _and_ does not report an error if the directory already exists.
-<<`Lire` setup>>=
-IN="$1"
-NAME=$(basename "$1" .lir)
-ARGS="${@:2}"
-mkdir --parents .lire
-touch .lire/Makefile
-@
-
-# Use embedded code
-"Code chunks" inside a `lire` source file form a ["forest"](https://en.wikipedia.org/wiki/Tree_%28graph_theory%29#forest) of trees (directed, acyclic graphs).
-The tools provided by `noweb` will not allow circular code chunk definitions, so `lire` does not need to worry about this.
-<<Extract code from the `lire` source file>>=
-cmp --quiet "$IN" .lire/"$IN"
-if [ $? -ne 0 ]; then 
-    allnames=$(mktemp)
-    <<Get names of code chunks to be tangled>>
-    <<Tangle code chunks>>
-    rm "$allnames"
+The tool [[<<lire-tangle>>]] uses another tool, [[<<lire-cmpcp>>]].
+It overwrites a file with a newer version of a file after comparing them.
+It takes two arguments: (1) the new file, and (2) the old file.
+The standard command line tool `cmp` used for the comparison will exit with status 0 (success) if the two files have identical contents; with status 1 if they are different, and with status 2 if there is some trouble: for example, if one of the files does not exist.
+<<lire-cmpcp>>=
+<<Bash shebang>>
+<<lire-cmpcp.bash>>
+<<lire-cmpcp.bash>>=
+if ! cmp --silent "$1" "$2"
+then
+    cp --verbose "$1" "$2"
 fi
-<<Take in use externally maintained files>>
-@
-Not everything fits in a single source file.
-A bibliography file, for example, is best maintained by a proper reference manager.
-Such files can be listed explicitly in a code chunk named `lire::use` like so:
-<<lire::use>>=
-lire.bib
 @
 
-## Tangling code
-`Lire` makes the assumption that all root chunks are source files that are meant to be tangled and eventually used.
-The list is then sorted; this is necessary for the next step of filtering out explicitly ignored chunk names.
-<<Get names of code chunks to be tangled>>=
+The tool [[<<lire-tangle>>]] allows us to implement another tool, [[<<lire-mtangle>>]] ("multiple" tangle).
+It accepts as argument (1) the `lire` source file, (2) the target directory, and the rest of the arguments are the code chunk names that are to be extracted from (1) to the directory (2), under their own names.
+(The last point might be important: any string is a valid chunk name, so one could end up with strange file names with blanks or other special characters in them.)
+<<lire-mtangle>>=
+<<Bash shebang>>
+<<lire-mtangle.bash>>
+<<lire-mtangle.bash>>=
+for chunk in "${@:3}"
+do
+    "$LIRE_LIBPATH"/lire-tangle "$1" "$chunk" "$2/$chunk"
+done
+@
+
+## Externally maintained files
+Not all data in an analysis naturally fits into the `lire` source file.
+Examples already mentioned above are the input data, or an externally maintained file like a bibliography.
+
+Taking in use such a file means simply making a symbolic link to the file in the working direcory.
+The `make` utility will check the timestamp on the _target of the link_, so when a "used" file changes, this will be taken into consideration.
+
+The arguments to the script are (1) the directory in which the symbolic links will be made and from (2) on, the file names that should be taken in use:
+<<lire-use>>=
+<<Bash shebang>>
+<<lire-use.bash>>
+<<lire-use.bash>>=
+for used in "${@:2}"
+do
+    if [ ! -h "$1/$used" ]
+    then
+        ln --verbose --symbolic --target-directory="$1" "$used"
+    fi
+done
+@
+
+## Extracting names
+With the help of [[<<lire-mtangle>>]] and the tools it uses, we can tangle all relevant chunks to files.
+The question remains: which are the code chunks that need to be tangled?
+
+`Lire` assumes that all root chunks (code chunks that are not used in other chunks) are meant to be tangled to files.
+The `noroots` tool provided by `noweb` will print to standard output all root chunk names, enclosed in double angle brackets.
+It is used by [[<<lire-chunknames>>]], which takes as its single argument the `lire` source file:
+<<lire-chunknames>>=
+<<Bash shebang>>
+<<lire-chunknames.bash>>
+@
+
+One implicitly ignored chunk is the "anonymous", unnamed code chunk as in [[@<<>>=]]; this is interpreted as a continuation of the previous chunk by `lire`, but [[@<<>>=]] will appear in the list of root chunks as listed by `noroots`.
+A `lire` source file can also contain root chunks that have names beginning with `lire::`.
+These are used by the user to control `lire`'s functionality, and are not actual code.
+<<lire-chunknames.bash>>=
+rootchunks=$(mktemp)
 noroots "$1" \
     | <<Drop double angle brackets>> \
     | <<Remove empty lines>> \
     | <<Remove names starting with `lire::`>> \
-    | sort -u \
-    > "$allnames"
-<<Filter out explicitly ignored chunk names>>
+    | sort --unique \
+    > "$rootchunks"
 @
 
-One implicitly ignored chunk is the "anonymous", unnamed code chunk as in [[@<<>>=]]; this is interpreted as a continuation of the previous chunk by `lire`, but [[@<<>>=]] will appear in the list of root chunks as listed by `noweb`'s own `noroots`.
-A `lire` source file can also contain root chunks that have names beginning with `lire::`.
-These are used by the user to customize `lire`'s functionality, as for example the [[<<lire::use>>]] chunk mentioned above.
+If there is a root chunk that does not need to be tangled (for whatever reason), it can be declared in a chunk named [[lire::ignore]], one chunk name per line.
+<<lire-chunknames.bash>>=
+ignoredchunks=$(mktemp)
+notangle -R"lire::ignore" "$1" \
+    | <<Remove empty lines>> \
+    | sort --unique \
+    > "$ignoredchunks"
+@
+
+The chunk names declared in [[lire::ignore]] are removed from the list of chunk names emitted by [[<<lire-chunknames>>]] using the standard command line tool `comm`.
+<<lire-chunknames.bash>>=
+comm -2 -3 "$rootchunks" "$ignoredchunks"
+rm "$roothchunks" "$ignoredchunks"
+@
+
+Filters used in the pipelines above:
 <<Drop double angle brackets>>=
 sed -n 's/^@<<\(.*\)@>>$/\1/p'
 @
@@ -86,174 +164,191 @@ sed '/^\s*$/d'
 sed -n '/^lire::.*/!p'
 @
 
-If for some reason a root chunk should not be tangled, it can be listed in a chunk named `lire::ignore`.
-<<lire::ignore>>=
+## The wrapper script
+A script called `lire` can be invoked with the source file as its first argument.
+<<lire>>=
+<<Bash shebang>>
+<<lire.bash>>
+<<lire.bash>>=
+<<Setup `lire` script>>
+<<Tangle relevant chunks>>
+<<Use external dependencies>>
+<<Make everything>>
+<<Weave the documentation>>
 @
-The chunk `lire::ignore` is tangled to a temporary file and any names in it are subtracted from the list of root chunk names obtained in the previous step.
-Since the command line tool used to do this, `comm`, expects sorted input files, it is sorted as well.
-<<Filter out explicitly ignored chunk names>>=
-ignored=$(mktemp)
-notangle -R"lire::ignore" "$1" \
+
+The script will exit immediately on any command that fails.
+Any arguments after the first will be given as options to Pandoc.
+If the `.lire` working directory does not exist, it is created.
+The paths to the library directories for `noweb` and `lire` are made available for all scripts used by the wrapper script.
+<<Setup `lire` script>>=
+set -e
+LIRE_SOURCE="$1"
+LIRE_DIR='.lire'
+export PANDOC_OPTS="${@:2}"
+MAKE_JOBS='--jobs'
+mkdir --verbose --parents "$LIRE_DIR"
+export NOWEB_LIBPATH="$NOWEB_LIBPATH"
+export LIRE_LIBPATH="$LIRE_LIBPATH"
+@
+
+Then, determine which chunks need to be tangled using [[<<lire-chunknames>>]], and tangle those using [[<<lire-mtangle>>]].
+<<Tangle relevant chunks>>=
+"$LIRE_LIBPATH"/lire-chunknames "$LIRE_SOURCE" \
+    | xargs --delimiter='\n' \
+        lire-mtangle "$LIRE_SOURCE" "$LIRE_DIR"
+@
+
+Then, bring in external dependencies (uses).
+Not everything fits in a single source file.
+A bibliography file, for example, is best maintained by a proper reference manager.
+Such files can be listed explicitly in a code chunk named `lire::use` like so:
+<<lire::use>>=
+lire.bib
+@
+
+Note that the `lire` source file itself is a special case of an external dependency.
+<<Use external dependencies>>=
+notangle -R"lire::use" "$LIRE_SOURCE" \
+    | sort --unique \
     | <<Remove empty lines>> \
-    | sort -u \
-    > "$ignored"
-tangled=$(mktemp)
-comm -23 "$allnames" "$ignored" > "$tangled"
-rm "$ignored"
-@
-At that point, the names of root chunks that are meant to tangled are in the file `$tangled`, one name per line, without empty lines.
-
-It is not feasible to simply re-run all programs in an analysis pipeline every time we change a small part of it.
-Similarly, it would be grossly inefficient to re-run code simply because the documentation in the source file has changed.
-One established approach to dealing with dependencies is to use the `make` utility and provide the project with a `Makefile`.
-<<lire::make>>=
-all : nwpipe-pandoc
-.PHONY : all
-
+    | xargs --delimiter='\n' \
+        "$LIRE_LIBPATH"/lire-use "$LIRE_DIR" "$LIRE_SOURCE"
 @
 
-However, this approach does not work out of the box with a literate source file:
-`make` has no way of knowing that an irrelevant _part_ of a file has changed.
-To circumvent this, when code chunks are tangled, their contents are compared to already existing tangled files.
-Files are only replaced if their contents have changed.
-<<Tangle code chunks>>=
-(cd .lire \
-    && < ../"$IN" xargs --arg-file="$tangled" \
-                        --delimiter='\n' \
-        <<`Lire` location>>/lire-mnt )
-rm "$tangled"
+Then, from inside the working directory:
+<<Make everything>>=
+notangle -R"lire::make" "$LIRE_SOURCE" \
+    >> "$LIRE_DIR"/liremakefile
+make "$MAKE_JOBS" --directory="$LIRE_DIR" --makefile=liremakefile all
 @
 
-<<lire::ignore>>=
-lire-mnt.sh
-@
-<<lire-mnt.sh>>=
-#! /usr/bin/env bash
-<<`Noweb` location>>/markup -t \
-    | <<`Noweb` location>>/emptydefn \
-    | <<`Noweb` location>>/mnt -t -L "$@"
+<<Weave the documentation>>=
+BASENAME=$(basename "$1" .lir)
+make --directory="$LIRE_DIR" --makefile=liremakefile "$BASENAME.html"
+cp --verbose --symbolic-link ".lire/$BASENAME.html" .
 @
 
-## Using externally maintained files
-We want to allow for externally maintained files to be part of a project.
-There are two reasons why it is better to explicitly mention these files inside the `lire` source file:
-1. For posterity;
-2. For managing dependencies
-
-An externally maintained file has to be mentioned explicitly by file name, on its own line, in a code chunk called `lire::use`.
-A special case is the `lire` source file itself; its name is appended to the list of used files.
-<<Take in use externally maintained files>>=
-makefile=$(mktemp)
-notangle -t8 -R"lire::make" "$IN" > "$makefile"
-echo -e "\n.PHONY : all\n" >> "$makefile"
-echo -e "html : $NAME.html\n.PHONY : html\n" >> "$makefile"
-echo "$NAME".html : "$IN" >> "$makefile"
-echo -e "\t<<`Lire` location>>/lire-weave $IN $NAME.html $ARGS\n\n" >> "$makefile"
-cmp --quiet "$makefile" .lire/Makefile
-if [ $? -ne 0 ]; then
-    mv "$makefile" .lire/Makefile && echo Re-making Makefile
-else
-    rm "$makefile"
-fi
-used=$(mktemp)
-notangle -R"lire::use" "$IN" \
-    | <<Remove empty lines>> \
-    > "$used"
-echo "$IN" >> "$used"
-while IFS='' read -r usedname
-do
-    cmp --quiet "$usedname" .lire/"$usedname"
-    if [ $? -ne 0 ]; then
-        cp "$usedname" .lire/"$usedname" && echo Using : "$usedname"
-    fi
-done < "$used"
-rm "$used"
+## Weaving
+Weaving means generating the final human readable documentation from the `lire` source file.
+The original source is transformed by several filters before passed to Pandoc for generating an HTML document that can be viewed in a browser.
+<<Weave `lire` source to HTML>>=
+<<`Lire`-specific transformations>> \
+    | <<Source to `noweb` pipeline representation>> \
+    | <<`Noweb` pipeline representation to Pandoc source>> \
+    | <<Pandoc source to HTML>>
 @
 
-# Run all code
-To run all code necessary to create all results we need, we use the `make` utiliy by calling it inside `.lire`:
-<<Run all code>>=
-make -j 4 -C .lire all
+Of the two transformations done on the `lire` source before giving it to the `noweb` tools, "including" files is the more general one and has to be done first.
+<<`Lire`-specific transformations>>=
+awk -f "$LIRE_LIBPATH"/lire-include.awk \
+    | awk -f "$LIRE_LIBPATH"/lire-listing.awk
 @
-For now, one must define a [[<<Makefile>>]] in the `lire` source file.
-It _should_ be possible to generate the `Makefile`.
-This is on the TODO list.
 
-### Input
-<<input2lire.awk>>=
-BEGIN {
-    RS="\n";
-    FS="\n";
-}
-/^@<<lire::input@>>=$/ {
+Each line inside a code chunk named `lire::include` will be treated as a file name that has to be **pasted as it is** to the `lire` source file **before** the source file is passed transformed in any other way.
+_Use with care!_
+<<lire-include.awk>>=
+<<Setup `awk` to treat lines as single-field records>>
+/^@<<lire::include@>>=$/ {
     while(getline) {
-        if ($0 ~ /^@/) {
-            print $0
+        if ($0 ~ <<End of code chunk `awk` regexp>>) {
+            sub(/^@/, "")
+            if (length()) {
+                print $0
+            }
             next
         }
         if (NF > 0) {
             name=$0
-            print "@<<lire::input::`" name "`@>>="
-            while (getline < name) {
-                print $0
-            }
-            close(name)
+            <<`Awk`: echo file to output>>
         }
     }
 }
 { print $0 }
 @
 
-# Weave
+Each line inside a code chunk named `lire::listing` will be treated as a file name that has to be included verbatim in the weaved final document.
+The full contents of the file will be inserted unchanged in a code chunk named `lire::listing::<filename>`.
+<<lire-listing.awk>>=
+<<Setup `awk` to treat lines as single-field records>>
+/^@<<lire::listing@>>=$/ {
+    while(getline) {
+        if ($0 ~ <<End of code chunk `awk` regexp>>) {
+            print $0
+            next
+        }
+        if (NF > 0) {
+            name=$0
+            print "@<<lire::listing::`" name "`@>>="
+            <<`Awk`: echo file to output>>
+        }
+    }
+}
+{ print $0 }
+@
+
+To make `awk` treat lines of input as records with one field each, set both the record and the field separator to the newline character.
+With these settings, an empty line (nothing but a new line) will have 0 fields (`NF == 0`) and a length of 0 (`length($0) == 0`).
+<<Setup `awk` to treat lines as single-field records>>=
+BEGIN {
+    RS="\n";
+    FS="\n";
+}
+@
+
+The end of a code chunk is either a line with a `@` in the first column, or the beginning of another code chunk.
+<<End of code chunk `awk` regexp>>=
+/^@|^@<<.*@>>=$/
+<<`Awk`: echo file to output>>=
+while (getline < name) {
+    print $0
+}
+close(name)
+@
+
+**Warning**: both `lire::listing` and `lire::include` work on lines.
+That is, any **non-empty** line is assumed to be a file name.
+In other words, if you put a line of one or more white-space characters (spaces or tabs), and since those are valid filenames (in Linux, at least), `lire` will look for that file name and try to list or include that file.
+
+This also means that the filenames included in this fashion cannot contain newline characters.
+If you really want this, you should use more advanced trickery.
+
 In its first incarnation, it consist only of a [Pandoc](http://johnmacfarlane.net/pandoc/) back end for [Noweb](https://www.cs.tufts.edu/~nr/noweb/) [@Noweb2008].
 It is a bash script that will read from standard input.
 Any command line arguments passed to the script will be used as additional arguments to the invocation of `pandoc`.
-<<Weave to HTML>>=
-make -j 4 -C .lire html
-@
-
-<<lire-weave.sh>>=
-<<Bash shebang>>
-
-< "$1" awk -f <<`Lire` location>>/input2lire.awk \
-    | <<`Lire` source file $\rightarrow$ `noweb`'s pipeline representation>> \
-    | <<`Noweb`'s pipeline representation $\rightarrow$ "valid" Pandoc>> \
-    | <<Pandoc $\rightarrow$ HTML>> \
-    > "$2"
-@
 
 A custom `noweb` pipeline is used, as we definitely want to be able to use "anonymous" chunks as continuations of the previous chunk.
-<<`Lire` source file $\rightarrow$ `noweb`'s pipeline representation>>=
-<<`Noweb` location>>/markup \
-    | <<`Noweb` location>>/emptydefn \
-    | <<`Noweb` location>>/noidx -delay
+Since tabs can be significant, for example in Makefiles, those are preserved (the `-t` option to `markup`).
+The `-delay` option to `noidx` makes sure that the index of code chunks is emitted before the last document chunk.
+This is necessary to be able to generate a bibliography with Pandoc.
+<<Source to `noweb` pipeline representation>>=
+"$NOWEB_LIBPATH"/markup -t \
+    | "$NOWEB_LIBPATH"/emptydefn \
+    | "$NOWEB_LIBPATH"/noidx -delay
 @
 
-To make it marginally easier to deal with the pipeline representation, we completely remove any empty text tokens from it before converting it to Pandoc using [[<<nwpipe-pandoc.pl>>]].
-<<`Noweb`'s pipeline representation $\rightarrow$ "valid" Pandoc>>=
-sed -n '/^@text $/!p' | tee pipeline.debug \
-    | <<`Lire` location>>/nwpipe-pandoc
-@
-<<`Lire` location>>=
-"$HOME"/lib/lire
+To make it marginally easier to deal with the pipeline representation, we completely remove any empty text tokens from it before tranforming it to Pandoc source.
+<<`Noweb` pipeline representation to Pandoc source>>=
+sed -n '/^@text $/!p' \
+    | "$LIRE_LIBPATH"/nwpipe-pandoc
 @
 
-<<Pandoc $\rightarrow$ HTML>>=
+<<Pandoc source to HTML>>=
 pandoc \
     --table-of-contents \
     --standalone \
     --self-contained \
     --smart \
     --to=html5 \
-    --css=<<`Lire` location>>/lire.css \
+    --css="$LIRE_LIBPATH"/lire.css \
     --output=- \
-    "${@:3}"
+    "$PANDOC_OPTS"
 @
 
-We use the GNU `make` utility to generate the human readable documentation and generate any files that are required.
-
+Everything is wrapped as a bash script that will be installed, along with [[<<lire>>]], in `LIRE_BINPATH`.
+It reads the `lire` source from standard input and writes the HTML to standard output.
 <<lire-weave>>=
-<<lire-weave.sh>>
+<<Weave `lire` source to HTML>>
 @
 
 
@@ -915,11 +1010,6 @@ ul.chunkslist {
 @
 
 # Common definitions
-All building block for `noweb` (front ends, filters, back ends) are usually installed in the same [[<<`Noweb` location>>]]:
-<<`Noweb` location>>=
-/home/boris/lib/noweb
-@
-
 The portable [[<<Bash shebang>>]] is, according to [Stack Overflow](http://stackoverflow.com/questions/10376206/preferred-bash-shebang):
 <<Bash shebang>>=
 #! /usr/bin/env bash
