@@ -58,7 +58,7 @@ It uses `noweb`'s `notangle` to extract from (1) the chunk (2) to a temporary fi
 <<lire-tangle.bash>>
 <<lire-tangle.bash>>=
 tmpfile=$(mktemp)
-notangle -R"$2" "$1" > "$tmpfile" \
+notangle -t8 -R"$2" "$1" > "$tmpfile" \
     && "$LIRE_LIBPATH"/lire-cmpcp "$tmpfile" "$3"
 status=$?
 rm "$tmpfile"
@@ -108,7 +108,8 @@ for used in "${@:2}"
 do
     if [ ! -h "$1/$used" ]
     then
-        ln --verbose --symbolic --target-directory="$1" "$used"
+        absolute=$(readlink -f "$used")
+        ln --verbose --symbolic --target-directory="$1" "$absolute"
     fi
 done
 @
@@ -138,19 +139,22 @@ noroots "$1" \
     > "$rootchunks"
 @
 
-If there is a root chunk that does not need to be tangled (for whatever reason), it can be declared in a chunk named [[lire::ignore]], one chunk name per line.
+If there is a root chunk that does not need to be tangled (for whatever reason), it can be declared in a chunk named [[<<lire::ignore>>]], one chunk name per line.
 <<lire-chunknames.bash>>=
 ignoredchunks=$(mktemp)
-notangle -R"lire::ignore" "$1" \
-    | <<Remove empty lines>> \
-    | sort --unique \
-    > "$ignoredchunks"
+if noroots "$1" | grep --silent --line-regexp '@<<lire::ignore@>>'
+then
+    notangle -t8 -R"lire::ignore" "$1" \
+        | <<Remove empty lines>> \
+        | sort --unique \
+        > "$ignoredchunks"
+fi
 @
 
-The chunk names declared in [[lire::ignore]] are removed from the list of chunk names emitted by [[<<lire-chunknames>>]] using the standard command line tool `comm`.
+The chunk names declared in [[<<lire::ignore>>]] are removed from the list of chunk names emitted by [[<<lire-chunknames>>]] using the standard command line tool `comm`.
 <<lire-chunknames.bash>>=
 comm -2 -3 "$rootchunks" "$ignoredchunks"
-rm "$roothchunks" "$ignoredchunks"
+rm "$rootchunks" "$ignoredchunks"
 @
 
 Filters used in the pipelines above:
@@ -188,15 +192,15 @@ LIRE_DIR='.lire'
 export PANDOC_OPTS="${@:2}"
 MAKE_JOBS='--jobs'
 mkdir --verbose --parents "$LIRE_DIR"
-export NOWEB_LIBPATH="$NOWEB_LIBPATH"
-export LIRE_LIBPATH="$LIRE_LIBPATH"
+export NOWEB_LIBPATH=@@NOWEB_LIBPATH@@
+export LIRE_LIBPATH=@@LIRE_LIBPATH@@
 @
 
 Then, determine which chunks need to be tangled using [[<<lire-chunknames>>]], and tangle those using [[<<lire-mtangle>>]].
 <<Tangle relevant chunks>>=
 "$LIRE_LIBPATH"/lire-chunknames "$LIRE_SOURCE" \
     | xargs --delimiter='\n' \
-        lire-mtangle "$LIRE_SOURCE" "$LIRE_DIR"
+        "$LIRE_LIBPATH"/lire-mtangle "$LIRE_SOURCE" "$LIRE_DIR"
 @
 
 Then, bring in external dependencies (uses).
@@ -209,7 +213,7 @@ lire.bib
 
 Note that the `lire` source file itself is a special case of an external dependency.
 <<Use external dependencies>>=
-notangle -R"lire::use" "$LIRE_SOURCE" \
+notangle -t8 -R"lire::use" "$LIRE_SOURCE" \
     | sort --unique \
     | <<Remove empty lines>> \
     | xargs --delimiter='\n' \
@@ -218,15 +222,22 @@ notangle -R"lire::use" "$LIRE_SOURCE" \
 
 Then, from inside the working directory:
 <<Make everything>>=
-notangle -R"lire::make" "$LIRE_SOURCE" \
-    >> "$LIRE_DIR"/liremakefile
+notangle -t8 -R"lire::make" "$LIRE_SOURCE" \
+    > "$LIRE_DIR"/liremakefile
 make "$MAKE_JOBS" --directory="$LIRE_DIR" --makefile=liremakefile all
 @
 
+This is what an empty Makefile with only `all` declared would look like:
+<<lire::make>>=
+.PHONY : all
+all: ;
+
+@
+
 <<Weave the documentation>>=
+make --directory="$LIRE_DIR" --makefile=liremakefile html
 BASENAME=$(basename "$1" .lir)
-make --directory="$LIRE_DIR" --makefile=liremakefile "$BASENAME.html"
-cp --verbose --symbolic-link ".lire/$BASENAME.html" .
+cp --verbose ".lire/$BASENAME.html" .
 @
 
 ## Weaving
@@ -334,21 +345,36 @@ sed -n '/^@text $/!p' \
 @
 
 <<Pandoc source to HTML>>=
-pandoc \
+pandoc "$@" \
     --table-of-contents \
     --standalone \
     --self-contained \
     --smart \
     --to=html5 \
     --css="$LIRE_LIBPATH"/lire.css \
-    --output=- \
-    "$PANDOC_OPTS"
+    --output=-
 @
 
 Everything is wrapped as a bash script that will be installed, along with [[<<lire>>]], in `LIRE_BINPATH`.
 It reads the `lire` source from standard input and writes the HTML to standard output.
 <<lire-weave>>=
+<<Bash shebang>>
+if [ $# -eq 0 ]
+then
+    PANDOC="pandoc"
+else
+    PANDOC="pandoc $1"
+fi
 <<Weave `lire` source to HTML>>
+@
+
+Using it, we can add a rule for building the HTML documentation.
+For this project, it would be:
+<<lire::make>>=
+.PHONY : html
+html : lire.lir
+	< lire.lir lire-weave $(PANDOC_OPTS) > lire.html
+
 @
 
 
@@ -369,11 +395,6 @@ main :-
 main :-
     format(user_error, "FAILURE~n", []),
     halt(1). % otherwise, exit with failure (1)
-@
-<<lire::make>>=
-nwpipe-pandoc : nwpipe-pandoc.pl driver.pl nwpipe.pl lirehtml.pl
-	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
-
 @
 
 During development, it is good to know if the program has left behind any unintentional choice points -- they are almost certainly errors.
@@ -398,19 +419,19 @@ The driver uses [[<<nwpipe.pl>>]] and [[<<lirehtml.pl>>]].
 nwpipeline_pandoc(_) :-
     I = user_input,
     input_to_terms(I, Ts),
-    open('terms.txt', write, Terms_file),
-    forall(member(T, Ts), format(Terms_file, "~q~n", [T])),
-    close(Terms_file),
+    %open('terms.txt', write, Terms_file),
+    %forall(member(T, Ts), format(Terms_file, "~q~n", [T])),
+    %close(Terms_file),
     phrase(lire(L), Ts),
-    setup_call_cleanup(open('doc.txt', write, Doc_file),
-            (   maplist(format_to_string("~q~n"), L, LS),
-                atomics_to_string(LS, S),
-                format(Doc_file, "~s~n", [S])
-            ),
-            close(Doc_file)),
-    setup_call_cleanup(open('weaved.pandoc', write, Pandoc_file),
-            emit_html(Pandoc_file, L),
-            close(Pandoc_file)),
+    %setup_call_cleanup(open('doc.txt', write, Doc_file),
+            %(   maplist(format_to_string("~q~n"), L, LS),
+                %atomics_to_string(LS, S),
+                %format(Doc_file, "~s~n", [S])
+            %),
+            %close(Doc_file)),
+    %setup_call_cleanup(open('weaved.pandoc', write, Pandoc_file),
+            %emit_html(Pandoc_file, L),
+            %close(Pandoc_file)),
     emit_html(user_output, L).
 
 format_to_string(F, T, S) :-

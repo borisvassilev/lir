@@ -3,13 +3,16 @@ export LIRE_LIBPATH="$HOME"/lib/lire
 export LIRE_BINPATH="$HOME"/bin
 export NOWEB_LIBPATH=/usr/lib/noweb
 
+mkdir --parents "$LIRE_LIBPATH"
+mkdir --parents "$LIRE_BINPATH"
+
 echo "*** Making lire..."
 make
 echo "--> Done"
-exit
 echo "*** Installing lire..."
 make install
 echo "--> Done"
+rm -r .lire
 echo "*** Using lire to tangle and weave lire..."
 lire lire.lir --bibliography=lire.bib
 echo "--> Done"
