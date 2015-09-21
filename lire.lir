@@ -30,6 +30,9 @@ The overall workflow for `lire` is as follows:
     For externally maintained files to be managed by `lire`, they need to be explicitly declared in the `lire` source file.
     Example use cases would be input data files, or a bibliography file maintained by a reference manager.
 
+    Importantly, `lire` expects that all relevant externally maintained files and input data is inside the project directory.
+    In this way, sharing a project for validation, verification, and reproduction is trivial: just share the directory with all its contents.
+
   * "Make" all results.
 
     This is a step that usually will include resolving dependencies.
@@ -54,15 +57,13 @@ To implement this, `lire` provides a few tools on top of the tools made availabl
 First, we have [[<<lire-tangle>>]], which accepts three arguments, in this order: (1) the name of a `lire` source file; (2) the name of a chunk; and (3) the name of the file that the chunk will be extracted to.
 It uses `noweb`'s `notangle` to extract from (1) the chunk (2) to a temporary file, compares it to (3) and only writes (2) to (3) if (3) does not exist, or is different from the temporary file.
 <<lire-tangle>>=
-<<Bash shebang>>
+<<Bash header>>
 <<lire-tangle.bash>>
 <<lire-tangle.bash>>=
 tmpfile=$(mktemp)
 notangle -t8 -R"$2" "$1" > "$tmpfile" \
-    && "$LIRE_LIBPATH"/lire-cmpcp "$tmpfile" "$3"
-status=$?
-rm "$tmpfile"
-exit $status
+    && "$LIRE_LIBPATH"/lire-cmpcp "$tmpfile" "$3" \
+    && rm "$tmpfile"
 @
 
 The tool [[<<lire-tangle>>]] uses another tool, [[<<lire-cmpcp>>]].
@@ -70,7 +71,7 @@ It overwrites a file with a newer version of a file after comparing them.
 It takes two arguments: (1) the new file, and (2) the old file.
 The standard command line tool `cmp` used for the comparison will exit with status 0 (success) if the two files have identical contents; with status 1 if they are different, and with status 2 if there is some trouble: for example, if one of the files does not exist.
 <<lire-cmpcp>>=
-<<Bash shebang>>
+<<Bash header>>
 <<lire-cmpcp.bash>>
 <<lire-cmpcp.bash>>=
 if ! cmp --silent "$1" "$2"
@@ -83,7 +84,7 @@ The tool [[<<lire-tangle>>]] allows us to implement another tool, [[<<lire-mtang
 It accepts as argument (1) the `lire` source file, (2) the target directory, and the rest of the arguments are the code chunk names that are to be extracted from (1) to the directory (2), under their own names.
 (The last point might be important: any string is a valid chunk name, so one could end up with strange file names with blanks or other special characters in them.)
 <<lire-mtangle>>=
-<<Bash shebang>>
+<<Bash header>>
 <<lire-mtangle.bash>>
 <<lire-mtangle.bash>>=
 for chunk in "${@:3}"
@@ -97,22 +98,35 @@ Not all data in an analysis naturally fits into the `lire` source file.
 Examples already mentioned above are the input data, or an externally maintained file like a bibliography.
 
 Taking in use such a file means simply making a symbolic link to the file in the working direcory.
+_However_, keep in mind that the externally maintained file still needs to be in the project directory, and its name should on a path relative to the project directory.
 The `make` utility will check the timestamp on the _target of the link_, so when a "used" file changes, this will be taken into consideration.
 
 The arguments to the script are (1) the directory in which the symbolic links will be made and from (2) on, the file names that should be taken in use:
 <<lire-use>>=
-<<Bash shebang>>
+<<Bash header>>
 <<lire-use.bash>>
 <<lire-use.bash>>=
 for used in "${@:2}"
 do
-    if [ ! -h "$1/$used" ]
+    original=$(readlink --canonicalize "$used")
+    if [[ ! -h "$1/$used" ]]
     then
-        absolute=$(readlink -f "$used")
-        ln --verbose --symbolic --target-directory="$1" "$absolute"
+        <<Take a file in use>>
+    elif [[ $(readlink --canonicalize "$1/$used") -ef "$original" ]]
+    then
+        <<Overwrite existing file in use>>
     fi
 done
+<<Take a file in use>>=
+<<Create subdirectory for used file>>
+ln --verbose --symbolic "$original" "$1/$used"
+<<Create subdirectory for used file>>=
+useddir=$(dirname "$used")
+mkdir --verbose --parents "$1/$useddir"
+<<Overwrite existing file in use>>=
+ln --verbose --symbolic --force "$original" "$1/$used"
 @
+This code is probably more complicated than it should be.
 
 ## Extracting names
 With the help of [[<<lire-mtangle>>]] and the tools it uses, we can tangle all relevant chunks to files.
@@ -122,7 +136,7 @@ The question remains: which are the code chunks that need to be tangled?
 The `noroots` tool provided by `noweb` will print to standard output all root chunk names, enclosed in double angle brackets.
 It is used by [[<<lire-chunknames>>]], which takes as its single argument the `lire` source file:
 <<lire-chunknames>>=
-<<Bash shebang>>
+<<Bash header>>
 <<lire-chunknames.bash>>
 @
 
@@ -171,7 +185,7 @@ sed -n '/^lire::.*/!p'
 ## The wrapper script
 A script called `lire` can be invoked with the source file as its first argument.
 <<lire>>=
-<<Bash shebang>>
+<<Bash header>>
 <<lire.bash>>
 <<lire.bash>>=
 <<Setup `lire` script>>
@@ -262,7 +276,7 @@ _Use with care!_
 <<Setup `awk` to treat lines as single-field records>>
 /^@<<lire::include@>>=$/ {
     while(getline) {
-        if ($0 ~ <<End of code chunk `awk` regexp>>) {
+        if (<<End of code chunk>>) {
             sub(/^@/, "")
             if (length()) {
                 print $0
@@ -284,7 +298,7 @@ The full contents of the file will be inserted unchanged in a code chunk named `
 <<Setup `awk` to treat lines as single-field records>>
 /^@<<lire::listing@>>=$/ {
     while(getline) {
-        if ($0 ~ <<End of code chunk `awk` regexp>>) {
+        if (<<End of code chunk>>) {
             print $0
             next
         }
@@ -308,8 +322,8 @@ BEGIN {
 @
 
 The end of a code chunk is either a line with a `@` in the first column, or the beginning of another code chunk.
-<<End of code chunk `awk` regexp>>=
-/^@|^@<<.*@>>=$/
+<<End of code chunk>>=
+$0 ~ /^@|^@<<.*@>>=$/
 <<`Awk`: echo file to output>>=
 while (getline < name) {
     print $0
@@ -358,13 +372,7 @@ pandoc "$@" \
 Everything is wrapped as a bash script that will be installed, along with [[<<lire>>]], in `LIRE_BINPATH`.
 It reads the `lire` source from standard input and writes the HTML to standard output.
 <<lire-weave>>=
-<<Bash shebang>>
-if [ $# -eq 0 ]
-then
-    PANDOC="pandoc"
-else
-    PANDOC="pandoc $1"
-fi
+<<Bash header>>
 <<Weave `lire` source to HTML>>
 @
 
@@ -1031,9 +1039,15 @@ ul.chunkslist {
 @
 
 # Common definitions
-The portable [[<<Bash shebang>>]] is, according to [Stack Overflow](http://stackoverflow.com/questions/10376206/preferred-bash-shebang):
-<<Bash shebang>>=
+The portable [[<<Bash header>>]] is, according to [Stack Overflow](http://stackoverflow.com/questions/10376206/preferred-bash-shebang):
+<<Bash header>>=
 #! /usr/bin/env bash
+@
+Furthermore, we set the scripts to immediately exit with error on failure, consider failure in a pipe a failure, and to consider "empty" (unset) variables an error:
+<<Bash header>>=
+set -o errexit
+set -o pipefail
+set -o nounset
 @
 
 # References
