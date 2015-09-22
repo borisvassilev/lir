@@ -377,7 +377,6 @@ It uses the module [[<<driver.pl>>]] to do the actual work.
 :- use_module(driver, [nwpipeline_pandoc/1]).
 main :-
     current_prolog_flag(argv, Argv), % command line arguments
-    %prompt(_Old, ''), %  turn off prompt
     nwpipeline_pandoc(Argv),
     <<Warn about non-determinism>>,
     halt. % exit with success
