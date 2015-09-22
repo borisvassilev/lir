@@ -109,24 +109,9 @@ The arguments to the script are (1) the directory in which the symbolic links wi
 for used in "${@:2}"
 do
     original=$(readlink --canonicalize "$used")
-    if [[ ! -h "$1/$used" ]]
-    then
-        <<Take a file in use>>
-    elif [[ $(readlink --canonicalize "$1/$used") -ef "$original" ]]
-    then
-        <<Overwrite existing file in use>>
-    fi
+    ln --symbolic --force "$original" "$1/$used"
 done
-<<Take a file in use>>=
-<<Create subdirectory for used file>>
-ln --verbose --symbolic "$original" "$1/$used"
-<<Create subdirectory for used file>>=
-useddir=$(dirname "$used")
-mkdir --verbose --parents "$1/$useddir"
-<<Overwrite existing file in use>>=
-ln --verbose --symbolic --force "$original" "$1/$used"
 @
-This code is probably more complicated than it should be.
 
 ## Extracting names
 With the help of [[<<lire-mtangle>>]] and the tools it uses, we can tangle all relevant chunks to files.
