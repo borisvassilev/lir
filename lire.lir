@@ -446,7 +446,10 @@ lire(L) -->
 <<Flat list of terms $\rightarrow$ structured term>>
 @
 
-A `noweb` token is initially represented as a 
+A `noweb` token in the `noweb` pipeline representation [@Ramsey1992] is parsed to become a Prolog term.
+Here, we use an approach to parsing them described in "The Craft of Prolog" [@OKeefe1990].
+We use the keyword at the beginning of each token to look up (deterministically) in a table the list of items that this token contains.
+Then, each item is converted to a Prolog term using a mini-interpreter for the "language" of `noweb` tokens.
 <<`Noweb` token $\rightarrow$ Prolog term>>=
 :- use_module(library(dcg/basics), [nonblanks//1, integer//1]).
 token(Back, Term) -->
@@ -455,11 +458,13 @@ token(Back, Term) -->
         keyword(Key, Items, Back, Term)
     },
     items(Items).
+<<Keyword table>>
+<<Mini-interpreter for items>>
+@
+
+<<Keyword table>>=
 <<Structural keywords>>
 <<Tagging keywords>>
-
-<<Individual items>>
-@
 
 <<Structural keywords>>=
 keyword(begin, [space, chunk_kind(K)], _, K).
@@ -470,53 +475,44 @@ keyword(defn, [space, string_rest(S, Rest)], Rest, defn(S)).
 keyword(use, [space, string_rest(S, Rest)], Rest, use(S)).
 keyword(quote, [], [], quote).
 keyword(endquote, [], [], endquote).
-@
 
 <<Tagging keywords>>=
 keyword(file, [space, atom_rest(File, Rest)], Rest, file(File)).
 keyword(xref, [space, xref(XRef, Rest)], Rest, XRef).
 keyword(index, [space, index(Index, Rest)], Rest, Index).
 
-<<Cross-referencing keywords>>
-<<The index of identifiers>>
-@
+<<Cross-referencing keyword table>>
+<<Index table>>
 
-For the [[<<Tagging keywords>>]], most are represented in `noweb`'s pipeline by a single keyword, `xref`.
-<<Cross-referencing keywords>>=
+<<Cross-referencing keyword table>>=
 <<Basic cross-referencing>>
 <<Linking previous and next definitions of a code chunk>>
 <<Continued definitions of the current chunk>>
 <<The list of all code chunks>>
 <<Chunks where the code is used>>
-@
-<<The index of identifiers>>=
+
+<<Index table>>=
 index(beginindex, [], [], index_beginindex).
 index(endindex, [], [], index_endindex).
-@
-
 
 <<Basic cross-referencing>>=
 xref(label, [space, atom_rest(L, Rest)], Rest, xref_label(L)).
 xref(ref, [space, atom_rest(L, Rest)], Rest, xref_ref(L)).
-@
 
 <<Linking previous and next definitions of a code chunk>>=
 xref(prevdef, [space, atom_rest(L, Rest)], Rest, xref_prevdef(L)).
 xref(nextdef, [space, atom_rest(L, Rest)], Rest, xref_nextdef(L)).
-@
 
 <<Continued definitions of the current chunk>>=
 xref(begindefs, [], [], xref_begindefs).
 xref(defitem, [space, atom_rest(L, Rest)], Rest, xref_defitem(L)).
 xref(enddefs, [], [], xref_enddefs).
-@
 
 <<Chunks where the code is used>>=
 xref(beginuses, [], [], xref_beginuses).
 xref(useitem, [space, atom_rest(L, Rest)], Rest, xref_useitem(L)).
 xref(enduses, [], [], xref_enduses).
 xref(notused, [space, string_rest(Name, Rest)], Rest, xref_notused(Name)).
-@
 
 <<The list of all code chunks>>=
 xref(beginchunks, [], [], xref_beginchunks).
@@ -530,13 +526,16 @@ xref(chunkend, [], [], xref_chunkend).
 xref(endchunks, [], [], xref_endchunks).
 @
 
-These are the rules used to transform [[<<Individual items>>]] that appear in the `noweb` tokens to Prolog terms.
-<<Individual items>>=
+Using the tables above, we have looked up the exact items that we expect in a `noweb` token.
+This is a small interpreter that takes the list of items and converts each item to the corresponding Prolog term.
+<<Mini-interpreter for items>>=
 items([]) --> [].
 items([I|Is]) -->
     item(I),
     items(Is).
 
+<<Individual items>>
+<<Individual items>>=
 <<Atoms and text>>
 <<"Space">>
 <<Chunk number>>
@@ -582,7 +581,7 @@ item(chunk_kind(CK)) -->
 @
 
 Finally, [[<<Cross-reference>>]].
-Note that it employs quite a few secondary keywords collected in their own look up table.
+Note that it employs quite a few secondary keywords collected in their own look up tables, [[<<Cross-referencing keyword table>>]] and [[<<Index table>>]].
 <<Cross-reference>>=
 item(xref(XRef, Rest)) -->
     nonblanks(Codes),
