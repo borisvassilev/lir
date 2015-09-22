@@ -423,7 +423,7 @@ nwpipeline_pandoc(_) :-
     emit_html(user_output, T).
 @
 
-## Parsing the `noweb` pipeline
+## Parsing the `noweb` pipeline tokens
 This module is used by the [[<<driver.pl>>]] to convert the list of lines representing the line-oriented `noweb` pipeline to a Prolog term.
 This is done in two steps.
 
@@ -597,14 +597,29 @@ item(index(Index, Rest)) -->
     items(Items).
 @
 
+## Converting the pipeline to a structured term
+The structure of the document is implicitly present in the `noweb` pipeline representation: documentation and code chunks are delimited by a start and an end token, new lines and other formatting are contained in text tokens.
+The pipeline representation also contains cross-referencing information, using labels and references to them.
+It is however a bit inconvenient to use this representation for generating markup (not impossible, obviously, as this was the preferred way to do it for the author of `noweb`; but he is also a better programmer than me).
+
+At that point, we have a list of Prolog terms.
+Those are easier to deal with in the context of Prolog, as it is much easier to make the rules deterministic.
+The general approach is to consume the next input and use it as the first argument to a rule, thus taking advantage of Prolog's first-argument indexing.
+Then, the rules defined below describe a state machine where each rule is a state and each rule clause is a transition that depends on the last input.
+
+On the highest level, the `noweb` pipeline is made of a sequence of files:
 <<Flat list of terms $\rightarrow$ structured term>>=
-<<Parse the list of Prolog terms>>
-<<Parse the list of Prolog terms>>=
 lire_rest(L) -->
     [X], !,
     lire_file(X, L).
 lire_rest([]) --> [].
 
+<<Parse a file>>
+@
+
+A file is a sequence of documentation and code chunks.
+It will contain a list of chunks and an index.
+<<Parse a file>>=
 lire_file(docs, L) -->
     [X],
     docs(X, L).
@@ -621,9 +636,15 @@ lire_file(index_beginindex, [index(I)|L]) -->
     [X],
     index_list(X, I),
     lire_rest(L).
+
+<<Parse a documentation chunk>>
+<<Parse a code chunk>>
+<<Parse the list of chunks>>
+<<Parse the index>>
 @
 
-<<Parse the list of Prolog terms>>=
+A documentation chunk can contain text, new lines, and quoted code.
+<<Parse a documentation chunk>>=
 docs(end, L) -->
     lire_rest(L).
 docs(text(T), [text(Text)|L]) -->
@@ -641,6 +662,26 @@ docs(quote, [quote(Q)|L]) -->
     [Y],
     docs(Y, L).
 
+<<Parse quoted code>>
+@
+
+Consequitive text tokens that are not interrupted by any other structural contents are collected and concatenated.
+<<>>=
+docs_text([T|Ts]) -->
+    [text(T)], !,
+    docs_text(Ts).
+docs_text(["\n"|Ts]) -->
+    [nl], !,
+    eol(Ts).
+docs_text([]) --> [].
+
+eol([T|Ts]) -->
+    [text(T)], !,
+    docs_text(Ts).
+eol([]) --> [].
+@
+
+<<Parse quoted code>>=
 quote(text(T), [text(T)|Q]) -->
     [X],
     quote(X, Q).
@@ -650,7 +691,7 @@ quote(xref_ref(L), [quote_use(N, L)|Q]) -->
 quote(endquote, []) --> [].
 @
 
-<<Parse the list of Prolog terms>>=
+<<Parse a code chunk>>=
 code(Cs, M) -->
     [X],
     defn(X, M_pairs),
@@ -658,6 +699,11 @@ code(Cs, M) -->
     },
     code_content(Cs).
 
+<<Parse the code chunk header>>
+<<Parse the code chunk contents>>
+@
+
+<<Parse the code chunk header>>=
 defn(nl, []) --> [].
 defn(xref_label(L), [label(L)|M]) -->
     [X],
@@ -690,19 +736,11 @@ defn(xref_begindefs, [defs(Ds)|M]) -->
     defs(X, Ds, Ds),
     [Y],
     defn(Y, M).
+
+<<Parse defs and uses>>
 @
 
-<<Parse the list of Prolog terms>>=
-uses(xref_enduses, _, []) --> [].
-uses(xref_useitem(L), Us, [L|Us0]) -->
-    [X],
-    uses(X, Us, Us0).
-
-defs(xref_enddefs, _, []) --> [].
-defs(xref_defitem(L), Ds, [L|Ds0]) -->
-    [X],
-    defs(X, Ds, Ds0).
-
+<<Parse the code chunk contents>>=
 code_content([text(Text)|Cs]) -->
     text_token(T), !,
     code_text(Ts),
@@ -713,9 +751,7 @@ code_content([code_use(L, R, N)|Cs]) -->
     [xref_label(L), xref_ref(R), use(N)], !,
     code_content(Cs).
 code_content([]) --> [end].
-@
 
-<<Parse the list of Prolog terms>>=
 text_token("\n") --> [nl].
 text_token(T) --> [text(T)].
     
@@ -723,22 +759,21 @@ code_text([T|Ts]) -->
     text_token(T), !,
     code_text(Ts).
 code_text([]) --> [].
-
-docs_text([T|Ts]) -->
-    [text(T)], !,
-    docs_text(Ts).
-docs_text(["\n"|Ts]) -->
-    [nl], !,
-    eol(Ts).
-docs_text([]) --> [].
-
-eol([T|Ts]) -->
-    [text(T)], !,
-    docs_text(Ts).
-eol([]) --> [].
 @
 
-<<Parse the list of Prolog terms>>=
+<<Parse defs and uses>>=
+uses(xref_enduses, _, []) --> [].
+uses(xref_useitem(L), Us, [L|Us0]) -->
+    [X],
+    uses(X, Us, Us0).
+
+defs(xref_enddefs, _, []) --> [].
+defs(xref_defitem(L), Ds, [L|Ds0]) -->
+    [X],
+    defs(X, Ds, Ds0).
+@
+
+<<Parse the list of chunks>>=
 xref_chunks(xref_endchunks, []) --> [].
 xref_chunks(xref_chunkbegin(L, N), [chunk(L, N, Us, Ds)|Cs]) -->
     [X],
@@ -753,9 +788,11 @@ xref_chunk(xref_chunkuse(U), [chunkuse(U)|Us], Ds) -->
 xref_chunk(xref_chunkdefn(D), Us, [chunkdefn(D)|Ds]) -->
     [X],
     xref_chunk(X, Us, Ds).
+@
 
+We don't have an index for now.
+<<Parse the index>>=
 index_list(index_endindex, []) --> [].
-% we don't have an index for now
 @
 
 <<lirehtml.pl>>=
