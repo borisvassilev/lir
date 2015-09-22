@@ -48,10 +48,9 @@ The overall workflow for `lire` is as follows:
     Once all results and figures have been generated, the original `lire` source file is processed to obtain a valid Pandoc markdown source file.
     At that point, Pandoc is used to compile this to a final human readable file with any results and figures generated in the previous step.
 
-# Implementation
 To implement this, `lire` provides a few tools on top of the tools made available by `noweb` and Pandoc, and a wrapper script, [[<<lire>>]], which implements the complete workflow described above.
 
-## Tangling
+# Tangling
 "Tangling" is the process of extracting the source code embedded in the `lire` literate source file so that it can be compiled and executed to obtain results.
 
 First, we have [[<<lire-tangle>>]], which accepts three arguments, in this order: (1) the name of a `lire` source file; (2) the name of a chunk; and (3) the name of the file that the chunk will be extracted to.
@@ -93,7 +92,7 @@ do
 done
 @
 
-## Externally maintained files
+# Externally maintained files
 Not all data in an analysis naturally fits into the `lire` source file.
 Examples already mentioned above are the input data, or an externally maintained file like a bibliography.
 
@@ -113,7 +112,7 @@ do
 done
 @
 
-## Extracting names
+# Extracting names
 With the help of [[<<lire-mtangle>>]] and the tools it uses, we can tangle all relevant chunks to files.
 The question remains: which are the code chunks that need to be tangled?
 
@@ -167,7 +166,7 @@ sed '/^\s*$/d'
 sed -n '/^lire::.*/!p'
 @
 
-## The wrapper script
+# The wrapper script
 A script called `lire` can be invoked with the source file as its first argument.
 <<lire>>=
 <<Bash header>>
@@ -239,9 +238,25 @@ BASENAME=$(basename "$1" .lir)
 cp --verbose ".lire/$BASENAME.html" .
 @
 
-## Weaving
+# Weaving
 Weaving means generating the final human readable documentation from the `lire` source file.
 The original source is transformed by several filters before passed to Pandoc for generating an HTML document that can be viewed in a browser.
+Everything is wrapped as a bash script that will be installed, along with [[<<lire>>]], in `LIRE_BINPATH`.
+It reads the `lire` source from standard input and writes the HTML to standard output.
+<<lire-weave>>=
+<<Bash header>>
+<<Weave `lire` source to HTML>>
+@
+
+Using it, we can add a rule for building the HTML documentation.
+For this project, it would be:
+<<lire::make>>=
+.PHONY : html
+html : lire.lir
+	< lire.lir lire-weave $(PANDOC_OPTS) > lire.html
+
+@
+
 <<Weave `lire` source to HTML>>=
 <<`Lire`-specific transformations>> \
     | <<Source to `noweb` pipeline representation>> \
@@ -323,10 +338,6 @@ In other words, if you put a line of one or more white-space characters (spaces 
 This also means that the filenames included in this fashion cannot contain newline characters.
 If you really want this, you should use more advanced trickery.
 
-In its first incarnation, it consist only of a [Pandoc](http://johnmacfarlane.net/pandoc/) back end for [Noweb](https://www.cs.tufts.edu/~nr/noweb/) [@Noweb2008].
-It is a bash script that will read from standard input.
-Any command line arguments passed to the script will be used as additional arguments to the invocation of `pandoc`.
-
 A custom `noweb` pipeline is used, as we definitely want to be able to use "anonymous" chunks as continuations of the previous chunk.
 Since tabs can be significant, for example in Makefiles, those are preserved (the `-t` option to `markup`).
 The `-delay` option to `noidx` makes sure that the index of code chunks is emitted before the last document chunk.
@@ -338,6 +349,7 @@ This is necessary to be able to generate a bibliography with Pandoc.
 @
 
 To make it marginally easier to deal with the pipeline representation, we completely remove any empty text tokens from it before tranforming it to Pandoc source.
+We then use [[<<nwpipe-pandoc.pl>>]] to transform the `noweb` pipeline representation of the `lire` source file to a valid Pandoc source file.
 <<`Noweb` pipeline representation to Pandoc source>>=
 sed -n '/^@text $/!p' \
     | "$LIRE_LIBPATH"/nwpipe-pandoc
@@ -354,23 +366,7 @@ pandoc "$@" \
     --output=-
 @
 
-Everything is wrapped as a bash script that will be installed, along with [[<<lire>>]], in `LIRE_BINPATH`.
-It reads the `lire` source from standard input and writes the HTML to standard output.
-<<lire-weave>>=
-<<Bash header>>
-<<Weave `lire` source to HTML>>
-@
-
-Using it, we can add a rule for building the HTML documentation.
-For this project, it would be:
-<<lire::make>>=
-.PHONY : html
-html : lire.lir
-	< lire.lir lire-weave $(PANDOC_OPTS) > lire.html
-
-@
-
-
+# `Noweb` to Pandoc
 The program [[<<nwpipe-pandoc.pl>>]] is written in Prolog, using the SWI-Prolog implementation [@Wielemaker2012].
 It is written as a stand-alone command line program: once compiled, can be run from the command line as a part of a pipe.
 It uses the module [[<<driver.pl>>]] to do the actual work.
@@ -386,221 +382,54 @@ main :-
     <<Warn about non-determinism>>,
     halt. % exit with success
 main :-
-    format(user_error, "FAILURE~n", []),
+    format(user_error, "NWPIPE-PANDOC : FAILED~n", []),
     halt(1). % otherwise, exit with failure (1)
 @
 
-During development, it is good to know if the program has left behind any unintentional choice points -- they are almost certainly errors.
+During development, it is good to know if the program has left behind any unintentional choice points -- they are certainly errors, as the program is designed to succeed deterministically.
 They would be "hidden" by the `halt/0` used at the end of the main program.
 <<Warn about non-determinism>>=
 deterministic(D),
 (   D == false
-->  format(user_error, "DANGLING CHOICE POINT(S)!~n", [])
+->  format(user_error, "NWPIPE-PANDOC : DANGLING CHOICE POINT(S)!~n", [])
 ;   true
 )
 @
 
-## From `lire` source to documentation
-
-The driver uses [[<<nwpipe.pl>>]] and [[<<lirehtml.pl>>]].
+The driver uses [[<<nwpipe.pl>>]] to parse its input to native Prolog terms and [[<<lirehtml.pl>>]] to emit a valid Pandoc source document with embedded HTML fragments.
 <<driver.pl>>=
 :- module(driver, [nwpipeline_pandoc/1]).
 
-:- use_module(nwpipe, [nwtokens_terms/2, lire//1]).
+:- use_module(nwpipe, [nwpipe_term/2]).
 :- use_module(lirehtml, [emit_html/2]).
 
 nwpipeline_pandoc(_) :-
     I = user_input,
-    input_to_terms(I, Ts),
-    %open('terms.txt', write, Terms_file),
-    %forall(member(T, Ts), format(Terms_file, "~q~n", [T])),
-    %close(Terms_file),
-    phrase(lire(L), Ts),
-    %setup_call_cleanup(open('doc.txt', write, Doc_file),
-            %(   maplist(format_to_string("~q~n"), L, LS),
-                %atomics_to_string(LS, S),
-                %format(Doc_file, "~s~n", [S])
-            %),
-            %close(Doc_file)),
-    %setup_call_cleanup(open('weaved.pandoc', write, Pandoc_file),
-            %emit_html(Pandoc_file, L),
-            %close(Pandoc_file)),
-    emit_html(user_output, L).
-
-format_to_string(F, T, S) :-
-    format(string(S), F, [T]).
-
-input_to_terms(I, Ts) :-
     read_string(I, _, S),
     split_string(S, "\r\n", "\r\n", Str_Ls),
     maplist(string_codes, Str_Ls, Ls),
-    nwtokens_terms(Ls, Ts).
+    nwpipe_term(Ls, T),
+    emit_html(user_output, T).
 @
 
-<<lirehtml.pl>>=
-:- module(lirehtml, [emit_html/2]).
-
-:- use_module(library(http/html_write)).
-
-emit_html(Out, L) :-
-    formatting(L, F),
-    phrase(lire_pandoc(P), F),
-    phrase(html(P), H),
-    print_html(Out, H).
-@
-
-Add to the database a table with all code chunks.
-<<>>=
-formatting(L, R) :-
-    include(is_code_meta, L, L0),
-    maplist(code_meta_meta, L0, Ms),
-    retractall(label_nr_name_fname(_,_,_,_)),
-    forall(nth1(N, Ms, M),
-            (   through_pandoc(html5, M.name, FN),
-                assertz(label_nr_name_fname(M.label, N, M.name, FN))
-            )),
-    L = R,
-    true.
-
-is_code_meta(code_meta(_, _)).
-code_meta_meta(code_meta(_, M), M).
-@
-
-Use Pandoc to pre-format chunk names.
-<<>>=
-:- use_module(library(sgml), [load_structure/3]).
-:- use_module(library(sgml_write), [xml_write/3]).
-
-through_pandoc(To, Str, FStr) :-
-	atomics_to_string(L, "'", Str), % split
-	atomics_to_string(L, "'\\''", EscStr), % put together
-	atomics_to_string(["echo '", EscStr, "' | pandoc -t ", To], Pandoc),
-	process_create(path(bash), ['-c', Pandoc], [stdout(pipe(Out))]),
-	through_pandoc_1(To, Out, FStr),
-	close(Out).
-
-through_pandoc_1(html5, Out, FStr) :-
-	load_structure(Out, [element(p, [], StrDOM)], [dialect(xml)]),
-	with_output_to(string(FStr),
-		xml_write(current_output, StrDOM,
-			[header(false), layout(false)])).
-
-lire_pandoc(P) -->
-    [X], !,
-    lire_pandoc(X, P).
-lire_pandoc([]) --> [].
-lire_pandoc(nl, ["\n"|P]) --> lire_pandoc(P).
-lire_pandoc(text(T), [T|P]) --> lire_pandoc(P).
-lire_pandoc(quote(Q), [span(class(quote), QC)|P]) -->
-    {   phrase(lire_pandoc(QC), Q)
-    },
-    lire_pandoc(P).
-lire_pandoc(quote_use(Name, Label),
-            [span(class(quoteduse),
-                  [&(lang), \thinnbsp,
-                   a(href("#~a"-Label), Name),
-                   \thinnbsp, &(rang)])|P]) -->
-    lire_pandoc(P).
-lire_pandoc(code_meta(C, M),
-            [div(class(codechunk),
-             [\chunk_defn(M),
-              \chunk_uses(M),
-              \chunk_defs(M),
-              \chunk_prev(M),
-              pre(CC),
-              \chunk_next(M)])|P]) -->
-    {   phrase(lire_pandoc(CC), C)
-    },
-    lire_pandoc(P).
-lire_pandoc(code_use(L, R, N),
-            [span(class(embeddeduse),
-                  [&(lang), \thinnbsp,
-                   a([id(L), href("#~a"-R)], \[FN]),
-                   \thinnbsp, &(rang)])|P]) -->
-    {   label_nr_name_fname(R, _, N, FN)
-    },
-    lire_pandoc(P).
-lire_pandoc(chunks_list(_Cs), P) -->
-/*
-            ["# List of Chunks\n\n",
-             div(class(listofchunks), \chunks_list(Cs))|P]) -->
-*/
-    lire_pandoc(P).
-lire_pandoc(index(_), P) --> [], lire_pandoc(P).
-
-thinnbsp --> html(span(style("white-space:nowrap"), &(thinsp))).
-
-chunk_defn(M) -->
-    {   label_nr_name_fname(M.label, Nr, _, FName)
-    },
-    html(span([class(defn),id(M.label)],
-              [span(class(chunknr), "C~d:"-Nr), &(nbsp),
-               &(lang), \thinnbsp,
-               a(href("#~a"-M.label), \[FName]),
-               \thinnbsp, &(rang), &(equiv)])).
-chunk_uses(M) -->
-    {   code{uses:Us} :< M
-    }, !,
-    html(span(class(chunkuses), \chunk_uses_(Us))).
-chunk_uses(_) --> [].
-chunk_uses_([U|Us]) -->
-    {   label_nr_name_fname(U, Nr, _, _)
-    }, !,
-    html([br([]), "used by ", a(href("#~a"-U),"C~d"-Nr)]),
-    chunk_uses_rest(Us).
-chunk_uses_(notused) --> html([br([]), "root chunk"]).
-chunk_uses_rest([]) --> [].
-chunk_uses_rest([U|Us]) -->
-    {   label_nr_name_fname(U, Nr, _, _)
-    },
-    html([", ", a(href("#~a"-U), "C~d"-Nr)]),
-    chunk_uses_rest(Us).
-
-chunk_next(M) -->
-    {   code{next:L} :< M,
-        label_nr_name_fname(L, Nr, _, _)
-    }, !,
-    html(span(class(chunknext),
-         a(href("#~a"-L), [&(8681), \thinnbsp, "C~d"-Nr]))).
-chunk_next(_) -->
-    html(&(9633)). % white square
-
-chunk_prev(M) -->
-    {   code{prev:L} :< M,
-        label_nr_name_fname(L, Nr, _, _)
-    },
-    html([br([]),
-          span(class(chunkprev),
-               a(href("#~a"-L), [&(8679), \thinnbsp, "C~d"-Nr]))]).
-chunk_prev(_) --> [].
-
-chunk_defs(M) -->
-    {   code{defs:Ds} :< M
-    }, !,
-    html(span(class(chunkdefs), \chunk_defs_(Ds))).
-chunk_defs(_) --> [].
-
-chunk_defs_([D|Ds]) -->
-    {   label_nr_name_fname(D, Nr, _, _)
-    },
-    html([br([]), "definition continued in ", a(href("#~a"-D), "C~d"-Nr)]),
-    chunk_defs_rest(Ds).
-chunk_defs_rest([]) --> [].
-chunk_defs_rest([D|Ds]) -->
-    {   label_nr_name_fname(D, Nr, _, _)
-    },
-    html(["+", a(href("#~a"-D), "C~d"-Nr)]),
-    chunk_defs_rest(Ds).
-@
-
-Parsing the pipeline:
+## Parsing the `noweb` pipeline
+This module is used by the [[<<driver.pl>>]] to convert the list of lines representing the line-oriented `noweb` pipeline to a Prolog term.
+This is done in two steps: first, each line in the list is converted to a term, and then, the list of terms is parsed.
 <<nwpipe.pl>>=
-:- module(nwpipe, [nwtokens_terms/2, lire//1]).
+:- module(nwpipe, [nwpipe_term/2]).
 
-nwtokens_terms([], []).
-nwtokens_terms([[0'@|Token]|Tokens], [Term|Terms]) :-
-    phrase(token(Back, Term), Token, Back),
-    nwtokens_terms(Tokens, Terms).
+:- use_module(library(apply_macros)).
+
+nwpipe_term(A, B) :-
+    maplist(nwtoken_term, A, T),
+    phrase(lire(B), T).
+
+nwtoken_term([0'@|Token], Term) :-
+    phrase(token(Back, Term), Token, Back).
+
+lire(L) -->
+    [file(_)],
+    lire_rest(L).
 
 <<`Noweb` tokens $\rightarrow$ Prolog terms>>
 <<Build the document structure>>
@@ -631,21 +460,28 @@ keyword(quote, [], [], quote).
 keyword(endquote, [], [], endquote).
 @
 
-For the [[<<Tagging keywords>>]], most are represented in `noweb`'s pipeline by a single keyword, `xref`.
-There are several categories of cross-referencing concepts.
 <<Tagging keywords>>=
 keyword(file, [space, atom_rest(File, Rest)], Rest, file(File)).
 keyword(xref, [space, xref(XRef, Rest)], Rest, XRef).
 keyword(index, [space, index(Index, Rest)], Rest, Index).
 
+<<Cross-referencing keywords>>
+<<The index of identifiers>>
+@
+
+For the [[<<Tagging keywords>>]], most are represented in `noweb`'s pipeline by a single keyword, `xref`.
+<<Cross-referencing keywords>>=
 <<Basic cross-referencing>>
 <<Linking previous and next definitions of a code chunk>>
 <<Continued definitions of the current chunk>>
 <<The list of all code chunks>>
 <<Chunks where the code is used>>
-
-<<The index of identifiers>>
 @
+<<The index of identifiers>>=
+index(beginindex, [], [], index_beginindex).
+index(endindex, [], [], index_endindex).
+@
+
 
 <<Basic cross-referencing>>=
 xref(label, [space, atom_rest(L, Rest)], Rest, xref_label(L)).
@@ -682,11 +518,6 @@ xref(chunkend, [], [], xref_chunkend).
 xref(endchunks, [], [], xref_endchunks).
 @
 
-<<The index of identifiers>>=
-index(beginindex, [], [], index_beginindex).
-index(endindex, [], [], index_endindex).
-@
-
 These are the rules used to transform [[<<Individual items>>]] that appear in the `noweb` tokens to Prolog terms.
 <<Individual items>>=
 items([]) --> [].
@@ -708,7 +539,7 @@ item(atom(A)) -->
     {   atom_codes(A, Codes)
     }.
 
-% Using when here is probably an ugly hack.
+% Using when/2 here is probably an ugly hack.
 % Could not figure out a better way to deal with
 % "rest of line" situations.
 item(atom_rest(A, Rest)) -->
@@ -756,10 +587,6 @@ item(index(Index, Rest)) -->
 @
 
 <<Build the document structure>>=
-lire(L) -->
-    [file(_)],
-    lire_rest(L).
-
 lire_rest(L) -->
     [X], !,
     lire_file(X, L).
@@ -918,11 +745,167 @@ index_list(index_endindex, []) --> [].
 % we don't have an index for now
 @
 
-## Layout
+<<lirehtml.pl>>=
+:- module(lirehtml, [emit_html/2]).
+
+:- use_module(library(http/html_write)).
+
+emit_html(Out, L) :-
+    formatting(L, F),
+    phrase(lire_pandoc(P), F),
+    phrase(html(P), H),
+    print_html(Out, H).
+@
+
+Add to the database a table with all code chunks.
+<<>>=
+formatting(L, R) :-
+    include(is_code_meta, L, L0),
+    maplist(code_meta_meta, L0, Ms),
+    retractall(label_nr_name_fname(_,_,_,_)),
+    forall(nth1(N, Ms, M),
+            (   through_pandoc(html5, M.name, FN),
+                assertz(label_nr_name_fname(M.label, N, M.name, FN))
+            )),
+    L = R,
+    true.
+
+is_code_meta(code_meta(_, _)).
+code_meta_meta(code_meta(_, M), M).
+@
+
+Use Pandoc to pre-format chunk names.
+<<>>=
+:- use_module(library(sgml), [load_structure/3]).
+:- use_module(library(sgml_write), [xml_write/3]).
+
+through_pandoc(To, Str, FStr) :-
+	atomics_to_string(L, "'", Str), % split
+	atomics_to_string(L, "'\\''", EscStr), % put together
+	atomics_to_string(["echo '", EscStr, "' | pandoc -t ", To], Pandoc),
+	process_create(path(bash), ['-c', Pandoc], [stdout(pipe(Out))]),
+	through_pandoc_1(To, Out, FStr),
+	close(Out).
+
+through_pandoc_1(html5, Out, FStr) :-
+	load_structure(Out, [element(p, [], StrDOM)], [dialect(xml)]),
+	with_output_to(string(FStr),
+		xml_write(current_output, StrDOM,
+			[header(false), layout(false)])).
+
+lire_pandoc(P) -->
+    [X], !,
+    lire_pandoc(X, P).
+lire_pandoc([]) --> [].
+lire_pandoc(nl, ["\n"|P]) --> lire_pandoc(P).
+lire_pandoc(text(T), [T|P]) --> lire_pandoc(P).
+lire_pandoc(quote(Q), [span(class(quote), QC)|P]) -->
+    {   phrase(lire_pandoc(QC), Q)
+    },
+    lire_pandoc(P).
+lire_pandoc(quote_use(Name, Label),
+            [span(class(quoteduse),
+                  [&(lang), \thinnbsp,
+                   a(href("#~a"-Label), Name),
+                   \thinnbsp, &(rang)])|P]) -->
+    lire_pandoc(P).
+lire_pandoc(code_meta(C, M),
+            [div(class(codechunk),
+             [\chunk_defn(M),
+              \chunk_uses(M),
+              \chunk_defs(M),
+              \chunk_prev(M),
+              pre(CC),
+              \chunk_next(M)])|P]) -->
+    {   phrase(lire_pandoc(CC), C)
+    },
+    lire_pandoc(P).
+lire_pandoc(code_use(L, R, N),
+            [span(class(embeddeduse),
+                  [&(lang), \thinnbsp,
+                   a([id(L), href("#~a"-R)], \[FN]),
+                   \thinnbsp, &(rang)])|P]) -->
+    {   label_nr_name_fname(R, _, N, FN)
+    },
+    lire_pandoc(P).
+lire_pandoc(chunks_list(_Cs), P) -->
+/*
+            ["# List of Chunks\n\n",
+             div(class(listofchunks), \chunks_list(Cs))|P]) -->
+*/
+    lire_pandoc(P).
+lire_pandoc(index(_), P) --> [], lire_pandoc(P).
+
+thinnbsp --> html(span(style("white-space:nowrap"), &(thinsp))).
+
+chunk_defn(M) -->
+    {   label_nr_name_fname(M.label, Nr, _, FName)
+    },
+    html(span([class(defn),id(M.label)],
+              [span(class(chunknr), "C~d:"-Nr), &(nbsp),
+               &(lang), \thinnbsp,
+               a(href("#~a"-M.label), \[FName]),
+               \thinnbsp, &(rang), &(equiv)])).
+chunk_uses(M) -->
+    {   code{uses:Us} :< M
+    }, !,
+    html(span(class(chunkuses), \chunk_uses_(Us))).
+chunk_uses(_) --> [].
+chunk_uses_([U|Us]) -->
+    {   label_nr_name_fname(U, Nr, _, _)
+    }, !,
+    html([br([]), "used by ", a(href("#~a"-U),"C~d"-Nr)]),
+    chunk_uses_rest(Us).
+chunk_uses_(notused) --> html([br([]), "root chunk"]).
+chunk_uses_rest([]) --> [].
+chunk_uses_rest([U|Us]) -->
+    {   label_nr_name_fname(U, Nr, _, _)
+    },
+    html([", ", a(href("#~a"-U), "C~d"-Nr)]),
+    chunk_uses_rest(Us).
+
+chunk_next(M) -->
+    {   code{next:L} :< M,
+        label_nr_name_fname(L, Nr, _, _)
+    }, !,
+    html(span(class(chunknext),
+         a(href("#~a"-L), [&(8681), \thinnbsp, "C~d"-Nr]))).
+chunk_next(_) -->
+    html(&(9633)). % white square
+
+chunk_prev(M) -->
+    {   code{prev:L} :< M,
+        label_nr_name_fname(L, Nr, _, _)
+    },
+    html([br([]),
+          span(class(chunkprev),
+               a(href("#~a"-L), [&(8679), \thinnbsp, "C~d"-Nr]))]).
+chunk_prev(_) --> [].
+
+chunk_defs(M) -->
+    {   code{defs:Ds} :< M
+    }, !,
+    html(span(class(chunkdefs), \chunk_defs_(Ds))).
+chunk_defs(_) --> [].
+
+chunk_defs_([D|Ds]) -->
+    {   label_nr_name_fname(D, Nr, _, _)
+    },
+    html([br([]), "definition continued in ", a(href("#~a"-D), "C~d"-Nr)]),
+    chunk_defs_rest(Ds).
+chunk_defs_rest([]) --> [].
+chunk_defs_rest([D|Ds]) -->
+    {   label_nr_name_fname(D, Nr, _, _)
+    },
+    html(["+", a(href("#~a"-D), "C~d"-Nr)]),
+    chunk_defs_rest(Ds).
+@
+
+# Layout
 The system tries to separate content and layout as much as possible.
 It also aims to provide a sensible default layout for the human-readable documentation.
 
-### HTML
+## HTML
 For HTML documentation, [[<<lire.css>>]] is used.
 <<lire.css>>=
 <<Text width and margin>>
