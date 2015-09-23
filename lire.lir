@@ -432,17 +432,11 @@ This is done in two steps.
 <<nwpipe.pl>>=
 :- module(nwpipe, [nwpipe_term/2]).
 
-nwpipe_term(A, B) :-
-    maplist(nwtoken_term, A, T),
-    phrase(lire(B), T).
+nwpipe_term(Pipe, Doc) :-
+    maplist(nwtoken_term, Pipe, Terms),
+    phrase(lire_doc(Doc), Terms).
 
-nwtoken_term([0'@|Token], Term) :-
-    phrase(token(Back, Term), Token, Back).
 <<`Noweb` token $\rightarrow$ Prolog term>>
-
-lire(L) -->
-    [file(_)],
-    lire_rest(L).
 <<Flat list of terms $\rightarrow$ structured term>>
 @
 
@@ -452,6 +446,10 @@ We use the keyword at the beginning of each token to look up (deterministically)
 Then, each item is converted to a Prolog term using a mini-interpreter for the "language" of `noweb` tokens.
 <<`Noweb` token $\rightarrow$ Prolog term>>=
 :- use_module(library(dcg/basics), [nonblanks//1, integer//1]).
+
+nwtoken_term([0'@|Token], Term) :-
+    phrase(token(Back, Term), Token, Back).
+
 token(Back, Term) -->
     nonblanks(NB),
     {   atom_codes(Key, NB),
@@ -608,8 +606,13 @@ Those are easier to deal with in the context of Prolog, as it is much easier to 
 The general approach is to consume the next input and use it as the first argument to a rule, thus taking advantage of Prolog's first-argument indexing.
 Then, the rules defined below describe a state machine where each rule is a state and each rule clause is a transition that depends on the last input.
 
-On the highest level, the `noweb` pipeline is made of a sequence of files:
+On the highest level, the `noweb` pipeline is made of a sequence of files.
+Note, however, that since in `lire` the input is standard input (and not a list of files), there will be only one, unnamed file in the pipeline.
 <<Flat list of terms $\rightarrow$ structured term>>=
+lire_doc(L) -->
+    [file('')],
+    lire_rest(L).
+
 lire_rest(L) -->
     [X], !,
     lire_file(X, L).
