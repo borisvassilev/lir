@@ -799,6 +799,8 @@ We don't have an index for now.
 index_list(index_endindex, []) --> [].
 @
 
+## Emit Pandoc source
+Here:
 <<lirehtml.pl>>=
 :- module(lirehtml, [emit_html/2]).
 
