@@ -108,9 +108,16 @@ The arguments to the script are (1) the directory in which the symbolic links wi
 for used in "${@:2}"
 do
     useddir=$(dirname "$used")
-    mkdir --parents "$1/$useddir"
+    mkdir  --verbose --parents "$1/$useddir"
     original=$(readlink --canonicalize "$used")
-    ln --symbolic --force "$original" "$1/$used"
+    if [ -f "$original" ]
+    then
+        ln --symbolic --force "$original" "$1/$used"
+    else
+        echo "LIRE ERROR: File not found!"
+        echo "$original"
+        exit 1
+    fi
 done
 @
 
