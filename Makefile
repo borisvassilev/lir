@@ -13,7 +13,7 @@ bashscripts = \
 	lire-use \
 	lire-chunknames 
 
-awkscripts = lire-listing.awk lire-include.awk
+awkscripts = lire-listing.awk
 
 nwpipesources = nwpipe-pandoc.pl driver.pl nwpipe.pl lirehtml.pl
 

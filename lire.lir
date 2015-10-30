@@ -254,9 +254,11 @@ It reads the `lire` source from standard input and writes the HTML to standard o
 Using it, we can add a rule for building the HTML documentation.
 For this project, it would be:
 <<lire::make>>=
-.PHONY : html
-html : lire.lir
-	< lire.lir lire-weave $(PANDOC_OPTS) > lire.html
+.PHONY: html
+html: lire.html
+
+lire.html: lire.lir
+	lire-weave $(PANDOC_OPTS) < $< > $@
 
 @
 
@@ -269,34 +271,14 @@ html : lire.lir
 
 Of the two transformations done on the `lire` source before giving it to the `noweb` tools, "including" files is the more general one and has to be done first.
 <<`Lire`-specific transformations>>=
-awk -f "$LIRE_LIBPATH"/lire-include.awk \
-    | awk -f "$LIRE_LIBPATH"/lire-listing.awk
+awk -f "$LIRE_LIBPATH"/lire-listing.awk
 @
 
-Each line inside a code chunk named `lire::include` will be treated as a file name that has to be **pasted as it is** to the `lire` source file **before** the source file is passed transformed in any other way.
+Each line inside a code chunk named `lire::include` will be treated as a file name that has to be **pasted as it is** to the `lire` source file **before** the source file is passed to Pandoc.
 _Use with care!_
-<<lire-include.awk>>=
-<<Setup `awk` to treat lines as single-field records>>
-/^@<<lire::include@>>=$/ {
-    while(getline) {
-        if (<<End of code chunk>>) {
-            sub(/^@/, "")
-            if (length()) {
-                print $0
-            }
-            next
-        }
-        if (NF > 0) {
-            name=$0
-            <<`Awk`: echo file to output>>
-        }
-    }
-}
-{ print $0 }
-@
 
 Each line inside a code chunk named `lire::listing` will be treated as a file name that has to be included verbatim in the weaved final document.
-The full contents of the file will be inserted unchanged in a code chunk named `lire::listing::<filename>`.
+The full contents of the file will be inserted unchanged in a code chunk named [[<<lire::listing::`filename`>>]].
 <<lire-listing.awk>>=
 <<Setup `awk` to treat lines as single-field records>>
 /^@<<lire::listing@>>=$/ {
@@ -319,8 +301,8 @@ To make `awk` treat lines of input as records with one field each, set both the 
 With these settings, an empty line (nothing but a new line) will have 0 fields (`NF == 0`) and a length of 0 (`length($0) == 0`).
 <<Setup `awk` to treat lines as single-field records>>=
 BEGIN {
-    RS="\n";
-    FS="\n";
+    RS="\n"
+    FS="\n"
 }
 @
 
@@ -423,7 +405,20 @@ nwpipeline_pandoc(_) :-
     split_string(S, "\r\n", "\r\n", Str_Ls),
     maplist(string_codes, Str_Ls, Ls),
     nwpipe_term(Ls, T),
-    emit_html(user_output, T).
+    term_expandmacro(T, E),
+    emit_html(user_output, E).
+
+term_expandmacro(X, X).
+/*
+term_expandmacro([], []).
+term_expandmacro([X|Xs], [Y|Ys]) :-
+    (   X = defn(S),
+        sub_string(S, 0, B, _, "<<"),
+        sub_string(S, _, A, 0, ">>="),
+        sub_string(S, B, L, A, N),
+        
+    term_expandmacro(Xs, Ys).
+*/
 @
 
 ## Parsing the `noweb` pipeline tokens
@@ -612,12 +607,10 @@ Then, the rules defined below describe a state machine where each rule is a stat
 On the highest level, the `noweb` pipeline is made of a sequence of files.
 Note, however, that since in `lire` the input is standard input (and not a list of files), there will be only one, unnamed file in the pipeline.
 <<Flat list of terms $\rightarrow$ structured term>>=
-lire_doc(L) -->
-    [file('')],
+lire_doc(L) --> [file('')],
     lire_rest(L).
 
-lire_rest(L) -->
-    [X], !,
+lire_rest(L) --> [X], !,
     lire_file(X, L).
 lire_rest([]) --> [].
 
@@ -627,20 +620,17 @@ lire_rest([]) --> [].
 A file is a sequence of documentation and code chunks.
 It will contain a list of chunks and an index.
 <<Parse a file>>=
-lire_file(docs, L) -->
-    [X],
+lire_file(docs, L) --> [X],
     docs(X, L).
 lire_file(code, [code_meta(C, M)|L]) -->
     code(C, M),
     lire_rest(L).
 lire_file(nl, [nl|L]) -->
     lire_rest(L).
-lire_file(xref_beginchunks, [chunks_list(Cs)|L]) -->
-    [X],
+lire_file(xref_beginchunks, [chunks_list(Cs)|L]) --> [X],
     xref_chunks(X, Cs),
     lire_rest(L).
-lire_file(index_beginindex, [index(I)|L]) -->
-    [X],
+lire_file(index_beginindex, [index(I)|L]) --> [X],
     index_list(X, I),
     lire_rest(L).
 
@@ -660,11 +650,9 @@ docs(text(T), [text(Text)|L]) -->
     },
     [X],
     docs(X, L).
-docs(nl, [nl|L]) -->
-    [X],
+docs(nl, [nl|L]) --> [X],
     docs(X, L).
-docs(quote, [quote(Q)|L]) -->
-    [X],
+docs(quote, [quote(Q)|L]) --> [X],
     quote(X, Q),
     [Y],
     docs(Y, L).
@@ -674,26 +662,21 @@ docs(quote, [quote(Q)|L]) -->
 
 Consequitive text tokens that are not interrupted by any other structural contents are collected and concatenated.
 <<>>=
-docs_text([T|Ts]) -->
-    [text(T)], !,
+docs_text([T|Ts]) --> [text(T)], !,
     docs_text(Ts).
-docs_text(["\n"|Ts]) -->
-    [nl], !,
+docs_text(["\n"|Ts]) --> [nl], !,
     eol(Ts).
 docs_text([]) --> [].
 
-eol([T|Ts]) -->
-    [text(T)], !,
+eol([T|Ts]) --> [text(T)], !,
     docs_text(Ts).
 eol([]) --> [].
 @
 
 <<Parse quoted code>>=
-quote(text(T), [text(T)|Q]) -->
-    [X],
+quote(text(T), [text(T)|Q]) --> [X],
     quote(X, Q).
-quote(xref_ref(L), [quote_use(N, L)|Q]) -->
-    [use(N), X],
+quote(xref_ref(L), [quote_use(N, L)|Q]) --> [use(N), X],
     quote(X, Q).
 quote(endquote, []) --> [].
 @
@@ -712,34 +695,25 @@ code(Cs, M) -->
 
 <<Parse the code chunk header>>=
 defn(nl, []) --> [].
-defn(xref_label(L), [label(L)|M]) -->
-    [X],
+defn(xref_label(L), [label(L)|M]) --> [X],
     defn(X, M).
-defn(xref_ref(L), [ref(L)|M]) -->
-    [X],
+defn(xref_ref(L), [ref(L)|M]) --> [X],
     defn(X, M).
-defn(defn(N), [name(N)|M]) -->
-    [X],
+defn(defn(N), [name(N)|M]) --> [X],
     defn(X, M).
-defn(xref_notused(_N), [uses(notused)|M]) -->
-    [X],
+defn(xref_notused(_N), [uses(notused)|M]) --> [X],
     defn(X, M).
-defn(xref_beginuses, [uses(Us)|M]) -->
-    [X],
+defn(xref_beginuses, [uses(Us)|M]) --> [X],
     uses(X, Us, Us),
     [Y],
     defn(Y, M).
-defn(xref_prevdef(L), [prev(L)|M]) -->
-    [X],
+defn(xref_prevdef(L), [prev(L)|M]) --> [X],
     defn(X, M).
-defn(xref_nextdef(L), [next(L)|M]) -->
-    [X],
+defn(xref_nextdef(L), [next(L)|M]) --> [X],
     defn(X, M).
-defn(language(L), [language(L)|M]) -->
-    [X],
+defn(language(L), [language(L)|M]) --> [X],
     defn(X, M).
-defn(xref_begindefs, [defs(Ds)|M]) -->
-    [X],
+defn(xref_begindefs, [defs(Ds)|M]) --> [X],
     defs(X, Ds, Ds),
     [Y],
     defn(Y, M).
@@ -770,30 +744,25 @@ code_text([]) --> [].
 
 <<Parse defs and uses>>=
 uses(xref_enduses, _, []) --> [].
-uses(xref_useitem(L), Us, [L|Us0]) -->
-    [X],
+uses(xref_useitem(L), Us, [L|Us0]) --> [X],
     uses(X, Us, Us0).
 
 defs(xref_enddefs, _, []) --> [].
-defs(xref_defitem(L), Ds, [L|Ds0]) -->
-    [X],
+defs(xref_defitem(L), Ds, [L|Ds0]) --> [X],
     defs(X, Ds, Ds0).
 @
 
 <<Parse the list of chunks>>=
 xref_chunks(xref_endchunks, []) --> [].
-xref_chunks(xref_chunkbegin(L, N), [chunk(L, N, Us, Ds)|Cs]) -->
-    [X],
+xref_chunks(xref_chunkbegin(L, N), [chunk(L, N, Us, Ds)|Cs]) --> [X],
     xref_chunk(X, Us, Ds),
     [Y],
     xref_chunks(Y, Cs).
 
 xref_chunk(xref_chunkend, [], []) --> [].
-xref_chunk(xref_chunkuse(U), [chunkuse(U)|Us], Ds) -->
-    [X],
+xref_chunk(xref_chunkuse(U), [chunkuse(U)|Us], Ds) --> [X],
     xref_chunk(X, Us, Ds).
-xref_chunk(xref_chunkdefn(D), Us, [chunkdefn(D)|Ds]) -->
-    [X],
+xref_chunk(xref_chunkdefn(D), Us, [chunkdefn(D)|Ds]) --> [X],
     xref_chunk(X, Us, Ds).
 @
 
@@ -822,7 +791,7 @@ formatting(L, R) :-
     include(is_code_meta, L, L0),
     maplist(code_meta_meta, L0, Ms),
     retractall(label_nr_name_fname(_,_,_,_)),
-    forall(nth1(N, Ms, M),
+    forall(nth0(N, Ms, M),
             (   through_pandoc(html5, M.name, FN),
                 assertz(label_nr_name_fname(M.label, N, M.name, FN))
             )),
@@ -852,6 +821,18 @@ through_pandoc_1(html5, Out, FStr) :-
 		xml_write(current_output, StrDOM,
 			[header(false), layout(false)])).
 
+lire_include("lire::include", C, [div(class(include), Contents)|P], P) :- !,
+    maplist(name_filecontents, C, Contents).
+lire_include(_, _, P, P).
+
+name_filecontents(text(T), \[FC]) :- !,
+    split_string(T, "\n", "\n", [F]),
+    setup_call_cleanup(open(F, read, In),
+                       read_string(In, _, FC),
+                       close(In)).
+name_filecontents(Term, Text) :-
+    format(string(Text), " * ~w~n", [Term]).
+
 lire_pandoc(P) -->
     [X], !,
     lire_pandoc(X, P).
@@ -875,8 +856,9 @@ lire_pandoc(code_meta(C, M),
               \chunk_defs(M),
               \chunk_prev(M),
               pre(CC),
-              \chunk_next(M)])|P]) -->
-    {   phrase(lire_pandoc(CC), C)
+              \chunk_next(M)])|P0]) -->
+    {   phrase(lire_pandoc(CC), C),
+        lire_include(M.name, C, P0, P)
     },
     lire_pandoc(P).
 lire_pandoc(code_use(L, R, N),
