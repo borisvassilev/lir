@@ -225,7 +225,7 @@ Then, from inside the working directory:
 <<Make everything>>=
 notangle -t8 -R"lire::make" "$LIRE_SOURCE" \
     > "$LIRE_DIR"/liremakefile
-make "$MAKE_JOBS" --directory="$LIRE_DIR" --makefile=liremakefile all
+make --debug=b "$MAKE_JOBS" --directory="$LIRE_DIR" --makefile=liremakefile all
 @
 
 This is what an empty Makefile with only `all` declared would look like:
@@ -236,7 +236,7 @@ all: ;
 @
 
 <<Weave the documentation>>=
-make --directory="$LIRE_DIR" --makefile=liremakefile html
+make --debug=b --directory="$LIRE_DIR" --makefile=liremakefile html
 BASENAME=$(basename "$1" .lir)
 cp --verbose --update ".lire/$BASENAME.html" .
 @
