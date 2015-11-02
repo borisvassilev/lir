@@ -114,8 +114,7 @@ do
     then
         ln --symbolic --force "$original" "$1/$used"
     else
-        echo "LIRE ERROR: File not found!"
-        echo "$original"
+        >&2 echo "LIRE ERROR: File not found! ($original)"
         exit 1
     fi
 done
