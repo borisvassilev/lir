@@ -1,11 +1,3 @@
-tangled = \
-	lire \
-	lire-weave \
-	$(bashscripts) \
-	$(awkscripts) \
-	$(nwpipesources) \
-	lire.css
-
 bashscripts = \
 	lire-tangle \
 	lire-cmpcp \
@@ -15,12 +7,25 @@ bashscripts = \
 
 awkscripts = lire-listing.awk
 
-nwpipesources = nwpipe-pandoc.pl driver.pl nwpipe.pl lirehtml.pl
+nwpipemodules = driver.pl nwpipe.pl lirehtml.pl
+
+nwpipesources = nwpipe-pandoc.pl $(nwpipemodules)
+
+tangled = \
+	lire \
+	lire-weave \
+	$(bashscripts) \
+	$(awkscripts) \
+	$(nwpipesources) \
+	noweb-args.cpp \
+	lire.css
 
 all : lire.lir
 	$(NOWEB_LIBPATH)/markup -t lire.lir \
 	    | $(NOWEB_LIBPATH)/emptydefn \
 	    | $(NOWEB_LIBPATH)/mnt -t $(tangled)
+	$(MAKE) noweb-args
+	$(MAKE) nwpipe-pandoc
 	sed -i "s~@@LIRE_LIBPATH@@~$(LIRE_LIBPATH)~" lire lire-weave
 	sed -i "s~@@NOWEB_LIBPATH@@~$(NOWEB_LIBPATH)~" lire lire-weave
 	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl

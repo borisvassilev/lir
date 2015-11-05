@@ -65,6 +65,60 @@ notangle -t8 -R"$2" "$1" > "$tmpfile" \
     && rm "$tmpfile"
 @
 
+The program [[<<noweb-args.cpp>>]] only removes everything but code chunks from the `noweb` pipeline representation.
+<<noweb-args.cpp>>=
+#include <ios>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <algorithm>
+#include <vector>
+
+bool string_prefix(std::string l, std::string s)
+{
+    return l.compare(0, s.length(), s, 0, s.length()) == 0;
+}
+
+int main()
+{
+    std::string l;
+
+out:
+    if (!getline(std::cin, l)) goto end;
+    if (string_prefix(l, "@begin docs ")) goto docs;
+    if (string_prefix(l, "@begin code ")) goto header;
+
+    std::cout << l << std::endl;
+    goto out;
+
+docs:
+    if (!getline(std::cin, l)) goto end;
+    if (string_prefix(l, "@end docs ")) goto out;
+
+    goto docs;
+
+header:
+    std::cout << l << std::endl;
+    if (!getline(std::cin, l) || !string_prefix(l, "@defn ")) goto end;
+    std::cout << l << std::endl;
+
+code:
+    if (!getline(std::cin, l)) goto end;
+    if (string_prefix(l, "@end code ")) goto footer;
+
+    std::cout << l << std::endl;
+    goto code;
+
+footer:
+    std::cout << l << std::endl;
+    goto out;
+
+end:
+
+    return 0;
+}
+@
+
 The tool [[<<lire-tangle>>]] uses another tool, [[<<lire-cmpcp>>]].
 It overwrites a file with a newer version of a file after comparing them.
 It takes two arguments: (1) the new file, and (2) the old file.
@@ -132,7 +186,7 @@ It is used by [[<<lire-chunknames>>]], which takes as its single argument the `l
 <<lire-chunknames.bash>>
 @
 
-One implicitly ignored chunk is the "anonymous", unnamed code chunk as in [[@<<>>=]]; this is interpreted as a continuation of the previous chunk by `lire`, but [[@<<>>=]] will appear in the list of root chunks as listed by `noroots`.
+One implicitly ignored chunk is the "anonymous", unnamed code chunk as in "`@<<>>=`"; this is interpreted as a continuation of the previous chunk by `lire`, but "`@<<>>=`" will appear in the list of root chunks as listed by `noroots`.
 A `lire` source file can also contain root chunks that have names beginning with `lire::`.
 These are used by the user to control `lire`'s functionality, and are not actual code.
 <<lire-chunknames.bash>>=
@@ -844,7 +898,7 @@ lire_pandoc(P) -->
     lire_pandoc(X, P).
 lire_pandoc([]) --> [].
 lire_pandoc(nl, ["\n"|P]) --> lire_pandoc(P).
-lire_pandoc(text(T), [T|P]) --> lire_pandoc(P).
+lire_pandoc(text(T), [\[T]|P]) --> lire_pandoc(P).
 lire_pandoc(quote(Q), [span(class(quote), QC)|P]) -->
     {   phrase(lire_pandoc(QC), Q)
     },
