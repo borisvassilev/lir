@@ -342,7 +342,7 @@ The full contents of the file will be inserted unchanged in a code chunk named [
 <<lire-listing.awk>>=
 <<Setup `awk` to treat lines as single-field records>>
 /^@<<lire::listing@>>=$/ {
-    while(getline) {
+    while(getline > 0) {
         if (<<End of code chunk>>) {
             print $0
             next
@@ -370,7 +370,7 @@ The end of a code chunk is either a line with a `@` in the first column, or the 
 <<End of code chunk>>=
 $0 ~ /^@|^@<<.*@>>=$/
 <<`Awk`: echo file to output>>=
-while (getline < name) {
+while ((getline < name) > 0) {
     print $0
 }
 close(name)
