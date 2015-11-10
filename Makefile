@@ -1,46 +1,44 @@
 bashscripts = \
-	lire-tangle \
-	lire-cmpcp \
-	lire-mtangle \
-	lire-use \
-	lire-chunknames 
+	lir-tangle \
+	lir-cmpcp \
+	lir-mtangle \
+	lir-use \
+	lir-chunknames 
 
-awkscripts = lire-listing.awk
+awkscripts = lir-listing.awk
 
-nwpipemodules = driver.pl nwpipe.pl lirehtml.pl
+nwpipemodules = driver.pl nwpipe.pl lirhtml.pl
 
 nwpipesources = nwpipe-pandoc.pl $(nwpipemodules)
 
 tangled = \
-	lire \
-	lire-weave \
+	lir \
+	lir-weave \
 	$(bashscripts) \
 	$(awkscripts) \
 	$(nwpipesources) \
-	noweb-args.cpp \
-	lire.css
+	lir.css
 
-all : lire.lir
-	$(NOWEB_LIBPATH)/markup -t lire.lir \
+all : lir.lir
+	$(NOWEB_LIBPATH)/markup -t lir.lir \
 	    | $(NOWEB_LIBPATH)/emptydefn \
 	    | $(NOWEB_LIBPATH)/mnt -t $(tangled)
-	$(MAKE) noweb-args
 	$(MAKE) nwpipe-pandoc
-	sed -i "s~@@LIRE_LIBPATH@@~$(LIRE_LIBPATH)~" lire lire-weave
-	sed -i "s~@@NOWEB_LIBPATH@@~$(NOWEB_LIBPATH)~" lire lire-weave
+	sed -i "s~@@LIR_LIBPATH@@~$(LIR_LIBPATH)~" lir lir-weave
+	sed -i "s~@@NOWEB_LIBPATH@@~$(NOWEB_LIBPATH)~" lir lir-weave
 	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
-	chmod u+x lire lire-weave $(bashscripts)
+	chmod u+x lir lir-weave $(bashscripts)
 .PHONY : all
 
 install :
 	cp --verbose --preserve \
 	    $(bashscripts) \
 	    $(awkscripts) \
-	    lire.css \
+	    lir.css \
 	    nwpipe-pandoc \
-	    	$(LIRE_LIBPATH)
+	    	$(LIR_LIBPATH)
 	cp --verbose --preserve \
-	    lire lire-weave $(LIRE_BINPATH)
+	    lir lir-weave $(LIR_BINPATH)
 .PHONY : install
 
 clean :

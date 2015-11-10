@@ -1,19 +1,19 @@
 #! /usr/bin/env bash
-export LIRE_LIBPATH="$HOME"/lib/lire
-export LIRE_BINPATH="$HOME"/bin
+export LIR_LIBPATH="$HOME"/lib/lir
+export LIR_BINPATH="$HOME"/bin
 export NOWEB_LIBPATH=/usr/lib/noweb
 
-mkdir --parents "$LIRE_LIBPATH"
-mkdir --parents "$LIRE_BINPATH"
+mkdir --parents "$LIR_LIBPATH"
+mkdir --parents "$LIR_BINPATH"
 
-echo "*** Making lire..."
+echo "*** Making lir..."
 make
 echo "--> Done"
-echo "*** Installing lire..."
+echo "*** Installing lir..."
 make install
 echo "--> Done"
-rm -r .lire
-echo "*** Using lire to tangle and weave lire..."
-lire lire.lir --bibliography=lire.bib
+rm -r .lir
+echo "*** Using lir to tangle and weave lir..."
+lir lir.lir --bibliography=lir.bib
 echo "--> Done"
-echo "*** Weaved document is in lire.html ***"
+echo "*** Weaved document is in lir.html ***"

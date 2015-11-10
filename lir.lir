@@ -1,5 +1,5 @@
 ---
-title: 'Reproducible computing with `lire`'
+title: 'Reproducible computing with `lir`'
 author: Boris Vassilev
 version: 0.3
 rights: (c) 2015 Boris Vassilev, University of Helsinki
@@ -12,25 +12,25 @@ This document is self-hosting: the implementation presented here can be used to 
 This makes informal validation trivial ("does the final document look right?"), but it also means that the only guarantee is that it implements enough to be able to compile itself.
 
 # Overview
-The tools provided by `lire` aim to support two goals:
+The tools provided by `lir` aim to support two goals:
 
-1. Generating results by running the code in a `lire` source file.
+1. Generating results by running the code in a `lir` source file.
 2. Presenting all code and possibly results in a human-readable form.
 
 This is achieved by using the components made available by `noweb`, using Pandoc for weaving the final documentation, and implementing filters and components that glue the existing tools together and provide some missing functionality.
 
-The overall workflow for `lire` is as follows:
+The overall workflow for `lir` is as follows:
 
-  * Extract all source code from the `lire` source file.
+  * Extract all source code from the `lir` source file.
 
     This might be scripts that are immediately executable, or code that needs to be compiled.
 
-  * Bring in any external dependencies declared in the `lire` source file.
+  * Bring in any external dependencies declared in the `lir` source file.
 
-    For externally maintained files to be managed by `lire`, they need to be explicitly declared in the `lire` source file.
+    For externally maintained files to be managed by `lir`, they need to be explicitly declared in the `lir` source file.
     Example use cases would be input data files, or a bibliography file maintained by a reference manager.
 
-    Importantly, `lire` expects that all relevant externally maintained files and input data is inside the project directory.
+    Importantly, `lir` expects that all relevant externally maintained files and input data is inside the project directory.
     In this way, sharing a project for validation, verification, and reproduction is trivial: just share the directory with all its contents.
 
   * "Make" all results.
@@ -41,113 +41,60 @@ The overall workflow for `lire` is as follows:
 
     In the case of programs that need to be compiled, a compilation step will have to occur before actually running the program.
 
-    All dependencies have to be explicitly declared in the `lire` source file.
+    All dependencies have to be explicitly declared in the `lir` source file.
 
   * "Weave" the final documentation
 
-    Once all results and figures have been generated, the original `lire` source file is processed to obtain a valid Pandoc markdown source file.
+    Once all results and figures have been generated, the original `lir` source file is processed to obtain a valid Pandoc markdown source file.
     At that point, Pandoc is used to compile this to a final human readable file with any results and figures generated in the previous step.
 
-To implement this, `lire` provides a few tools on top of the tools made available by `noweb` and Pandoc, and a wrapper script, [[<<lire>>]], which implements the complete workflow described above.
+To implement this, `lir` provides a few tools on top of the tools made available by `noweb` and Pandoc, and a wrapper script, [[<<lir>>]], which implements the complete workflow described above.
 
 # Tangling
-"Tangling" is the process of extracting the source code embedded in the `lire` literate source file so that it can be compiled and executed to obtain results.
+"Tangling" is the process of extracting the source code embedded in the `lir` literate source file so that it can be compiled and executed to obtain results.
 
-First, we have [[<<lire-tangle>>]], which accepts three arguments, in this order: (1) the name of a `lire` source file; (2) the name of a chunk; and (3) the name of the file that the chunk will be extracted to.
+First, we have [[<<lir-tangle>>]], which accepts three arguments, in this order: (1) the name of a `lir` source file; (2) the name of a chunk; and (3) the name of the file that the chunk will be extracted to.
 It uses `noweb`'s `notangle` to extract from (1) the chunk (2) to a temporary file, compares it to (3) and only writes (2) to (3) if (3) does not exist, or is different from the temporary file.
-<<lire-tangle>>=
+<<lir-tangle>>=
 <<Bash header>>
-<<lire-tangle.bash>>
-<<lire-tangle.bash>>=
+<<lir-tangle.bash>>
+<<lir-tangle.bash>>=
 tmpfile=$(mktemp)
 notangle -t8 -R"$2" "$1" > "$tmpfile" \
-    && "$LIRE_LIBPATH"/lire-cmpcp "$tmpfile" "$3" \
+    && "$LIR_LIBPATH"/lir-cmpcp "$tmpfile" "$3" \
     && rm "$tmpfile"
 @
 
-The program [[<<noweb-args.cpp>>]] only removes everything but code chunks from the `noweb` pipeline representation.
-<<noweb-args.cpp>>=
-#include <ios>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <algorithm>
-#include <vector>
 
-bool string_prefix(std::string l, std::string s)
-{
-    return l.compare(0, s.length(), s, 0, s.length()) == 0;
-}
-
-int main()
-{
-    std::string l;
-
-out:
-    if (!getline(std::cin, l)) goto end;
-    if (string_prefix(l, "@begin docs ")) goto docs;
-    if (string_prefix(l, "@begin code ")) goto header;
-
-    std::cout << l << std::endl;
-    goto out;
-
-docs:
-    if (!getline(std::cin, l)) goto end;
-    if (string_prefix(l, "@end docs ")) goto out;
-
-    goto docs;
-
-header:
-    std::cout << l << std::endl;
-    if (!getline(std::cin, l) || !string_prefix(l, "@defn ")) goto end;
-    std::cout << l << std::endl;
-
-code:
-    if (!getline(std::cin, l)) goto end;
-    if (string_prefix(l, "@end code ")) goto footer;
-
-    std::cout << l << std::endl;
-    goto code;
-
-footer:
-    std::cout << l << std::endl;
-    goto out;
-
-end:
-
-    return 0;
-}
-@
-
-The tool [[<<lire-tangle>>]] uses another tool, [[<<lire-cmpcp>>]].
+The tool [[<<lir-tangle>>]] uses another tool, [[<<lir-cmpcp>>]].
 It overwrites a file with a newer version of a file after comparing them.
 It takes two arguments: (1) the new file, and (2) the old file.
 The standard command line tool `cmp` used for the comparison will exit with status 0 (success) if the two files have identical contents; with status 1 if they are different, and with status 2 if there is some trouble: for example, if one of the files does not exist.
-<<lire-cmpcp>>=
+<<lir-cmpcp>>=
 <<Bash header>>
-<<lire-cmpcp.bash>>
-<<lire-cmpcp.bash>>=
+<<lir-cmpcp.bash>>
+<<lir-cmpcp.bash>>=
 if ! cmp --silent "$1" "$2"
 then
     cp --verbose "$1" "$2"
 fi
 @
 
-The tool [[<<lire-tangle>>]] allows us to implement another tool, [[<<lire-mtangle>>]] ("multiple" tangle).
-It accepts as argument (1) the `lire` source file, (2) the target directory, and the rest of the arguments are the code chunk names that are to be extracted from (1) to the directory (2), under their own names.
+The tool [[<<lir-tangle>>]] allows us to implement another tool, [[<<lir-mtangle>>]] ("multiple" tangle).
+It accepts as argument (1) the `lir` source file, (2) the target directory, and the rest of the arguments are the code chunk names that are to be extracted from (1) to the directory (2), under their own names.
 (The last point might be important: any string is a valid chunk name, so one could end up with strange file names with blanks or other special characters in them.)
-<<lire-mtangle>>=
+<<lir-mtangle>>=
 <<Bash header>>
-<<lire-mtangle.bash>>
-<<lire-mtangle.bash>>=
+<<lir-mtangle.bash>>
+<<lir-mtangle.bash>>=
 for chunk in "${@:3}"
 do
-    "$LIRE_LIBPATH"/lire-tangle "$1" "$chunk" "$2/$chunk"
+    "$LIR_LIBPATH"/lir-tangle "$1" "$chunk" "$2/$chunk"
 done
 @
 
 # Externally maintained files
-Not all data in an analysis naturally fits into the `lire` source file.
+Not all data in an analysis naturally fits into the `lir` source file.
 Examples already mentioned above are the input data, or an externally maintained file like a bibliography.
 
 Taking in use such a file means simply making a symbolic link to the file in the working direcory.
@@ -155,10 +102,10 @@ _However_, keep in mind that the externally maintained file still needs to be in
 The `make` utility will check the timestamp on the _target of the link_, so when a "used" file changes, this will be taken into consideration.
 
 The arguments to the script are (1) the directory in which the symbolic links will be made and from (2) on, the file names that should be taken in use:
-<<lire-use>>=
+<<lir-use>>=
 <<Bash header>>
-<<lire-use.bash>>
-<<lire-use.bash>>=
+<<lir-use.bash>>
+<<lir-use.bash>>=
 for used in "${@:2}"
 do
     useddir=$(dirname "$used")
@@ -168,43 +115,43 @@ do
     then
         ln --symbolic --force "$original" "$1/$used"
     else
-        >&2 echo "LIRE ERROR: File not found! ($original)"
+        >&2 echo "LIR ERROR: File not found! ($original)"
         exit 1
     fi
 done
 @
 
 # Extracting names
-With the help of [[<<lire-mtangle>>]] and the tools it uses, we can tangle all relevant chunks to files.
+With the help of [[<<lir-mtangle>>]] and the tools it uses, we can tangle all relevant chunks to files.
 The question remains: which are the code chunks that need to be tangled?
 
-`Lire` assumes that all root chunks (code chunks that are not used in other chunks) are meant to be tangled to files.
+`lir` assumes that all root chunks (code chunks that are not used in other chunks) are meant to be tangled to files.
 The `noroots` tool provided by `noweb` will print to standard output all root chunk names, enclosed in double angle brackets.
-It is used by [[<<lire-chunknames>>]], which takes as its single argument the `lire` source file:
-<<lire-chunknames>>=
+It is used by [[<<lir-chunknames>>]], which takes as its single argument the `lir` source file:
+<<lir-chunknames>>=
 <<Bash header>>
-<<lire-chunknames.bash>>
+<<lir-chunknames.bash>>
 @
 
-One implicitly ignored chunk is the "anonymous", unnamed code chunk as in "`@<<>>=`"; this is interpreted as a continuation of the previous chunk by `lire`, but "`@<<>>=`" will appear in the list of root chunks as listed by `noroots`.
-A `lire` source file can also contain root chunks that have names beginning with `lire::`.
-These are used by the user to control `lire`'s functionality, and are not actual code.
-<<lire-chunknames.bash>>=
+One implicitly ignored chunk is the "anonymous", unnamed code chunk as in "`@<<>>=`"; this is interpreted as a continuation of the previous chunk by `lir`, but "`@<<>>=`" will appear in the list of root chunks as listed by `noroots`.
+A `lir` source file can also contain root chunks that have names beginning with `lir::`.
+These are used by the user to control `lir`'s functionality, and are not actual code.
+<<lir-chunknames.bash>>=
 rootchunks=$(mktemp)
 noroots "$1" \
     | <<Drop double angle brackets>> \
     | <<Remove empty lines>> \
-    | <<Remove names starting with `lire::`>> \
+    | <<Remove names starting with `lir::`>> \
     | sort --unique \
     > "$rootchunks"
 @
 
-If there is a root chunk that does not need to be tangled (for whatever reason), it can be declared in a chunk named [[<<lire::ignore>>]], one chunk name per line.
-<<lire-chunknames.bash>>=
+If there is a root chunk that does not need to be tangled (for whatever reason), it can be declared in a chunk named [[<<lir::ignore>>]], one chunk name per line.
+<<lir-chunknames.bash>>=
 ignoredchunks=$(mktemp)
-if noroots "$1" | grep --silent --line-regexp '@<<lire::ignore@>>'
+if noroots "$1" | grep --silent --line-regexp '@<<lir::ignore@>>'
 then
-    notangle -t8 -R"lire::ignore" "$1" \
+    notangle -t8 -R"lir::ignore" "$1" \
         | <<Remove empty lines>> \
         | <<Drop double angle brackets>> \
         | sort --unique \
@@ -212,8 +159,8 @@ then
 fi
 @
 
-The chunk names declared in [[<<lire::ignore>>]] are removed from the list of chunk names emitted by [[<<lire-chunknames>>]] using the standard command line tool `comm`.
-<<lire-chunknames.bash>>=
+The chunk names declared in [[<<lir::ignore>>]] are removed from the list of chunk names emitted by [[<<lir-chunknames>>]] using the standard command line tool `comm`.
+<<lir-chunknames.bash>>=
 comm -2 -3 "$rootchunks" "$ignoredchunks"
 rm "$rootchunks" "$ignoredchunks"
 @
@@ -225,17 +172,17 @@ sed -n 's/^@<<\(.*\)@>>$/\1/p'
 <<Remove empty lines>>=
 sed '/^\s*$/d'
 @
-<<Remove names starting with `lire::`>>=
-sed -n '/^lire::.*/!p'
+<<Remove names starting with `lir::`>>=
+sed -n '/^lir::.*/!p'
 @
 
 # The wrapper script
-A script called `lire` can be invoked with the source file as its first argument.
-<<lire>>=
+A script called `lir` can be invoked with the source file as its first argument.
+<<lir>>=
 <<Bash header>>
-<<lire.bash>>
-<<lire.bash>>=
-<<Setup `lire` script>>
+<<lir.bash>>
+<<lir.bash>>=
+<<Setup `lir` script>>
 <<Tangle relevant chunks>>
 <<Use external dependencies>>
 <<Make everything>>
@@ -244,104 +191,104 @@ A script called `lire` can be invoked with the source file as its first argument
 
 The script will exit immediately on any command that fails.
 Any arguments after the first will be given as options to Pandoc.
-If the `.lire` working directory does not exist, it is created.
-The paths to the library directories for `noweb` and `lire` are made available for all scripts used by the wrapper script.
-<<Setup `lire` script>>=
+If the `.lir` working directory does not exist, it is created.
+The paths to the library directories for `noweb` and `lir` are made available for all scripts used by the wrapper script.
+<<Setup `lir` script>>=
 set -e
-LIRE_SOURCE="$1"
-LIRE_DIR='.lire'
+LIR_SOURCE="$1"
+LIR_DIR='.lir'
 export PANDOC_OPTS="${@:2}"
 MAKE_JOBS='--jobs'
-mkdir --verbose --parents "$LIRE_DIR"
+mkdir --verbose --parents "$LIR_DIR"
 export NOWEB_LIBPATH=@@NOWEB_LIBPATH@@
-export LIRE_LIBPATH=@@LIRE_LIBPATH@@
+export LIR_LIBPATH=@@LIR_LIBPATH@@
 @
 
-Then, determine which chunks need to be tangled using [[<<lire-chunknames>>]], and tangle those using [[<<lire-mtangle>>]].
+Then, determine which chunks need to be tangled using [[<<lir-chunknames>>]], and tangle those using [[<<lir-mtangle>>]].
 <<Tangle relevant chunks>>=
-"$LIRE_LIBPATH"/lire-chunknames "$LIRE_SOURCE" \
+"$LIR_LIBPATH"/lir-chunknames "$LIR_SOURCE" \
     | xargs --delimiter='\n' \
-        "$LIRE_LIBPATH"/lire-mtangle "$LIRE_SOURCE" "$LIRE_DIR"
+        "$LIR_LIBPATH"/lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
 @
 
 Then, bring in external dependencies (uses).
 Not everything fits in a single source file.
 A bibliography file, for example, is best maintained by a proper reference manager.
-Such files can be listed explicitly in a code chunk named `lire::use` like so:
-<<lire::use>>=
-lire.bib
+Such files can be listed explicitly in a code chunk named `lir::use` like so:
+<<lir::use>>=
+lir.bib
 @
 
-Note that the `lire` source file itself is a special case of an external dependency.
+Note that the `lir` source file itself is a special case of an external dependency.
 <<Use external dependencies>>=
-notangle -t8 -R"lire::use" "$LIRE_SOURCE" \
+notangle -t8 -R"lir::use" "$LIR_SOURCE" \
     | sort --unique \
     | <<Remove empty lines>> \
     | xargs --delimiter='\n' \
-        "$LIRE_LIBPATH"/lire-use "$LIRE_DIR" "$LIRE_SOURCE"
+        "$LIR_LIBPATH"/lir-use "$LIR_DIR" "$LIR_SOURCE"
 @
 
 Then, from inside the working directory:
 <<Make everything>>=
-notangle -t8 -R"lire::make" "$LIRE_SOURCE" \
-    > "$LIRE_DIR"/liremakefile
-make --debug=b "$MAKE_JOBS" --directory="$LIRE_DIR" --makefile=liremakefile all
+notangle -t8 -R"lir::make" "$LIR_SOURCE" \
+    > "$LIR_DIR"/lirmakefile
+make --debug=b "$MAKE_JOBS" --directory="$LIR_DIR" --makefile=lirmakefile all
 @
 
 This is what an empty Makefile with only `all` declared would look like:
-<<lire::make>>=
+<<lir::make>>=
 .PHONY : all
 all: ;
 
 @
 
 <<Weave the documentation>>=
-make --debug=b --directory="$LIRE_DIR" --makefile=liremakefile html
+make --debug=b --directory="$LIR_DIR" --makefile=lirmakefile html
 BASENAME=$(basename "$1" .lir)
-cp --verbose --update ".lire/$BASENAME.html" .
+cp --verbose --update ".lir/$BASENAME.html" .
 @
 
 # Weaving
-Weaving means generating the final human readable documentation from the `lire` source file.
+Weaving means generating the final human readable documentation from the `lir` source file.
 The original source is transformed by several filters before passed to Pandoc for generating an HTML document that can be viewed in a browser.
-Everything is wrapped as a bash script that will be installed, along with [[<<lire>>]], in `LIRE_BINPATH`.
-It reads the `lire` source from standard input and writes the HTML to standard output.
-<<lire-weave>>=
+Everything is wrapped as a bash script that will be installed, along with [[<<lir>>]], in `LIR_BINPATH`.
+It reads the `lir` source from standard input and writes the HTML to standard output.
+<<lir-weave>>=
 <<Bash header>>
-<<Weave `lire` source to HTML>>
+<<Weave `lir` source to HTML>>
 @
 
 Using it, we can add a rule for building the HTML documentation.
 For this project, it would be:
-<<lire::make>>=
+<<lir::make>>=
 .PHONY: html
-html: lire.html
+html: lir.html
 
-lire.html: lire.lir
-	lire-weave $(PANDOC_OPTS) < $< > $@
+lir.html: lir.lir
+	lir-weave $(PANDOC_OPTS) < $< > $@
 
 @
 
-<<Weave `lire` source to HTML>>=
-<<`Lire`-specific transformations>> \
+<<Weave `lir` source to HTML>>=
+<<`lir`-specific transformations>> \
     | <<Source to `noweb` pipeline representation>> \
     | <<`Noweb` pipeline representation to Pandoc source>> \
     | <<Pandoc source to HTML>>
 @
 
-Of the two transformations done on the `lire` source before giving it to the `noweb` tools, "including" files is the more general one and has to be done first.
-<<`Lire`-specific transformations>>=
-awk -f "$LIRE_LIBPATH"/lire-listing.awk
+Of the two transformations done on the `lir` source before giving it to the `noweb` tools, "including" files is the more general one and has to be done first.
+<<`lir`-specific transformations>>=
+awk -f "$LIR_LIBPATH"/lir-listing.awk
 @
 
-Each line inside a code chunk named `lire::include` will be treated as a file name that has to be **pasted as it is** to the `lire` source file **before** the source file is passed to Pandoc.
+Each line inside a code chunk named `lir::include` will be treated as a file name that has to be **pasted as it is** to the `lir` source file **before** the source file is passed to Pandoc.
 _Use with care!_
 
-Each line inside a code chunk named `lire::listing` will be treated as a file name that has to be included verbatim in the weaved final document.
-The full contents of the file will be inserted unchanged in a code chunk named [[<<lire::listing::`filename`>>]].
-<<lire-listing.awk>>=
+Each line inside a code chunk named `lir::listing` will be treated as a file name that has to be included verbatim in the weaved final document.
+The full contents of the file will be inserted unchanged in a code chunk named [[<<lir::listing::`filename`>>]].
+<<lir-listing.awk>>=
 <<Setup `awk` to treat lines as single-field records>>
-/^@<<lire::listing@>>=$/ {
+/^@<<lir::listing@>>=$/ {
     while(getline > 0) {
         if (<<End of code chunk>>) {
             print $0
@@ -349,7 +296,7 @@ The full contents of the file will be inserted unchanged in a code chunk named [
         }
         if (NF > 0) {
             name=$0
-            print "@<<lire::listing::`" name "`@>>="
+            print "@<<lir::listing::`" name "`@>>="
             <<`Awk`: echo file to output>>
         }
     }
@@ -376,9 +323,9 @@ while ((getline < name) > 0) {
 close(name)
 @
 
-**Warning**: both `lire::listing` and `lire::include` work on lines.
+**Warning**: both `lir::listing` and `lir::include` work on lines.
 That is, any **non-empty** line is assumed to be a file name.
-In other words, if you put a line of one or more white-space characters (spaces or tabs), and since those are valid filenames (in Linux, at least), `lire` will look for that file name and try to list or include that file.
+In other words, if you put a line of one or more white-space characters (spaces or tabs), and since those are valid filenames (in Linux, at least), `lir` will look for that file name and try to list or include that file.
 
 This also means that the filenames included in this fashion cannot contain newline characters.
 If you really want this, you should use more advanced trickery.
@@ -394,10 +341,10 @@ This is necessary to be able to generate a bibliography with Pandoc.
 @
 
 To make it marginally easier to deal with the pipeline representation, we completely remove any empty text tokens from it before tranforming it to Pandoc source.
-We then use [[<<nwpipe-pandoc.pl>>]] to transform the `noweb` pipeline representation of the `lire` source file to a valid Pandoc source file.
+We then use [[<<nwpipe-pandoc.pl>>]] to transform the `noweb` pipeline representation of the `lir` source file to a valid Pandoc source file.
 <<`Noweb` pipeline representation to Pandoc source>>=
 sed -n '/^@text $/!p' \
-    | "$LIRE_LIBPATH"/nwpipe-pandoc
+    | "$LIR_LIBPATH"/nwpipe-pandoc
 @
 
 <<Pandoc source to HTML>>=
@@ -407,7 +354,7 @@ pandoc "$@" \
     --self-contained \
     --smart \
     --to=html5 \
-    --css="$LIRE_LIBPATH"/lire.css \
+    --css="$LIR_LIBPATH"/lir.css \
     --output=-
 @
 
@@ -452,12 +399,12 @@ deterministic(D),
 )
 @
 
-The driver uses [[<<nwpipe.pl>>]] to parse its input to native Prolog terms and [[<<lirehtml.pl>>]] to emit a valid Pandoc source document with embedded HTML fragments.
+The driver uses [[<<nwpipe.pl>>]] to parse its input to native Prolog terms and [[<<lirhtml.pl>>]] to emit a valid Pandoc source document with embedded HTML fragments.
 <<driver.pl>>=
 :- module(driver, [nwpipeline_pandoc/1]).
 
 :- use_module(nwpipe, [nwpipe_term/2]).
-:- use_module(lirehtml, [emit_html/2]).
+:- use_module(lirhtml, [emit_html/2]).
 
 nwpipeline_pandoc(_) :-
     I = user_input,
@@ -492,7 +439,7 @@ This is done in two steps.
 
 nwpipe_term(Pipe, Doc) :-
     maplist(nwtoken_term, Pipe, Terms),
-    phrase(lire_doc(Doc), Terms).
+    phrase(lir_doc(Doc), Terms).
 
 <<`Noweb` token $\rightarrow$ Prolog term>>
 <<Flat list of terms $\rightarrow$ structured term>>
@@ -657,7 +604,7 @@ item(index(Index, Rest)) -->
 The structure of the document is implicitly present in the `noweb` pipeline representation: documentation and code chunks are delimited by a start and an end token, new lines and other formatting are contained in text tokens, and so on.
 The pipeline representation also contains cross-referencing information, using labels and references to them.
 It is however a bit inconvenient to use this representation for generating markup.
-This is because the order of tokens in the pipeline representation exactly mirrors the layout of the final human-readable documentation, as generated by `noweb`, and `lire` uses a slightly different layout.
+This is because the order of tokens in the pipeline representation exactly mirrors the layout of the final human-readable documentation, as generated by `noweb`, and `lir` uses a slightly different layout.
 
 At that point, we have a list of Prolog terms.
 Those are easier to deal with in the context of Prolog, as it is much easier to make the rules deterministic.
@@ -665,14 +612,14 @@ The general approach is to consume the next input and use it as the first argume
 Then, the rules defined below describe a state machine where each rule is a state and each rule clause is a transition that depends on the last input.
 
 On the highest level, the `noweb` pipeline is made of a sequence of files.
-Note, however, that since in `lire` the input is standard input (and not a list of files), there will be only one, unnamed file in the pipeline.
+Note, however, that since in `lir` the input is standard input (and not a list of files), there will be only one, unnamed file in the pipeline.
 <<Flat list of terms $\rightarrow$ structured term>>=
-lire_doc(L) --> [file('')],
-    lire_rest(L).
+lir_doc(L) --> [file('')],
+    lir_rest(L).
 
-lire_rest(L) --> [X], !,
-    lire_file(X, L).
-lire_rest([]) --> [].
+lir_rest(L) --> [X], !,
+    lir_file(X, L).
+lir_rest([]) --> [].
 
 <<Parse a file>>
 @
@@ -680,19 +627,19 @@ lire_rest([]) --> [].
 A file is a sequence of documentation and code chunks.
 It will contain a list of chunks and an index.
 <<Parse a file>>=
-lire_file(docs, L) --> [X],
+lir_file(docs, L) --> [X],
     docs(X, L).
-lire_file(code, [code_meta(C, M)|L]) -->
+lir_file(code, [code_meta(C, M)|L]) -->
     code(C, M),
-    lire_rest(L).
-lire_file(nl, [nl|L]) -->
-    lire_rest(L).
-lire_file(xref_beginchunks, [chunks_list(Cs)|L]) --> [X],
+    lir_rest(L).
+lir_file(nl, [nl|L]) -->
+    lir_rest(L).
+lir_file(xref_beginchunks, [chunks_list(Cs)|L]) --> [X],
     xref_chunks(X, Cs),
-    lire_rest(L).
-lire_file(index_beginindex, [index(I)|L]) --> [X],
+    lir_rest(L).
+lir_file(index_beginindex, [index(I)|L]) --> [X],
     index_list(X, I),
-    lire_rest(L).
+    lir_rest(L).
 
 <<Parse a documentation chunk>>
 <<Parse a code chunk>>
@@ -703,7 +650,7 @@ lire_file(index_beginindex, [index(I)|L]) --> [X],
 A documentation chunk can contain text, new lines, and quoted code.
 <<Parse a documentation chunk>>=
 docs(end, L) -->
-    lire_rest(L).
+    lir_rest(L).
 docs(text(T), [text(Text)|L]) -->
     docs_text(Ts),
     {   atomics_to_string([T|Ts], Text)
@@ -833,14 +780,14 @@ index_list(index_endindex, []) --> [].
 
 ## Emit Pandoc source
 Here:
-<<lirehtml.pl>>=
-:- module(lirehtml, [emit_html/2]).
+<<lirhtml.pl>>=
+:- module(lirhtml, [emit_html/2]).
 
 :- use_module(library(http/html_write)).
 
 emit_html(Out, L) :-
     formatting(L, F),
-    phrase(lire_pandoc(P), F),
+    phrase(lir_pandoc(P), F),
     phrase(html(P), H),
     print_html(Out, H).
 @
@@ -881,9 +828,9 @@ through_pandoc_1(html5, Out, FStr) :-
 		xml_write(current_output, StrDOM,
 			[header(false), layout(false)])).
 
-lire_include("lire::include", C, [div(class(include), Contents)|P], P) :- !,
+lir_include("lir::include", C, [div(class(include), Contents)|P], P) :- !,
     maplist(name_filecontents, C, Contents).
-lire_include(_, _, P, P).
+lir_include(_, _, P, P).
 
 name_filecontents(text(T), \[FC]) :- !,
     split_string(T, "\n", "\n", [F]),
@@ -893,23 +840,23 @@ name_filecontents(text(T), \[FC]) :- !,
 name_filecontents(Term, Text) :-
     format(string(Text), " * ~w~n", [Term]).
 
-lire_pandoc(P) -->
+lir_pandoc(P) -->
     [X], !,
-    lire_pandoc(X, P).
-lire_pandoc([]) --> [].
-lire_pandoc(nl, ["\n"|P]) --> lire_pandoc(P).
-lire_pandoc(text(T), [\[T]|P]) --> lire_pandoc(P).
-lire_pandoc(quote(Q), [span(class(quote), QC)|P]) -->
-    {   phrase(lire_pandoc(QC), Q)
+    lir_pandoc(X, P).
+lir_pandoc([]) --> [].
+lir_pandoc(nl, ["\n"|P]) --> lir_pandoc(P).
+lir_pandoc(text(T), [\[T]|P]) --> lir_pandoc(P).
+lir_pandoc(quote(Q), [span(class(quote), QC)|P]) -->
+    {   phrase(lir_pandoc(QC), Q)
     },
-    lire_pandoc(P).
-lire_pandoc(quote_use(Name, Label),
+    lir_pandoc(P).
+lir_pandoc(quote_use(Name, Label),
             [span(class(quoteduse),
                   [&(lang), \thinnbsp,
                    a(href("#~a"-Label), Name),
                    \thinnbsp, &(rang)])|P]) -->
-    lire_pandoc(P).
-lire_pandoc(code_meta(C, M),
+    lir_pandoc(P).
+lir_pandoc(code_meta(C, M),
             [div(class(codechunk),
              [\chunk_defn(M),
               \chunk_uses(M),
@@ -917,25 +864,25 @@ lire_pandoc(code_meta(C, M),
               \chunk_prev(M),
               pre(CC),
               \chunk_next(M)])|P0]) -->
-    {   phrase(lire_pandoc(CC), C),
-        lire_include(M.name, C, P0, P)
+    {   phrase(lir_pandoc(CC), C),
+        lir_include(M.name, C, P0, P)
     },
-    lire_pandoc(P).
-lire_pandoc(code_use(L, R, N),
+    lir_pandoc(P).
+lir_pandoc(code_use(L, R, N),
             [span(class(embeddeduse),
                   [&(lang), \thinnbsp,
                    a([id(L), href("#~a"-R)], \[FN]),
                    \thinnbsp, &(rang)])|P]) -->
     {   label_nr_name_fname(R, _, N, FN)
     },
-    lire_pandoc(P).
-lire_pandoc(chunks_list(_Cs), P) -->
+    lir_pandoc(P).
+lir_pandoc(chunks_list(_Cs), P) -->
 /*
             ["# List of Chunks\n\n",
              div(class(listofchunks), \chunks_list(Cs))|P]) -->
 */
-    lire_pandoc(P).
-lire_pandoc(index(_), P) --> [], lire_pandoc(P).
+    lir_pandoc(P).
+lir_pandoc(index(_), P) --> [], lir_pandoc(P).
 
 thinnbsp --> html(span(style("white-space:nowrap"), &(thinsp))).
 
@@ -1007,8 +954,8 @@ The system tries to separate content and layout as much as possible.
 It also aims to provide a sensible default layout for the human-readable documentation.
 
 ## HTML
-For HTML documentation, [[<<lire.css>>]] is used.
-<<lire.css>>=
+For HTML documentation, [[<<lir.css>>]] is used.
+<<lir.css>>=
 <<Text width and margin>>
 <<Headers in sans-serif>>
 <<Quoted code in monospace>>
