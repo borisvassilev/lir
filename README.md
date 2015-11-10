@@ -5,7 +5,7 @@ It is *not* a library, and it is *not* a framework; rather, a
 description to an approach to computing and documentation, along with
 tools that support this approach.
 
-The name, `lire`, stands for **li**terate, **re**producible computing.
+The name, `lir`, stands for **li**terate, **r**eproducible computing.
 
 # Software prerequisites
 You need a reasonably modern Linux/BSD operating system.
@@ -28,8 +28,7 @@ Furthermore, you need to install the following software:
     Installing from source is a bit of a hustle, but you don't have to: just get the installer for the latest release from the [download page on GitHub](https://github.com/jgm/pandoc/releases/tag/1.15.0.6).
     It is important that you have the latest release, as the previous releases have a non-negative number of bugs that get in the way.
 
-# Skill prerequisites
-You need mad skilz to use `lire`.
+# Recommended reading
 
 ## Makefiles
 It would help you if you had some working knowledge of writing makefiles, as understood by GNU Make.
@@ -44,14 +43,14 @@ Armed with this knowledge, open the [excellent README provided by Pandoc](http:/
 Understanding the concept of literate programming is, sadly, a must.
 You can take a look at the [original publication by Donald E. Knuth (pdf link)](http://www.literateprogramming.com/knuthweb.pdf).
 The [Wikipedia page for `noweb`](https://en.wikipedia.org/wiki/Noweb) contains enough detail to get you acquainted with the syntax.
-A `lire` source file is basically a `noweb` source file.
+A `lir` source file is basically a `noweb` source file.
 
 # Installation
-Once you have all prerequisites and mad skillz, clone this repository and go to the `lire` directory:
+Once you have all prerequisites and mad skillz, clone this repository and go to the `lir` directory:
 
 ~~~~
-$ git clone https://github.com/borisvassilev/lire.git
-$ cd lire
+$ git clone https://github.com/borisvassilev/lir.git
+$ cd lir
 ~~~~
 
 Then, figure out where you have installed the `noweb` library files.
@@ -72,11 +71,11 @@ $ locate emptydefn
 
 If you cannot find a file called `emptydefn` on your system, you have not installed `noweb`.
 
-Now that you know where the library files are, open the script `build` provided with `lire` and edit the values of the three variables exported at the top of the file.
+Now that you know where the library files are, open the script `build` provided with `lir` and edit the values of the three variables exported at the top of the file.
 
-`LIRE_LIBPATH` will be the folder where all components are installed.
+`LIR_LIBPATH` will be the folder where all components are installed.
 
-`LIRE_BINPATH` will be the folder where the main `lire` script will be installed; make sure it is on your system `PATH`.
+`LIR_BINPATH` will be the folder where the main `lir` script will be installed; make sure it is on your system `PATH`.
 
 `NOWEB_LIBPATH` is the folder containing the `noweb` library files.
 If you installed `noweb` normally, you shouldn't need to change this.
@@ -87,9 +86,9 @@ Now save and close the file, and run it:
 $ ./build
 ~~~~
 
-You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the "Weaved document is in lire.html".
-Look for `lire.html`, and try to open it.
-If you see a properly formed HTML page with a whole bunch of code in it, you have successfully installed `lire` and used it to compile that very HTML page you are looking at.
+You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the "Weaved document is in lir.html".
+Look for `lir.html`, and try to open it.
+If you see a properly formed HTML page with a whole bunch of code in it, you have successfully installed `lir` and used it to compile that very HTML page you are looking at.
 
 Congratulations!
 
