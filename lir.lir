@@ -221,11 +221,18 @@ lir.bib
 
 Note that the `lir` source file itself is a special case of an external dependency.
 <<Use external dependencies>>=
-notangle -t8 -R"lir::use" "$LIR_SOURCE" \
-    | sort --unique \
-    | <<Remove empty lines>> \
-    | xargs --delimiter='\n' \
-        "$LIR_LIBPATH"/lir-use "$LIR_DIR" "$LIR_SOURCE"
+if <<List `lir::*` chunks>> | grep use
+then
+    notangle -t8 -R"lir::use" "$LIR_SOURCE" \
+        | sort --unique \
+        | <<Remove empty lines>> \
+        | xargs --delimiter='\n' \
+            "$LIR_LIBPATH"/lir-use "$LIR_DIR" "$LIR_SOURCE"
+fi
+@
+<<List `lir::*` chunks>>=
+"$NOWEB_LIBPATH"/markup "$LIR_SOURCE" \
+    | sed -n 's/^@defn lir::\(.*\)/\1/p'
 @
 
 Then, from inside the working directory:
