@@ -869,19 +869,8 @@ lir_pandoc(code_meta(C, M),
               \chunk_uses(M),
               \chunk_defs(M),
               \chunk_prev(M),
-              pre(CC),
-              \chunk_next(M)])|P0]) -->
-    {   phrase(lir_pandoc(CC), C),
-        lir_include(M.name, C, P0, P)
-    },
-    lir_pandoc(P).
-lir_pandoc(code_use(L, R, N),
-            [span(class(embeddeduse),
-                  [&(lang), \thinnbsp,
-                   a([id(L), href("#~a"-R)], \[FN]),
-                   \thinnbsp, &(rang)])|P]) -->
-    {   label_nr_name_fname(R, _, N, FN)
-    },
+              pre(\chunk_content(C)),
+              \chunk_next(M)])|P]) -->
     lir_pandoc(P).
 lir_pandoc(chunks_list(_Cs), P) -->
 /*
@@ -892,6 +881,25 @@ lir_pandoc(chunks_list(_Cs), P) -->
 lir_pandoc(index(_), P) --> [], lir_pandoc(P).
 
 thinnbsp --> html(span(style("white-space:nowrap"), &(thinsp))).
+
+chunk_content([]) --> [].
+chunk_content([C|Cs]) -->
+    chunk_content_(C, Cs).
+
+chunk_content_(nl, Cs) -->
+    html("\n"),
+    chunk_content(Cs).
+chunk_content_(text(T), Cs) -->
+    html(T),
+    chunk_content(Cs).
+chunk_content_(code_use(L, R, N), Cs) -->
+    {   label_nr_name_fname(R, _, N, FN)
+    },
+    html(span(class(embeddeduse),
+              [&(lang), \thinnbsp,
+               a([id(L), href("#~a"-R)], \[FN]),
+               \thinnbsp, &(rang)])),
+    chunk_content(Cs).
 
 chunk_defn(M) -->
     {   label_nr_name_fname(M.label, Nr, _, FName)
