@@ -17,23 +17,16 @@ The tools provided by `lir` aim to support two goals:
 1. Generating results by running the code in a `lir` source file.
 2. Presenting all code and possibly results in a human-readable form.
 
-This is achieved by using the components made available by `noweb`, using Pandoc for weaving the final documentation, and implementing filters and components that glue the existing tools together and provide some missing functionality.
-
 The overall workflow for `lir` is as follows:
 
-  * Extract all source code from the `lir` source file.
+  * Extract all source code from the `lir` source file and bring in external dependencies, done by [[<<lir-tangle>>]].
 
     This might be scripts that are immediately executable, or code that needs to be compiled.
-
-  * Bring in any external dependencies declared in the `lir` source file.
 
     For externally maintained files to be managed by `lir`, they need to be explicitly declared in the `lir` source file.
     Example use cases would be input data files, or a bibliography file maintained by a reference manager.
 
-    Importantly, `lir` expects that all relevant externally maintained files and input data is inside the project directory.
-    In this way, sharing a project for validation, verification, and reproduction is trivial: just share the directory with all its contents.
-
-  * "Make" all results.
+  * Generate all results, implemented by [[<<lir-make>>]].
 
     This is a step that usually will include resolving dependencies.
     In the case of intermediate analysis steps, a final result will depend on an intermediate result.
@@ -43,12 +36,12 @@ The overall workflow for `lir` is as follows:
 
     All dependencies have to be explicitly declared in the `lir` source file.
 
-  * "Weave" the final documentation
+  * Compile the final documentation, implemented by [[<<lir-weave>>]].
 
     Once all results and figures have been generated, the original `lir` source file is processed to obtain a valid Pandoc markdown source file.
     At that point, Pandoc is used to compile this to a final human readable file with any results and figures generated in the previous step.
 
-To implement this, `lir` provides a few tools on top of the tools made available by `noweb` and Pandoc, and a wrapper script, [[<<lir>>]], which implements the complete workflow described above.
+To implement this, `lir` provides the three tools mentioned above, and a wrapper script, [[<<lir>>]], which simply runs them in that order.
 
 # Tangling
 "Tangling" is the process of extracting the source code embedded in the `lir` literate source file so that it can be compiled and executed to obtain results.
@@ -419,20 +412,7 @@ nwpipeline_pandoc(_) :-
     split_string(S, "\r\n", "\r\n", Str_Ls),
     maplist(string_codes, Str_Ls, Ls),
     nwpipe_term(Ls, T),
-    term_expandmacro(T, E),
-    emit_html(user_output, E).
-
-term_expandmacro(X, X).
-/*
-term_expandmacro([], []).
-term_expandmacro([X|Xs], [Y|Ys]) :-
-    (   X = defn(S),
-        sub_string(S, 0, B, _, "<<"),
-        sub_string(S, _, A, 0, ">>="),
-        sub_string(S, B, L, A, N),
-        
-    term_expandmacro(Xs, Ys).
-*/
+    emit_html(user_output, T).
 @
 
 ## Parsing the `noweb` pipeline tokens
@@ -577,7 +557,7 @@ We assume that [[<<"Space">>]] is represented by a single "space" character; the
 item(space) --> [0'\s]. % could it be another "white"?...
 @
 
-Integers are used to enumerate the code and documentation [[<<Chunk number>>]]:
+Integers are used to enumerate the code and documentation:
 <<Chunk number>>=
 item(chunk_number(N)) --> integer(N).
 @
@@ -914,6 +894,7 @@ chunk_uses(M) -->
     }, !,
     html(span(class(chunkuses), \chunk_uses_(Us))).
 chunk_uses(_) --> [].
+
 chunk_uses_([U|Us]) -->
     {   label_nr_name_fname(U, Nr, _, _)
     }, !,
