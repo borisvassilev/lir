@@ -44,7 +44,7 @@ The [...] optional part lists lambda parameters. Here order of
 variables matters hence the list notation.
 
 As (/)/2 and (>>)/2 are standard operators, no new operators are
-added ny this library. An advantage of this syntax is that we can
+added by this library. An advantage of this syntax is that we can
 simply unify a lambda expression with Free/Parameters>>Lambda to
 access each of its components. Spaces in the lambda expression are
 not a problem although the goal may need to be written between ()'s.
@@ -68,13 +68,13 @@ The module name, yall, stands for yet another lambda library.
 
 :- meta_predicate
 	'>>'(?, 0),
-	'>>'(?, 1, ?),
-	'>>'(?, 2, ?, ?),
-	'>>'(?, 3, ?, ?, ?),
-	'>>'(?, 4, ?, ?, ?, ?),
-	'>>'(?, 5, ?, ?, ?, ?, ?),
-	'>>'(?, 6, ?, ?, ?, ?, ?, ?),
-	'>>'(?, 7, ?, ?, ?, ?, ?, ?, ?).
+	'>>'(?, :, ?),
+	'>>'(?, :, ?, ?),
+	'>>'(?, :, ?, ?, ?),
+	'>>'(?, :, ?, ?, ?, ?),
+	'>>'(?, :, ?, ?, ?, ?, ?),
+	'>>'(?, :, ?, ?, ?, ?, ?, ?),
+	'>>'(?, :, ?, ?, ?, ?, ?, ?, ?).
 
 :- meta_predicate
 	'/'(?, 0),
@@ -105,122 +105,93 @@ The module name, yall, stands for yet another lambda library.
 '>>'(Free/Parameters, Lambda, Arg1) :-
 	!,
 	copy_term_nat(Free/Parameters>>Lambda, Free/ParametersCopy>>LambdaCopy),
-	(	unify_lambda_parameters(ParametersCopy, [Arg1], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Free/Parameters>>Lambda)
-	).
+	unify_lambda_parameters(ParametersCopy, [Arg1], ExtraArgs, Free/Parameters>>Lambda),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '>>'(Parameters, Lambda, Arg1) :-
 	copy_term_nat(Parameters>>Lambda, ParametersCopy>>LambdaCopy),
-	(	unify_lambda_parameters(ParametersCopy, [Arg1], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Parameters>>Lambda)
-	).
+	unify_lambda_parameters(ParametersCopy, [Arg1], ExtraArgs, Parameters>>Lambda),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '>>'(Free/Parameters, Lambda, Arg1, Arg2) :-
 	!,
-	(	copy_term_nat(Free/Parameters>>Lambda, Free/ParametersCopy>>LambdaCopy),
-		unify_lambda_parameters(ParametersCopy, [Arg1, Arg2], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Free/Parameters>>Lambda)
-	).
+	copy_term_nat(Free/Parameters>>Lambda, Free/ParametersCopy>>LambdaCopy),
+	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2], ExtraArgs, Free/Parameters>>Lambda),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '>>'(Parameters, Lambda, Arg1, Arg2) :-
 	copy_term_nat(Parameters>>Lambda, ParametersCopy>>LambdaCopy),
-	(	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Parameters>>Lambda)
-	).
+	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2], ExtraArgs, Parameters>>Lambda),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '>>'(Free/Parameters, Lambda, Arg1, Arg2, Arg3) :-
 	!,
 	copy_term_nat(Free/Parameters>>Lambda, Free/ParametersCopy>>LambdaCopy),
-	(	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Free/Parameters>>Lambda)
-	).
+	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3], ExtraArgs, Free/Parameters>>Lambda),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '>>'(Parameters, Lambda, Arg1, Arg2, Arg3) :-
 	copy_term_nat(Parameters>>Lambda, ParametersCopy>>LambdaCopy),
-	(	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Parameters>>Lambda)
-	).
+	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3], ExtraArgs, Parameters>>Lambda),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '>>'(Free/Parameters, Lambda, Arg1, Arg2, Arg3, Arg4) :-
 	!,
 	copy_term_nat(Free/Parameters>>Lambda, Free/ParametersCopy>>LambdaCopy),
-	(	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Free/Parameters>>Lambda)
-	).
+	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4], ExtraArgs, Free/Parameters>>Lambda),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '>>'(Parameters, Lambda, Arg1, Arg2, Arg3, Arg4) :-
 	copy_term_nat(Parameters>>Lambda, ParametersCopy>>LambdaCopy),
-	(	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Parameters>>Lambda)
-	).
+	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4], ExtraArgs, Parameters>>Lambda),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '>>'(Free/Parameters, Lambda, Arg1, Arg2, Arg3, Arg4, Arg5) :-
 	!,
 	copy_term_nat(Free/Parameters>>Lambda, Free/ParametersCopy>>LambdaCopy),
-	(	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4, Arg5], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Free/Parameters>>Lambda)
-	).
+	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4, Arg5], ExtraArgs, Free/Parameters),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '>>'(Parameters, Lambda, Arg1, Arg2, Arg3, Arg4, Arg5) :-
 	copy_term_nat(Parameters>>Lambda, ParametersCopy>>LambdaCopy),
-	(	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4, Arg5], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Parameters>>Lambda)
-	).
+	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4, Arg5], ExtraArgs, Parameters>>Lambda),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '>>'(Free/Parameters, Lambda, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6) :-
 	!,
 	copy_term_nat(Free/Parameters>>Lambda, Free/ParametersCopy>>LambdaCopy),
-	(	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Free/Parameters>>Lambda)
-	).
+	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6], ExtraArgs, Free/Parameters>>Lambda),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '>>'(Parameters, Lambda, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6) :-
 	copy_term_nat(Parameters>>Lambda, ParametersCopy>>LambdaCopy),
-	(	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Parameters>>Lambda)
-	).
+	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6], ExtraArgs, Parameters>>Lambda),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '>>'(Free/Parameters, Lambda, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7) :-
 	!,
 	copy_term_nat(Free/Parameters>>Lambda, Free/ParametersCopy>>LambdaCopy),
-	(	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Free/Parameters>>Lambda)
-	).
+	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7], ExtraArgs, Free/Parameters>>Lambda),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '>>'(Parameters, Lambda, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7) :-
 	copy_term_nat(Parameters>>Lambda, ParametersCopy>>LambdaCopy),
-	(	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7], ExtraArgs) ->
-		Goal =.. [call, LambdaCopy| ExtraArgs],
-		call(Goal)
-	;	domain_error(lambda_parameters,Parameters>>Lambda)
-	).
-
+	unify_lambda_parameters(ParametersCopy, [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7], ExtraArgs, Parameters>>Lambda),
+	Goal =.. [call, LambdaCopy| ExtraArgs],
+	call(Goal).
 
 '/'(Free, Lambda) :-
 	copy_term_nat(Free+Lambda, Free+LambdaCopy),
@@ -255,13 +226,18 @@ The module name, yall, stands for yet another lambda library.
 	call(LambdaCopy, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7).
 
 
-unify_lambda_parameters(Parameters, Arguments, ExtraArguments) :-
+unify_lambda_parameters(Parameters, Arguments, ExtraArguments, Lambda) :-
 	must_be(list, Parameters),
-	unify_lambda_parameters_(Parameters, Arguments, ExtraArguments).
+	unify_lambda_parameters_(Parameters, Arguments, ExtraArguments, Lambda).
 
-unify_lambda_parameters_([], ExtraArguments, ExtraArguments).
-unify_lambda_parameters_([Parameter| Parameters], [Parameter| Vars], ExtraArguments) :-
-	unify_lambda_parameters_(Parameters, Vars, ExtraArguments).
+unify_lambda_parameters_([], ExtraArguments, ExtraArguments, _) :-
+	!.
+unify_lambda_parameters_([Parameter| Parameters], [Argument| Arguments], ExtraArguments, Lambda) :-
+	!,
+	Parameter = Argument,
+	unify_lambda_parameters_(Parameters, Arguments, ExtraArguments, Lambda).
+unify_lambda_parameters_(_, _, _, Lambda) :-
+	domain_error(lambda_parameters, Lambda).
 
 
 :- dynamic system:goal_expansion/2.
@@ -319,3 +295,21 @@ compile_aux_clause_if_new(Head, Lambda) :-
 		true
 	;	compile_aux_clauses([(Head :- Lambda)])
 	).
+
+lambda_calls({Free}/_>>Lambda, N, Goal) :-
+	!,
+	callable(Lambda),
+	term_variables(Free, Vars),
+	length(Vars, Arity0),
+	functor(Lambda, Functor, _),
+	Arity is Arity0 + N,
+	functor(Goal, Functor, Arity).
+lambda_calls(_>>Lambda, _, Goal) :-
+	callable(Lambda),
+	functor(Lambda, Functor, Arity),
+	functor(Goal, Functor, Arity).
+lambda_calls(_/Lambda, N, Goal) :-
+	callable(Lambda),
+	functor(Lambda, Functor, Arity0),
+	Arity is Arity0 + N,
+	functor(Goal, Functor, Arity).
