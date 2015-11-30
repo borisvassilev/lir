@@ -365,6 +365,7 @@ It uses the module [[<<driver.pl>>]] to do the actual work.
 <<nwpipe-pandoc.pl>>=
 <<No banner or informational messages>>
 <<Expand meta-predicates at compile time>>
+<<Use lambdas>>
 
 :- use_module(driver, [nwpipeline_pandoc/1]).
 main :-
@@ -387,6 +388,9 @@ Meta-predicates (predicates that take other predicates as arguments) are fundame
 This can be avoided for the more commonly used meta-predicates (`maplist/1+N`, `forall/2` etc) by treating them as macros and expanding them at compile time.
 <<Expand meta-predicates at compile time>>=
 :- use_module(library(apply_macros)).
+@
+<<Use lambdas>>=
+:- use_module(yall).
 @
 
 During development, it is good to know if the program has left behind any unintentional choice points -- they are certainly errors, as the program is designed to succeed deterministically.
@@ -782,8 +786,8 @@ emit_html(Out, L) :-
 Add to the database a table with all code chunks.
 <<>>=
 formatting(L, R) :-
-    include(is_code_meta, L, L0),
-    maplist(code_meta_meta, L0, Ms),
+    include([code_meta(_,_)]>>true, L, L0),
+    maplist([code_meta(_, M), M]>>true, L0, Ms),
     retractall(label_nr_name_fname(_,_,_,_)),
     forall(nth0(N, Ms, M),
             (   through_pandoc(html5, M.name, FN),
@@ -791,9 +795,6 @@ formatting(L, R) :-
             )),
     L = R,
     true.
-
-is_code_meta(code_meta(_, _)).
-code_meta_meta(code_meta(_, M), M).
 @
 
 Use Pandoc to pre-format chunk names.
