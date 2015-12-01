@@ -390,7 +390,7 @@ This can be avoided for the more commonly used meta-predicates (`maplist/1+N`, `
 :- use_module(library(apply_macros)).
 @
 <<Use lambdas>>=
-:- use_module(yall).
+:- use_module(library(yall)).
 @
 
 During development, it is good to know if the program has left behind any unintentional choice points -- they are certainly errors, as the program is designed to succeed deterministically.
