@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 export LIR_LIBPATH="$HOME"/lib/lir
 export LIR_BINPATH="$HOME"/bin
-export NOWEB_LIBPATH="$HOME"/lib/noweb
+export NOWEB_LIBPATH=/usr/lib/noweb
 
 mkdir --parents "$LIR_LIBPATH"
 mkdir --parents "$LIR_BINPATH"
