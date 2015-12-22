@@ -214,7 +214,7 @@ lir.bib
 
 Note that the `lir` source file itself is a special case of an external dependency.
 <<Use external dependencies>>=
-if <<List `lir::*` chunks>> | grep use
+if <<List `lir::*` chunks>> | grep --silent use
 then
     notangle -t8 -R"lir::use" "$LIR_SOURCE" \
         | sort --unique \
