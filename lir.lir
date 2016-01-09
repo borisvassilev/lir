@@ -348,7 +348,8 @@ sed -n '/^@text $/!p' \
 @
 
 <<Pandoc source to HTML>>=
-pandoc "$@" \
+tee before-pandoc.debug | pandoc "$@" \
+    --from=markdown \
     --table-of-contents \
     --standalone \
     --self-contained \
@@ -390,7 +391,7 @@ This can be avoided for the more commonly used meta-predicates (`maplist/1+N`, `
 :- use_module(library(apply_macros)).
 @
 <<Use lambdas>>=
-:- use_module(yall).
+:- use_module(library(yall)).
 @
 
 During development, it is good to know if the program has left behind any unintentional choice points -- they are certainly errors, as the program is designed to succeed deterministically.
@@ -840,9 +841,9 @@ lir_pandoc(quote(Q), [span(class(quote), QC)|P]) -->
     lir_pandoc(P).
 lir_pandoc(quote_use(Name, Label),
             [span(class(quoteduse),
-                  [&(lang), \thinnbsp,
+                  [\openparen, \thinnbsp,
                    a(href("#~a"-Label), Name),
-                   \thinnbsp, &(rang)])|P]) -->
+                   \thinnbsp, \closeparen])|P]) -->
     lir_pandoc(P).
 lir_pandoc(code_meta(C, M),
             [div(class(codechunk),
@@ -861,7 +862,14 @@ lir_pandoc(chunks_list(_Cs), P) -->
     lir_pandoc(P).
 lir_pandoc(index(_), P) --> [], lir_pandoc(P).
 
-thinnbsp --> html(span(style("white-space:nowrap"), &(thinsp))).
+thinnbsp --> html(span(style("white-space:nowrap"), &(0x2009))).
+nbsp --> html(&(0xA0)).
+openparen --> html(&(0x27E8)).
+closeparen --> html(&(0x27E9)).
+prevsym --> html(&(8679)).
+nextsym --> html(&(8681)).
+defeq --> html(&(0x2261)).
+defend --> html(&(0x25FC)).
 
 chunk_content([]) --> [].
 chunk_content([C|Cs]) -->
@@ -877,19 +885,19 @@ chunk_content_(code_use(L, R, N), Cs) -->
     {   label_nr_name_fname(R, _, N, FN)
     },
     html(span(class(embeddeduse),
-              [&(lang), \thinnbsp,
+              [\openparen, \thinnbsp,
                a([id(L), href("#~a"-R)], \[FN]),
-               \thinnbsp, &(rang)])),
+               \thinnbsp, \closeparen])),
     chunk_content(Cs).
 
 chunk_defn(M) -->
     {   label_nr_name_fname(M.label, Nr, _, FName)
     },
     html(span([class(defn),id(M.label)],
-              [span(class(chunknr), "C~d:"-Nr), &(nbsp),
-               &(lang), \thinnbsp,
+              [span(class(chunknr), "C~d:"-Nr), \nbsp,
+               \openparen, \thinnbsp,
                a(href("#~a"-M.label), \[FName]),
-               \thinnbsp, &(rang), &(equiv)])).
+               \thinnbsp, \closeparen, \defeq])).
 chunk_uses(M) -->
     {   code{uses:Us} :< M
     }, !,
@@ -914,9 +922,9 @@ chunk_next(M) -->
         label_nr_name_fname(L, Nr, _, _)
     }, !,
     html(span(class(chunknext),
-         a(href("#~a"-L), [&(8681), \thinnbsp, "C~d"-Nr]))).
+         a(href("#~a"-L), [\nextsym, \thinnbsp, "C~d"-Nr]))).
 chunk_next(_) -->
-    html(&(9633)). % white square
+    html(\defend). % white square
 
 chunk_prev(M) -->
     {   code{prev:L} :< M,
@@ -924,7 +932,7 @@ chunk_prev(M) -->
     },
     html([br([]),
           span(class(chunkprev),
-               a(href("#~a"-L), [&(8679), \thinnbsp, "C~d"-Nr]))]).
+               a(href("#~a"-L), [\prevsym, \thinnbsp, "C~d"-Nr]))]).
 chunk_prev(_) --> [].
 
 chunk_defs(M) -->
