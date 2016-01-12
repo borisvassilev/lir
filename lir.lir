@@ -278,14 +278,14 @@ lir.html: lir.lir
 
 Of the two transformations done on the `lir` source before giving it to the `noweb` tools, "including" files is the more general one and has to be done first.
 <<`Lir`-specific transformations>>=
-awk -f "$LIR_LIBPATH"/contdefn.awk \
-    | awk -f "$LIR_LIBPATH"/closechunks.awk \
+awk '<<Nameless code chunks as continuations>>' \
+    | awk '<<Close all codechunks with `@`>>' \
     | awk -v evalcmd="bash -o errexit -o pipefail -o nounset" \
-          -f "$LIR_LIBPATH"/eval.awk \
-    | awk -f "$LIR_LIBPATH"/listing.awk
+          '<<Evaluate code chunk contents>>' \
+    | awk '<<Insert file listings>>'
 @
 
-<<contdefn.awk>>=
+<<Nameless code chunks as continuations>>=
 BEGIN {
     <<Setup `awk` to treat lines as single-field records>>
     last_name = "@<<>>="
@@ -295,7 +295,7 @@ BEGIN {
 { print $0 }
 @
 
-<<closechunks.awk>>=
+<<Close all codechunks with `@`>>=
 BEGIN {
     <<Setup `awk` to treat lines as single-field records>>
     in_chunk = true
@@ -313,7 +313,7 @@ BEGIN {
 
 The contents of each code chunk named `lir::eval` will be evaluated by an invocation of `bash`.
 Whatever is written to standard output will be **pasted as it is** in place of the code chunk before anything else is done with the source file.
-<<eval.awk>>=
+<<Evaluate code chunk contents>>=
 BEGIN {
     <<Setup `awk` to treat lines as single-field records>>
 }
@@ -343,7 +343,7 @@ _Use with care!_
 
 Each line inside a code chunk named `lir::listing` will be treated as a file name that has to be included verbatim in the weaved final document.
 The full contents of the file will be inserted unchanged in a code chunk named [[<<lir::listing::`filename`>>]].
-<<listing.awk>>=
+<<Insert file listings>>=
 BEGIN {
     <<Setup `awk` to treat lines as single-field records>>
 }

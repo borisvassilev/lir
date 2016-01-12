@@ -5,8 +5,6 @@ bashscripts = \
 	lir-use \
 	lir-chunknames 
 
-awkscripts = lir-listing.awk
-
 nwpipemodules = driver.pl nwpipe.pl lirhtml.pl
 
 nwpipesources = nwpipe-pandoc.pl $(nwpipemodules)
@@ -15,7 +13,6 @@ tangled = \
 	lir \
 	lir-weave \
 	$(bashscripts) \
-	$(awkscripts) \
 	$(nwpipesources) \
 	lir.css
 
@@ -33,7 +30,6 @@ all : lir.lir
 install :
 	cp --verbose --preserve \
 	    $(bashscripts) \
-	    $(awkscripts) \
 	    lir.css \
 	    nwpipe-pandoc \
 	    	$(LIR_LIBPATH)
