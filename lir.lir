@@ -270,15 +270,72 @@ lir.html: lir.lir
 @
 
 <<Weave `lir` source to HTML>>=
-<<`lir`-specific transformations>> \
+<<`Lir`-specific transformations>> \
     | <<Source to `noweb` pipeline representation>> \
     | <<`Noweb` pipeline representation to Pandoc source>> \
     | <<Pandoc source to HTML>>
 @
 
 Of the two transformations done on the `lir` source before giving it to the `noweb` tools, "including" files is the more general one and has to be done first.
-<<`lir`-specific transformations>>=
-awk -f "$LIR_LIBPATH"/lir-listing.awk
+<<`Lir`-specific transformations>>=
+awk -f "$LIR_LIBPATH"/contdefn.awk \
+    | awk -f "$LIR_LIBPATH"/closechunks.awk \
+    | awk -v evalcmd="bash -o errexit -o pipefail -o nounset" \
+          -f "$LIR_LIBPATH"/eval.awk \
+    | awk -f "$LIR_LIBPATH"/listing.awk
+@
+
+<<contdefn.awk>>=
+BEGIN {
+    <<Setup `awk` to treat lines as single-field records>>
+    last_name = "@<<>>="
+}
+/^@<<>>=$/ { $0 = last_name }
+/^@<<.+>>=$/ { last_name = $0 }
+{ print $0 }
+@
+
+<<closechunks.awk>>=
+BEGIN {
+    <<Setup `awk` to treat lines as single-field records>>
+    in_chunk = true
+}
+/<<Begin code `awk` regex>>/ {
+    if (in_chunk) {
+        print "@"
+    }
+    in_chunk = true
+}
+/<<End code `awk` regex>>/ { in_chunk = false }
+{ print $0 }
+@
+
+
+The contents of each code chunk named `lir::eval` will be evaluated by an invocation of `bash`.
+Whatever is written to standard output will be **pasted as it is** in place of the code chunk before anything else is done with the source file.
+<<eval.awk>>=
+BEGIN {
+    <<Setup `awk` to treat lines as single-field records>>
+}
+/^@<<lir::eval@>>=$/ {
+    <<Execute contents as standard input of [[evalcmd]]>>
+    <<Write output of [[evalcmd]] to awk's output>>
+    next
+}
+{ print $0 }    
+@
+<<Execute contents as standard input of [[evalcmd]]>>=
+while (getline > 0 && $0 !~ /<<End code `awk` regex>>/)
+    print $0 |& evalcmd
+close(evalcmd, "to")
+@
+<<Write output of [[evalcmd]] to awk's output>>=
+save_rs = RS
+RS = "^$"
+evalcmd |& getline x
+close(evalcmd)
+printf "%s", x
+RS = save_rs
 @
 
 Each line inside a code chunk named `lir::include` will be treated as a file name that has to be **pasted as it is** to the `lir` source file **before** the source file is passed to Pandoc.
@@ -286,41 +343,55 @@ _Use with care!_
 
 Each line inside a code chunk named `lir::listing` will be treated as a file name that has to be included verbatim in the weaved final document.
 The full contents of the file will be inserted unchanged in a code chunk named [[<<lir::listing::`filename`>>]].
-<<lir-listing.awk>>=
-<<Setup `awk` to treat lines as single-field records>>
+<<listing.awk>>=
+BEGIN {
+    <<Setup `awk` to treat lines as single-field records>>
+}
 /^@<<lir::listing@>>=$/ {
-    while(getline > 0) {
-        if (<<End of code chunk>>) {
-            print $0
-            next
-        }
-        if (NF > 0) {
-            name=$0
-            print "@<<lir::listing::`" name "`@>>="
-            <<`Awk`: echo file to output>>
-        }
-    }
+    <<Output listing of each file named here>>
 }
 { print $0 }
+@
+<<Output listing of each file named here>>=
+while (getline > 0) {
+    if ($0 ~ /<<End code `awk` regex>>/) {
+        break
+    }
+    if (NF > 0) {
+        <<The complete record is the [[filename]]>>
+        <<Write [[filename]] to `awk`'s output>>
+    }
+}
+@
+<<The complete record is the [[filename]]>>=
+filename=$0
+print "@<<lir::listing::`" filename "`@>>="
+@
+<<Write [[filename]] to `awk`'s output>>=
+save_rs = RS
+RS = "^$"
+getline filecontents < filename
+close(filename)
+print filecontents
+RS = save_rs
 @
 
 To make `awk` treat lines of input as records with one field each, set both the record and the field separator to the newline character.
 With these settings, an empty line (nothing but a new line) will have 0 fields (`NF == 0`) and a length of 0 (`length($0) == 0`).
 <<Setup `awk` to treat lines as single-field records>>=
-BEGIN {
-    RS="\n"
-    FS="\n"
-}
+RS="\n"
+FS="\n"
 @
 
 The end of a code chunk is either a line with a `@` in the first column, or the beginning of another code chunk.
-<<End of code chunk>>=
-$0 ~ /^@|^@<<.*@>>=$/
-<<`Awk`: echo file to output>>=
-while ((getline < name) > 0) {
-    print $0
-}
-close(name)
+<<Begin code `awk` regex>>=
+^@<<.*@>>=$
+<<End code `awk` regex>>=
+^@
+<<lir::ignore>>=
+<<Begin or end code `awk` regex>>
+<<Begin or end code `awk` regex>>=
+<<Begin code `awk` regex>>|<<End code `awk` regex>>
 @
 
 **Warning**: both `lir::listing` and `lir::include` work on lines.
@@ -621,8 +692,8 @@ It will contain a list of chunks and an index.
 <<Parse a file>>=
 lir_file(docs, L) --> [X],
     docs(X, L).
-lir_file(code, [code_meta(C, M)|L]) -->
-    code(C, M),
+lir_file(code, [code_label_meta(C, Label, M)|L]) -->
+    code(C, Label, M),
     lir_rest(L).
 lir_file(nl, [nl|L]) -->
     lir_rest(L).
@@ -681,10 +752,11 @@ quote(endquote, []) --> [].
 @
 
 <<Parse a code chunk>>=
-code(Cs, M) -->
+code(Cs, L, M) -->
     [X],
-    defn(X, M_pairs),
-    {   dict_create(M, code, M_pairs)
+    defn(X, M_pairs0),
+    {   selectchk(label(L), M_pairs0, M_pairs),
+        dict_create(M, code, M_pairs)
     },
     code_content(Cs).
 
@@ -787,12 +859,12 @@ emit_html(Out, L) :-
 Add to the database a table with all code chunks.
 <<>>=
 formatting(L, R) :-
-    include([code_meta(_,_)]>>true, L, L0),
-    maplist([code_meta(_, M), M]>>true, L0, Ms),
+    include([code_label_meta(_,_,_)]>>true, L, L0),
+    maplist([code_label_meta(_, Label, Meta), Label-Meta]>>true, L0, LMs),
     retractall(label_nr_name_fname(_,_,_,_)),
-    forall(nth0(N, Ms, M),
+    forall(nth0(N, LMs, Lab-M),
             (   through_pandoc(html5, M.name, FN),
-                assertz(label_nr_name_fname(M.label, N, M.name, FN))
+                assertz(label_nr_name_fname(Lab, N, M.name, FN))
             )),
     L = R,
     true.
@@ -845,9 +917,9 @@ lir_pandoc(quote_use(Name, Label),
                    a(href("#~a"-Label), Name),
                    \thinnbsp, \closeparen])|P]) -->
     lir_pandoc(P).
-lir_pandoc(code_meta(C, M),
+lir_pandoc(code_label_meta(C, L, M),
             [div(class(codechunk),
-             [\chunk_defn(M),
+             [\chunk_defn(M, L),
               \chunk_uses(M),
               \chunk_defs(M),
               \chunk_prev(M),
@@ -862,14 +934,25 @@ lir_pandoc(chunks_list(_Cs), P) -->
     lir_pandoc(P).
 lir_pandoc(index(_), P) --> [], lir_pandoc(P).
 
+%nbsp --> html(&(0xA0)).
+nbsp --> html(&(nbsp)).
 thinnbsp --> html(span(style("white-space:nowrap"), &(0x2009))).
-nbsp --> html(&(0xA0)).
-openparen --> html(&(0x27E8)).
-closeparen --> html(&(0x27E9)).
-prevsym --> html(&(8679)).
-nextsym --> html(&(8681)).
-defeq --> html(&(0x2261)).
-defend --> html(&(0x25FC)).
+%openparen --> html(&(0x27E8)). % lang
+%openparen --> html(&(0x27EA)). % Lang
+openparen --> html(&('Lang')). % Lang
+%closeparen --> html(&(0x27E9)). % rang
+%closeparen --> html(&(0x27EB)). % Rang
+closeparen --> html(&('Rang')). % Rang
+prevsym --> html(&(0x21E7)). % UPWARDS WHITE ARROW
+%prevsym --> html(&(0x21EB)). % UPWARDS WHITE ARROW ON PEDESTAL
+nextsym --> html(&(0x21E9)). % DOWNWARDS WHITE ARROW
+contsym --> html(&(darr)).
+contmoresym --> html(&(0x21E3)). % DOWNWARDS DASHED ARROW
+%defeq --> html(&(0x2261)). equiv
+defeq --> html(=).
+defend --> html(&(0x25FC)). % Black square
+usedbysym --> html(&(0x21F1)). % NORTH WEST ARROW TO CORNER
+usessym --> html(&(0x21F2)). % SOUTH EAST ARROW TO CORNER
 
 chunk_content([]) --> [].
 chunk_content([C|Cs]) -->
@@ -886,17 +969,19 @@ chunk_content_(code_use(L, R, N), Cs) -->
     },
     html(span(class(embeddeduse),
               [\openparen, \thinnbsp,
-               a([id(L), href("#~a"-R)], \[FN]),
+               a([id(L), href("#~a"-R)],
+                 [\[FN], span(class(embeddedusesym),
+                              [\thinnbsp, \usessym])]),
                \thinnbsp, \closeparen])),
     chunk_content(Cs).
 
-chunk_defn(M) -->
-    {   label_nr_name_fname(M.label, Nr, _, FName)
+chunk_defn(_M, L) -->
+    {   label_nr_name_fname(L, Nr, _, FName)
     },
-    html(span([class(defn),id(M.label)],
+    html(span([class(defn),id(L)],
               [span(class(chunknr), "C~d:"-Nr), \nbsp,
                \openparen, \thinnbsp,
-               a(href("#~a"-M.label), \[FName]),
+               a(href("#~a"-L), \[FName]),
                \thinnbsp, \closeparen, \defeq])).
 chunk_uses(M) -->
     {   code{uses:Us} :< M
@@ -907,14 +992,16 @@ chunk_uses(_) --> [].
 chunk_uses_([U|Us]) -->
     {   label_nr_name_fname(U, Nr, _, _)
     }, !,
-    html([br([]), "used by ", a(href("#~a"-U),"C~d"-Nr)]),
+    html([br([]),
+         "Used by ",
+         a(href("#~a"-U),[\usedbysym, \thinnbsp, "C~d"-Nr])]),
     chunk_uses_rest(Us).
 chunk_uses_(notused) --> html([br([]), "root chunk"]).
 chunk_uses_rest([]) --> [].
 chunk_uses_rest([U|Us]) -->
     {   label_nr_name_fname(U, Nr, _, _)
     },
-    html([", ", a(href("#~a"-U), "C~d"-Nr)]),
+    html([", ", a(href("#~a"-U), [\usedbysym, \thinnbsp, "C~d"-Nr])]),
     chunk_uses_rest(Us).
 
 chunk_next(M) -->
@@ -944,13 +1031,15 @@ chunk_defs(_) --> [].
 chunk_defs_([D|Ds]) -->
     {   label_nr_name_fname(D, Nr, _, _)
     },
-    html([br([]), "definition continued in ", a(href("#~a"-D), "C~d"-Nr)]),
+    html([br([]),
+          "definition continued in ",
+          a(href("#~a"-D), [\contsym, \thinnbsp, "C~d"-Nr])]),
     chunk_defs_rest(Ds).
 chunk_defs_rest([]) --> [].
 chunk_defs_rest([D|Ds]) -->
     {   label_nr_name_fname(D, Nr, _, _)
     },
-    html(["+", a(href("#~a"-D), "C~d"-Nr)]),
+    html(["+", a(href("#~a"-D), [\contmoresym, \thinnbsp, "C~d"-Nr])]),
     chunk_defs_rest(Ds).
 @
 
@@ -1029,6 +1118,9 @@ span.quoteduse a:hover {
 span.embeddeduse a {
     color: DarkBlue;
     font-style: Italic;
+}
+span.embeddedusesym {
+    font-style: Normal;
 }
 span.embeddeduse a:hover {
     color: DodgerBlue;
