@@ -41,7 +41,87 @@ The overall workflow for `lir` is as follows:
     Once all results and figures have been generated, the original `lir` source file is processed to obtain a valid Pandoc markdown source file.
     At that point, Pandoc is used to compile this to a final human readable file with any results and figures generated in the previous step.
 
+# The wrapper script
 To implement this, `lir` provides the three tools mentioned above, and a wrapper script, [[<<lir>>]], which simply runs them in that order.
+A script called `lir` can be invoked with the source file as its first argument.
+<<lir>>=
+<<Bash header>>
+<<lir.bash>>
+<<lir.bash>>=
+<<Setup `lir` script>>
+<<Tangle relevant chunks>>
+<<Use external dependencies>>
+<<Make everything>>
+<<Weave the documentation>>
+@
+
+The script will exit immediately on any command that fails.
+Any arguments after the first will be given as options to Pandoc.
+If the `.lir` working directory does not exist, it is created.
+The paths to the library directories for `noweb` and `lir` are made available for all scripts used by the wrapper script.
+<<Setup `lir` script>>=
+set -e
+LIR_SOURCE="$1"
+LIR_DIR='.lir'
+export PANDOC_OPTS="${@:2}"
+MAKE_JOBS='--jobs'
+mkdir --verbose --parents "$LIR_DIR"
+export NOWEB_LIBPATH=@@NOWEB_LIBPATH@@
+export LIR_LIBPATH=@@LIR_LIBPATH@@
+@
+
+Then, determine which chunks need to be tangled using [[<<lir-chunknames>>]], and tangle those using [[<<lir-mtangle>>]].
+<<Tangle relevant chunks>>=
+"$LIR_LIBPATH"/lir-chunknames "$LIR_SOURCE" \
+    | xargs --delimiter='\n' \
+        "$LIR_LIBPATH"/lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
+@
+
+Then, bring in external dependencies (uses).
+Not everything fits in a single source file.
+A bibliography file, for example, is best maintained by a proper reference manager.
+Such files can be listed explicitly in a code chunk named `lir::use` like so:
+<<lir::use>>=
+lir.bib
+@
+
+Note that the `lir` source file itself is a special case of an external dependency.
+<<Use external dependencies>>=
+if <<List `lir::*` chunks>> | grep --silent use
+then
+    notangle -filter emptydefn -t8 -R"lir::use" "$LIR_SOURCE" \
+        | sort --unique \
+        | <<Remove empty lines>> \
+        | xargs --delimiter='\n' \
+            "$LIR_LIBPATH"/lir-use "$LIR_DIR" "$LIR_SOURCE"
+else
+    "$LIR_LIBPATH"/lir-use "$LIR_DIR" "$LIR_SOURCE"
+fi
+@
+<<List `lir::*` chunks>>=
+"$NOWEB_LIBPATH"/markup "$LIR_SOURCE" \
+    | sed -n 's/^@defn lir::\(.*\)/\1/p'
+@
+
+Then, from inside the working directory:
+<<Make everything>>=
+notangle -filter emptydefn -t8 -R"lir::make" "$LIR_SOURCE" \
+    > "$LIR_DIR"/lirmakefile
+make --debug=b "$MAKE_JOBS" --directory="$LIR_DIR" --makefile=lirmakefile all
+@
+
+This is what an empty Makefile with only `all` declared would look like:
+<<lir::make>>=
+.PHONY : all
+all: ;
+
+@
+
+<<Weave the documentation>>=
+make --debug=b --directory="$LIR_DIR" --makefile=lirmakefile html
+BASENAME=$(basename "$1" .lir)
+cp --verbose --update ".lir/$BASENAME.html" .
+@
 
 # Tangling
 "Tangling" is the process of extracting the source code embedded in the `lir` literate source file so that it can be compiled and executed to obtain results.
@@ -53,7 +133,7 @@ It uses `noweb`'s `notangle` to extract from (1) the chunk (2) to a temporary fi
 <<lir-tangle.bash>>
 <<lir-tangle.bash>>=
 tmpfile=$(mktemp)
-notangle -t8 -R"$2" "$1" > "$tmpfile" \
+notangle -filter emptydefn -t8 -R"$2" "$1" > "$tmpfile" \
     && "$LIR_LIBPATH"/lir-cmpcp "$tmpfile" "$3" \
     && rm "$tmpfile"
 @
@@ -144,7 +224,7 @@ If there is a root chunk that does not need to be tangled (for whatever reason),
 ignoredchunks=$(mktemp)
 if noroots "$1" | grep --silent --line-regexp '@<<lir::ignore@>>'
 then
-    notangle -t8 -R"lir::ignore" "$1" \
+    notangle -filter emptydefn -t8 -R"lir::ignore" "$1" \
         | <<Remove empty lines>> \
         | <<Drop double angle brackets>> \
         | sort --unique \
@@ -169,84 +249,6 @@ sed '/^\s*$/d'
 sed -n '/^lir::.*/!p'
 @
 
-# The wrapper script
-A script called `lir` can be invoked with the source file as its first argument.
-<<lir>>=
-<<Bash header>>
-<<lir.bash>>
-<<lir.bash>>=
-<<Setup `lir` script>>
-<<Tangle relevant chunks>>
-<<Use external dependencies>>
-<<Make everything>>
-<<Weave the documentation>>
-@
-
-The script will exit immediately on any command that fails.
-Any arguments after the first will be given as options to Pandoc.
-If the `.lir` working directory does not exist, it is created.
-The paths to the library directories for `noweb` and `lir` are made available for all scripts used by the wrapper script.
-<<Setup `lir` script>>=
-set -e
-LIR_SOURCE="$1"
-LIR_DIR='.lir'
-export PANDOC_OPTS="${@:2}"
-MAKE_JOBS='--jobs'
-mkdir --verbose --parents "$LIR_DIR"
-export NOWEB_LIBPATH=@@NOWEB_LIBPATH@@
-export LIR_LIBPATH=@@LIR_LIBPATH@@
-@
-
-Then, determine which chunks need to be tangled using [[<<lir-chunknames>>]], and tangle those using [[<<lir-mtangle>>]].
-<<Tangle relevant chunks>>=
-"$LIR_LIBPATH"/lir-chunknames "$LIR_SOURCE" \
-    | xargs --delimiter='\n' \
-        "$LIR_LIBPATH"/lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
-@
-
-Then, bring in external dependencies (uses).
-Not everything fits in a single source file.
-A bibliography file, for example, is best maintained by a proper reference manager.
-Such files can be listed explicitly in a code chunk named `lir::use` like so:
-<<lir::use>>=
-lir.bib
-@
-
-Note that the `lir` source file itself is a special case of an external dependency.
-<<Use external dependencies>>=
-if <<List `lir::*` chunks>> | grep --silent use
-then
-    notangle -t8 -R"lir::use" "$LIR_SOURCE" \
-        | sort --unique \
-        | <<Remove empty lines>> \
-        | xargs --delimiter='\n' \
-            "$LIR_LIBPATH"/lir-use "$LIR_DIR" "$LIR_SOURCE"
-fi
-@
-<<List `lir::*` chunks>>=
-"$NOWEB_LIBPATH"/markup "$LIR_SOURCE" \
-    | sed -n 's/^@defn lir::\(.*\)/\1/p'
-@
-
-Then, from inside the working directory:
-<<Make everything>>=
-notangle -t8 -R"lir::make" "$LIR_SOURCE" \
-    > "$LIR_DIR"/lirmakefile
-make --debug=b "$MAKE_JOBS" --directory="$LIR_DIR" --makefile=lirmakefile all
-@
-
-This is what an empty Makefile with only `all` declared would look like:
-<<lir::make>>=
-.PHONY : all
-all: ;
-
-@
-
-<<Weave the documentation>>=
-make --debug=b --directory="$LIR_DIR" --makefile=lirmakefile html
-BASENAME=$(basename "$1" .lir)
-cp --verbose --update ".lir/$BASENAME.html" .
-@
 
 # Weaving
 Weaving means generating the final human readable documentation from the `lir` source file.
@@ -298,15 +300,13 @@ BEGIN {
 <<Close all codechunks with `@`>>=
 BEGIN {
     <<Setup `awk` to treat lines as single-field records>>
-    in_chunk = true
+    in_chunk = 0
 }
 /<<Begin code `awk` regex>>/ {
-    if (in_chunk) {
-        print "@"
-    }
-    in_chunk = true
+    if (in_chunk) print "@"
+    in_chunk = 1
 }
-/<<End code `awk` regex>>/ { in_chunk = false }
+/<<End code `awk` regex>>/ { in_chunk = 0 }
 { print $0 }
 @
 
