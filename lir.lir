@@ -51,6 +51,7 @@ A script called `lir` can be invoked with the source file as its first argument.
 <<Setup `lir` script>>
 <<lir-tangle>>
 <<lir-mtangle>>
+<<lir-chunknames>>
 <<Tangle relevant chunks>>
 <<Use external dependencies>>
 <<Make everything>>
@@ -129,11 +130,11 @@ cp --verbose --update ".lir/$BASENAME.html" .
 First, we have [[<<lir-tangle>>]], which accepts three arguments, in this order: (1) the name of a `lir` source file; (2) the name of a chunk; and (3) the name of the file that the chunk will be extracted to.
 It uses `noweb`'s `notangle` to extract from (1) the chunk (2) to a temporary file, compares it to (3) and only writes (2) to (3) if (3) does not exist, or is different from the temporary file.
 <<lir-tangle>>=
-function lir-tangle {
+lir-tangle () {
     tmpfile=$(mktemp)
-    notangle -filter emptydefn -t8 -R"$2" "$1" > "$tmpfile" \
-        && "$LIR_LIBPATH"/lir-cmpcp "$tmpfile" "$3" \
-        && rm "$tmpfile"
+    notangle -filter emptydefn -t8 -R"$2" "$1" > "$tmpfile"
+    "$LIR_LIBPATH"/lir-cmpcp "$tmpfile" "$3"
+    rm "$tmpfile"
 }
 @
 
@@ -156,8 +157,8 @@ The tool [[<<lir-tangle>>]] allows us to implement another tool, [[<<lir-mtangle
 It accepts as argument (1) the `lir` source file, (2) the target directory, and the rest of the arguments are the code chunk names that are to be extracted from (1) to the directory (2), under their own names.
 (The last point might be important: any string is a valid chunk name, so one could end up with strange file names with blanks or other special characters in them.)
 <<lir-mtangle>>=
-function lir-mtangle {
-while read chunk
+lir-mtangle () {
+while IFS='' read -r chunk
 do
     lir-tangle "$1" "$chunk" "$2/$chunk"
 done
@@ -198,16 +199,13 @@ The question remains: which are the code chunks that need to be tangled?
 
 `lir` assumes that all root chunks (code chunks that are not used in other chunks) are meant to be tangled to files.
 The `noroots` tool provided by `noweb` will print to standard output all root chunk names, enclosed in double angle brackets.
-It is used by [[<<lir-chunknames>>]], which takes as its single argument the `lir` source file:
-<<lir-chunknames>>=
-<<Bash header>>
-<<lir-chunknames.bash>>
-@
+It is used by [[<<lir-chunknames>>]], which takes as its single argument the `lir` source file.
 
 One implicitly ignored chunk is the "anonymous", unnamed code chunk as in "`@<<>>=`"; this is interpreted as a continuation of the previous chunk by `lir`, but "`@<<>>=`" will appear in the list of root chunks as listed by `noroots`.
 A `lir` source file can also contain root chunks that have names beginning with `lir::`.
 These are used by the user to control `lir`'s functionality, and are not actual code.
-<<lir-chunknames.bash>>=
+<<lir-chunknames>>=
+lir-chunknames () {
 rootchunks=$(mktemp)
 noroots "$1" \
     | <<Drop double angle brackets>> \
@@ -218,7 +216,7 @@ noroots "$1" \
 @
 
 If there is a root chunk that does not need to be tangled (for whatever reason), it can be declared in a chunk named [[<<lir::ignore>>]], one chunk name per line.
-<<lir-chunknames.bash>>=
+<<lir-chunknames>>=
 ignoredchunks=$(mktemp)
 if noroots "$1" | grep --silent --line-regexp '@<<lir::ignore@>>'
 then
@@ -231,9 +229,10 @@ fi
 @
 
 The chunk names declared in [[<<lir::ignore>>]] are removed from the list of chunk names emitted by [[<<lir-chunknames>>]] using the standard command line tool `comm`.
-<<lir-chunknames.bash>>=
+<<lir-chunknames>>=
 comm -2 -3 "$rootchunks" "$ignoredchunks"
 rm "$rootchunks" "$ignoredchunks"
+}
 @
 
 Filters used in the pipelines above:

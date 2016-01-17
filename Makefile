@@ -1,7 +1,6 @@
 bashscripts = \
 	lir-cmpcp \
-	lir-use \
-	lir-chunknames 
+	lir-use
 
 nwpipemodules = driver.pl nwpipe.pl lirhtml.pl
 
@@ -18,7 +17,6 @@ all : lir.lir
 	$(NOWEB_LIBPATH)/markup -t lir.lir \
 	    | $(NOWEB_LIBPATH)/emptydefn \
 	    | $(NOWEB_LIBPATH)/mnt -t $(tangled)
-	$(MAKE) nwpipe-pandoc
 	sed -i "s~@@LIR_LIBPATH@@~$(LIR_LIBPATH)~" lir lir-weave
 	sed -i "s~@@NOWEB_LIBPATH@@~$(NOWEB_LIBPATH)~" lir lir-weave
 	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
