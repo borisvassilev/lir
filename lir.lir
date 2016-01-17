@@ -49,6 +49,8 @@ A script called `lir` can be invoked with the source file as its first argument.
 <<lir.bash>>
 <<lir.bash>>=
 <<Setup `lir` script>>
+<<lir-tangle>>
+<<lir-mtangle>>
 <<Tangle relevant chunks>>
 <<Use external dependencies>>
 <<Make everything>>
@@ -72,8 +74,7 @@ export LIR_LIBPATH=@@LIR_LIBPATH@@
 Then, determine which chunks need to be tangled using [[<<lir-chunknames>>]], and tangle those using [[<<lir-mtangle>>]].
 <<Tangle relevant chunks>>=
 "$LIR_LIBPATH"/lir-chunknames "$LIR_SOURCE" \
-    | xargs --delimiter='\n' \
-        "$LIR_LIBPATH"/lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
+    | lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
 @
 
 Then, bring in external dependencies (uses).
@@ -128,13 +129,12 @@ cp --verbose --update ".lir/$BASENAME.html" .
 First, we have [[<<lir-tangle>>]], which accepts three arguments, in this order: (1) the name of a `lir` source file; (2) the name of a chunk; and (3) the name of the file that the chunk will be extracted to.
 It uses `noweb`'s `notangle` to extract from (1) the chunk (2) to a temporary file, compares it to (3) and only writes (2) to (3) if (3) does not exist, or is different from the temporary file.
 <<lir-tangle>>=
-<<Bash header>>
-<<lir-tangle.bash>>
-<<lir-tangle.bash>>=
-tmpfile=$(mktemp)
-notangle -filter emptydefn -t8 -R"$2" "$1" > "$tmpfile" \
-    && "$LIR_LIBPATH"/lir-cmpcp "$tmpfile" "$3" \
-    && rm "$tmpfile"
+function lir-tangle {
+    tmpfile=$(mktemp)
+    notangle -filter emptydefn -t8 -R"$2" "$1" > "$tmpfile" \
+        && "$LIR_LIBPATH"/lir-cmpcp "$tmpfile" "$3" \
+        && rm "$tmpfile"
+}
 @
 
 
@@ -156,13 +156,12 @@ The tool [[<<lir-tangle>>]] allows us to implement another tool, [[<<lir-mtangle
 It accepts as argument (1) the `lir` source file, (2) the target directory, and the rest of the arguments are the code chunk names that are to be extracted from (1) to the directory (2), under their own names.
 (The last point might be important: any string is a valid chunk name, so one could end up with strange file names with blanks or other special characters in them.)
 <<lir-mtangle>>=
-<<Bash header>>
-<<lir-mtangle.bash>>
-<<lir-mtangle.bash>>=
-for chunk in "${@:3}"
+function lir-mtangle {
+while read chunk
 do
-    "$LIR_LIBPATH"/lir-tangle "$1" "$chunk" "$2/$chunk"
+    lir-tangle "$1" "$chunk" "$2/$chunk"
 done
+}
 @
 
 # Externally maintained files

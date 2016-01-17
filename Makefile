@@ -1,7 +1,5 @@
 bashscripts = \
-	lir-tangle \
 	lir-cmpcp \
-	lir-mtangle \
 	lir-use \
 	lir-chunknames 
 
