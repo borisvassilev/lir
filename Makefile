@@ -1,6 +1,4 @@
-bashscripts = \
-	lir-cmpcp \
-	lir-use
+bashscripts = lir-use
 
 nwpipemodules = driver.pl nwpipe.pl lirhtml.pl
 

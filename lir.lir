@@ -52,6 +52,7 @@ A script called `lir` can be invoked with the source file as its first argument.
 <<lir-tangle>>
 <<lir-mtangle>>
 <<lir-chunknames>>
+<<lir-cmpcp>>
 <<Tangle relevant chunks>>
 <<Use external dependencies>>
 <<Make everything>>
@@ -144,13 +145,12 @@ It overwrites a file with a newer version of a file after comparing them.
 It takes two arguments: (1) the new file, and (2) the old file.
 The standard command line tool `cmp` used for the comparison will exit with status 0 (success) if the two files have identical contents; with status 1 if they are different, and with status 2 if there is some trouble: for example, if one of the files does not exist.
 <<lir-cmpcp>>=
-<<Bash header>>
-<<lir-cmpcp.bash>>
-<<lir-cmpcp.bash>>=
+lir-cmpcp () {
 if ! cmp --silent "$1" "$2"
 then
     cp --verbose "$1" "$2"
 fi
+}
 @
 
 The tool [[<<lir-tangle>>]] allows us to implement another tool, [[<<lir-mtangle>>]] ("multiple" tangle).
