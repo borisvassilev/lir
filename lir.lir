@@ -1038,7 +1038,7 @@ chunk_defs_rest([]) --> [].
 chunk_defs_rest([D|Ds]) -->
     {   label_nr_name_fname(D, Nr, _, _)
     },
-    html(["+", a(href("#~a"-D), [\contmoresym, \thinnbsp, "C~d"-Nr])]),
+    html([" + ", a(href("#~a"-D), [\contmoresym, \thinnbsp, "C~d"-Nr])]),
     chunk_defs_rest(Ds).
 @
 
@@ -1063,7 +1063,8 @@ p {
 }
 ul,
 ol,
-dl {
+dl,
+span.chunkdefs {
     max-width: 12cm;
 }
 body {
