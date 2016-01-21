@@ -49,10 +49,7 @@ A script called `lir` can be invoked with the source file as its first argument.
 <<lir.bash>>
 <<lir.bash>>=
 <<Setup `lir` script>>
-<<lir-tangle>>
-<<lir-mtangle>>
-<<lir-chunknames>>
-<<lir-cmpcp>>
+<<Define functions used by `lir`>>
 <<Tangle relevant chunks>>
 <<Use external dependencies>>
 <<Make everything>>
@@ -73,6 +70,14 @@ export NOWEB_LIBPATH=@@NOWEB_LIBPATH@@
 export LIR_LIBPATH=@@LIR_LIBPATH@@
 @
 
+<<Define functions used by `lir`>>=
+<<lir-use>>
+<<lir-tangle>>
+<<lir-mtangle>>
+<<lir-chunknames>>
+<<lir-cmpcp>>
+@
+
 Then, determine which chunks need to be tangled using [[<<lir-chunknames>>]], and tangle those using [[<<lir-mtangle>>]].
 <<Tangle relevant chunks>>=
 "$LIR_LIBPATH"/lir-chunknames "$LIR_SOURCE" \
@@ -89,15 +94,13 @@ lir.bib
 
 Note that the `lir` source file itself is a special case of an external dependency.
 <<Use external dependencies>>=
-if <<List `lir::*` chunks>> | grep --silent use
+echo "$LIR_SOURCE" | lir-use "$LIR_DIR"
+if notangle -filter emptydefn -t8 -R"lir::use" "$LIR_SOURCE" \
+    | sort --unique \
+    | <<Remove empty lines>> \
+    | lir-use "$LIR_DIR"
 then
-    notangle -filter emptydefn -t8 -R"lir::use" "$LIR_SOURCE" \
-        | sort --unique \
-        | <<Remove empty lines>> \
-        | xargs --delimiter='\n' \
-            "$LIR_LIBPATH"/lir-use "$LIR_DIR" "$LIR_SOURCE"
-else
-    "$LIR_LIBPATH"/lir-use "$LIR_DIR" "$LIR_SOURCE"
+    :
 fi
 @
 <<List `lir::*` chunks>>=
@@ -175,10 +178,8 @@ The `make` utility will check the timestamp on the _target of the link_, so when
 
 The arguments to the script are (1) the directory in which the symbolic links will be made and from (2) on, the file names that should be taken in use:
 <<lir-use>>=
-<<Bash header>>
-<<lir-use.bash>>
-<<lir-use.bash>>=
-for used in "${@:2}"
+lir-use () {
+while IFS='' read -r used
 do
     useddir=$(dirname "$used")
     mkdir  --verbose --parents "$1/$useddir"
@@ -191,6 +192,7 @@ do
         exit 1
     fi
 done
+}
 @
 
 # Extracting names
