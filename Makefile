@@ -19,6 +19,7 @@ all : lir.lir
 .PHONY : all
 
 install :
+	mkdir --parents $(LIR_LIBPATH)
 	cp --verbose --preserve \
 	    lir.css \
 	    nwpipe-pandoc \
@@ -29,5 +30,6 @@ install :
 
 clean :
 	-rm $(tangled) nwpipe-pandoc
+	-rm -r $(LIR_LIBPATH)
 .PHONY : clean
 

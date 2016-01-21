@@ -133,7 +133,7 @@ It uses `noweb`'s `notangle` to extract from (1) the chunk (2) to a temporary fi
 lir-tangle () {
     tmpfile=$(mktemp)
     notangle -filter emptydefn -t8 -R"$2" "$1" > "$tmpfile"
-    "$LIR_LIBPATH"/lir-cmpcp "$tmpfile" "$3"
+    lir-cmpcp "$tmpfile" "$3"
     rm "$tmpfile"
 }
 @
