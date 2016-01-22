@@ -2,6 +2,9 @@
 title: 'Reproducible computing with `lir`'
 author: Boris Vassilev
 version: 0.3
+<<lir::eval>>=
+echo "date: $(date --utc +%Y-%m-%d)"
+@
 rights: (c) 2015 Boris Vassilev, University of Helsinki
 ...
 
@@ -414,7 +417,7 @@ sed -n '/^@text $/!p' \
 @
 
 <<Pandoc source to HTML>>=
-tee before-pandoc.debug | pandoc "$@" \
+pandoc "$@" \
     --from=markdown \
     --table-of-contents \
     --standalone \
