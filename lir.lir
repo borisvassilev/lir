@@ -2,6 +2,9 @@
 title: 'Reproducible computing with `lir`'
 author: Boris Vassilev
 version: 0.3
+<<lir::eval>>=
+echo "date: $(date --utc +%Y-%m-%d)"
+@
 rights: (c) 2015 Boris Vassilev, University of Helsinki
 ...
 
@@ -49,6 +52,7 @@ A script called `lir` can be invoked with the source file as its first argument.
 <<lir.bash>>
 <<lir.bash>>=
 <<Setup `lir` script>>
+<<Define functions used by `lir`>>
 <<Tangle relevant chunks>>
 <<Use external dependencies>>
 <<Make everything>>
@@ -69,11 +73,18 @@ export NOWEB_LIBPATH=@@NOWEB_LIBPATH@@
 export LIR_LIBPATH=@@LIR_LIBPATH@@
 @
 
+<<Define functions used by `lir`>>=
+<<lir-use>>
+<<lir-tangle>>
+<<lir-mtangle>>
+<<lir-chunknames>>
+<<lir-cmpcp>>
+@
+
 Then, determine which chunks need to be tangled using [[<<lir-chunknames>>]], and tangle those using [[<<lir-mtangle>>]].
 <<Tangle relevant chunks>>=
-"$LIR_LIBPATH"/lir-chunknames "$LIR_SOURCE" \
-    | xargs --delimiter='\n' \
-        "$LIR_LIBPATH"/lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
+lir-chunknames "$LIR_SOURCE" \
+    | lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
 @
 
 Then, bring in external dependencies (uses).
@@ -86,20 +97,14 @@ lir.bib
 
 Note that the `lir` source file itself is a special case of an external dependency.
 <<Use external dependencies>>=
-if <<List `lir::*` chunks>> | grep --silent use
+echo "$LIR_SOURCE" | lir-use "$LIR_DIR"
+if notangle -filter emptydefn -t8 -R"lir::use" "$LIR_SOURCE" \
+    | sort --unique \
+    | <<Remove empty lines>> \
+    | lir-use "$LIR_DIR"
 then
-    notangle -filter emptydefn -t8 -R"lir::use" "$LIR_SOURCE" \
-        | sort --unique \
-        | <<Remove empty lines>> \
-        | xargs --delimiter='\n' \
-            "$LIR_LIBPATH"/lir-use "$LIR_DIR" "$LIR_SOURCE"
-else
-    "$LIR_LIBPATH"/lir-use "$LIR_DIR" "$LIR_SOURCE"
+    :
 fi
-@
-<<List `lir::*` chunks>>=
-"$NOWEB_LIBPATH"/markup "$LIR_SOURCE" \
-    | sed -n 's/^@defn lir::\(.*\)/\1/p'
 @
 
 Then, from inside the working directory:
@@ -128,13 +133,12 @@ cp --verbose --update ".lir/$BASENAME.html" .
 First, we have [[<<lir-tangle>>]], which accepts three arguments, in this order: (1) the name of a `lir` source file; (2) the name of a chunk; and (3) the name of the file that the chunk will be extracted to.
 It uses `noweb`'s `notangle` to extract from (1) the chunk (2) to a temporary file, compares it to (3) and only writes (2) to (3) if (3) does not exist, or is different from the temporary file.
 <<lir-tangle>>=
-<<Bash header>>
-<<lir-tangle.bash>>
-<<lir-tangle.bash>>=
-tmpfile=$(mktemp)
-notangle -filter emptydefn -t8 -R"$2" "$1" > "$tmpfile" \
-    && "$LIR_LIBPATH"/lir-cmpcp "$tmpfile" "$3" \
-    && rm "$tmpfile"
+lir-tangle () {
+    tmpfile=$(mktemp)
+    notangle -filter emptydefn -t8 -R"$2" "$1" > "$tmpfile"
+    lir-cmpcp "$tmpfile" "$3"
+    rm "$tmpfile"
+}
 @
 
 
@@ -143,26 +147,24 @@ It overwrites a file with a newer version of a file after comparing them.
 It takes two arguments: (1) the new file, and (2) the old file.
 The standard command line tool `cmp` used for the comparison will exit with status 0 (success) if the two files have identical contents; with status 1 if they are different, and with status 2 if there is some trouble: for example, if one of the files does not exist.
 <<lir-cmpcp>>=
-<<Bash header>>
-<<lir-cmpcp.bash>>
-<<lir-cmpcp.bash>>=
+lir-cmpcp () {
 if ! cmp --silent "$1" "$2"
 then
     cp --verbose "$1" "$2"
 fi
+}
 @
 
 The tool [[<<lir-tangle>>]] allows us to implement another tool, [[<<lir-mtangle>>]] ("multiple" tangle).
 It accepts as argument (1) the `lir` source file, (2) the target directory, and the rest of the arguments are the code chunk names that are to be extracted from (1) to the directory (2), under their own names.
 (The last point might be important: any string is a valid chunk name, so one could end up with strange file names with blanks or other special characters in them.)
 <<lir-mtangle>>=
-<<Bash header>>
-<<lir-mtangle.bash>>
-<<lir-mtangle.bash>>=
-for chunk in "${@:3}"
+lir-mtangle () {
+while IFS='' read -r chunk
 do
-    "$LIR_LIBPATH"/lir-tangle "$1" "$chunk" "$2/$chunk"
+    lir-tangle "$1" "$chunk" "$2/$chunk"
 done
+}
 @
 
 # Externally maintained files
@@ -175,10 +177,8 @@ The `make` utility will check the timestamp on the _target of the link_, so when
 
 The arguments to the script are (1) the directory in which the symbolic links will be made and from (2) on, the file names that should be taken in use:
 <<lir-use>>=
-<<Bash header>>
-<<lir-use.bash>>
-<<lir-use.bash>>=
-for used in "${@:2}"
+lir-use () {
+while IFS='' read -r used
 do
     useddir=$(dirname "$used")
     mkdir  --verbose --parents "$1/$useddir"
@@ -191,6 +191,7 @@ do
         exit 1
     fi
 done
+}
 @
 
 # Extracting names
@@ -199,16 +200,13 @@ The question remains: which are the code chunks that need to be tangled?
 
 `lir` assumes that all root chunks (code chunks that are not used in other chunks) are meant to be tangled to files.
 The `noroots` tool provided by `noweb` will print to standard output all root chunk names, enclosed in double angle brackets.
-It is used by [[<<lir-chunknames>>]], which takes as its single argument the `lir` source file:
-<<lir-chunknames>>=
-<<Bash header>>
-<<lir-chunknames.bash>>
-@
+It is used by [[<<lir-chunknames>>]], which takes as its single argument the `lir` source file.
 
 One implicitly ignored chunk is the "anonymous", unnamed code chunk as in "`@<<>>=`"; this is interpreted as a continuation of the previous chunk by `lir`, but "`@<<>>=`" will appear in the list of root chunks as listed by `noroots`.
 A `lir` source file can also contain root chunks that have names beginning with `lir::`.
 These are used by the user to control `lir`'s functionality, and are not actual code.
-<<lir-chunknames.bash>>=
+<<lir-chunknames>>=
+lir-chunknames () {
 rootchunks=$(mktemp)
 noroots "$1" \
     | <<Drop double angle brackets>> \
@@ -219,22 +217,23 @@ noroots "$1" \
 @
 
 If there is a root chunk that does not need to be tangled (for whatever reason), it can be declared in a chunk named [[<<lir::ignore>>]], one chunk name per line.
-<<lir-chunknames.bash>>=
+<<lir-chunknames>>=
 ignoredchunks=$(mktemp)
-if noroots "$1" | grep --silent --line-regexp '@<<lir::ignore@>>'
-then
-    notangle -filter emptydefn -t8 -R"lir::ignore" "$1" \
+if notangle -filter emptydefn -t8 -R"lir::ignore" "$1" \
         | <<Remove empty lines>> \
         | <<Drop double angle brackets>> \
         | sort --unique \
         > "$ignoredchunks"
+then
+    :
 fi
 @
 
 The chunk names declared in [[<<lir::ignore>>]] are removed from the list of chunk names emitted by [[<<lir-chunknames>>]] using the standard command line tool `comm`.
-<<lir-chunknames.bash>>=
+<<lir-chunknames>>=
 comm -2 -3 "$rootchunks" "$ignoredchunks"
 rm "$rootchunks" "$ignoredchunks"
+}
 @
 
 Filters used in the pipelines above:
@@ -418,7 +417,7 @@ sed -n '/^@text $/!p' \
 @
 
 <<Pandoc source to HTML>>=
-tee before-pandoc.debug | pandoc "$@" \
+pandoc "$@" \
     --from=markdown \
     --table-of-contents \
     --standalone \

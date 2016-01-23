@@ -10,13 +10,15 @@ export NOWEB_LIBPATH="$HOME"/lib/noweb
 mkdir --parents "$LIR_LIBPATH"
 mkdir --parents "$LIR_BINPATH"
 
+echo "*** Pre-cleaning..."
+make clean
 echo "*** Making lir..."
 make
 echo "--> Done"
 echo "*** Installing lir..."
 make install
 echo "--> Done"
-rm -r .lir
+rm -rf .lir
 echo "*** Using lir to tangle and weave lir..."
 lir lir.lir --bibliography=lir.bib
 echo "--> Done"
