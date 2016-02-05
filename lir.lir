@@ -467,9 +467,9 @@ During development, it is good to know if the program has left behind any uninte
 They would be "hidden" by the `halt/0` used at the end of the main program.
 <<Warn about non-determinism>>=
 deterministic(D),
-(   D == false
-->  format(user_error, "NWPIPE-PANDOC : DANGLING CHOICE POINT(S)!~n", [])
-;   true
+(   D == true
+->  true
+;   format(user_error, "NWPIPE-PANDOC : DANGLING CHOICE POINT(S)!~n", [])
 )
 @
 
