@@ -8,7 +8,6 @@ echo "date: $(date --utc +%Y-%m-%d)"
 rights: (c) 2015 Boris Vassilev, University of Helsinki
 ...
 
-# Introduction
 This is a collection of tools that support programming language-agnostic reproducible computing.
 
 This document is self-hosting: the implementation presented here can be used to produce the final human-readable version of itself.
