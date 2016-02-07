@@ -43,8 +43,9 @@ The overall workflow for `lir` is as follows:
     Once all results and figures have been generated, the original `lir` source file is processed to obtain a valid Pandoc markdown source file.
     At that point, Pandoc is used to compile this to a final human readable file with any results and figures generated in the previous step.
 
-# The wrapper script
-To implement this, `lir` provides the three tools mentioned above, and a wrapper script, [[<<lir>>]], which simply runs them in that order.
+## The wrapper script
+To implement this, `lir` provides a bash script, [[<<lir>>]], which runs one of [[<<lir-tangle>>]], [[<<lir-make>>]], or [[<<lir-weave>>]].
+
 A script called `lir` can be invoked with the source file as its first argument.
 <<lir>>=
 <<Bash header>>
