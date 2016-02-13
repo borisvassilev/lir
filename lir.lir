@@ -3,7 +3,7 @@ title: 'Reproducible computing with `lir`'
 author: Boris Vassilev
 version: 0.3
 <<lir::eval>>=
-echo "date: $(date --utc +%Y-%m-%d)"
+echo "date: $(date --utc +%c)"
 @
 rights: (c) 2015 Boris Vassilev, University of Helsinki
 ...
@@ -53,10 +53,21 @@ It is invoked with one of `tangle`, `make`, or `weave` as the first argument.
 <<lir.bash>>=
 <<Setup `lir` script>>
 <<Define functions used by `lir`>>
-<<Tangle relevant chunks>>
-<<Use external dependencies>>
-<<Make everything>>
-<<Weave the documentation>>
+case $1 in
+tangle)
+    <<Tangle relevant chunks>>
+    <<Use external dependencies>>
+    ;;
+make)
+    <<Make everything>>
+    <<Weave the documentation>>
+    ;;
+weave)
+;;
+*)
+    echo "ERROR: unknown command $1"
+    ;;
+esac
 @
 
 The script will exit immediately on any command that fails.
@@ -64,9 +75,9 @@ Any arguments after the first will be given as options to Pandoc.
 If the `.lir` working directory does not exist, it is created.
 The paths to the library directories for `noweb` and `lir` are made available for all scripts used by the wrapper script.
 <<Setup `lir` script>>=
-LIR_SOURCE="$1"
+LIR_SOURCE="$2"
+BASENAME=$(basename "$LIR_SOURCE" .lir)
 LIR_DIR='.lir'
-export PANDOC_OPTS="${@:2}"
 MAKE_JOBS='--jobs'
 mkdir --verbose --parents "$LIR_DIR"
 export NOWEB_LIBPATH=@@NOWEB_LIBPATH@@
@@ -123,7 +134,6 @@ all: ;
 
 <<Weave the documentation>>=
 make --debug=b --directory="$LIR_DIR" --makefile=lirmakefile html
-BASENAME=$(basename "$1" .lir)
 cp --verbose --update ".lir/$BASENAME.html" .
 @
 
@@ -255,6 +265,9 @@ Everything is wrapped as a bash script that will be installed, along with [[<<li
 It reads the `lir` source from standard input and writes the HTML to standard output.
 <<lir-weave>>=
 <<Bash header>>
+export NOWEB_LIBPATH=@@NOWEB_LIBPATH@@
+export LIR_LIBPATH=@@LIR_LIBPATH@@
+PANDOC_OPTS="${@:2}"
 <<Weave `lir` source to HTML>>
 @
 

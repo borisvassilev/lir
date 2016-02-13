@@ -20,6 +20,7 @@ make install
 echo "--> Done"
 rm -rf .lir
 echo "*** Using lir to tangle and weave lir..."
-lir lir.lir --bibliography=lir.bib
+lir tangle lir.lir
+lir make lir.lir
 echo "--> Done"
 echo "*** Weaved document is in lir.html ***"
