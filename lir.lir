@@ -949,8 +949,6 @@ contmoresym --> html(&(0x21E3)). % DOWNWARDS DASHED ARROW
 %defeq --> html(&(0x2261)). equiv
 defeq --> html(=).
 defend --> html(&(0x25FC)). % Black square
-usedbysym --> html(&(0x21F1)). % NORTH WEST ARROW TO CORNER
-usessym --> html(&(0x21F2)). % SOUTH EAST ARROW TO CORNER
 
 chunk_content([]) --> [].
 chunk_content([C|Cs]) -->
@@ -968,8 +966,7 @@ chunk_content_(code_use(L, R, N), Cs) -->
     html(span(class(embeddeduse),
               [\openparen, \thinnbsp,
                a([id(L), href("#~a"-R)],
-                 [\[FN], span(class(embeddedusesym),
-                              [\thinnbsp, \usessym])]),
+                 [\[FN]]),
                \thinnbsp, \closeparen])),
     chunk_content(Cs).
 
@@ -992,14 +989,14 @@ chunk_uses_([U|Us]) -->
     }, !,
     html([br([]),
          "Used by ",
-         a(href("#~a"-U),[\usedbysym, \thinnbsp, "C~d"-Nr])]),
+         a(href("#~a"-U),["C~d"-Nr])]),
     chunk_uses_rest(Us).
 chunk_uses_(notused) --> html([br([]), "root chunk"]).
 chunk_uses_rest([]) --> [].
 chunk_uses_rest([U|Us]) -->
     {   label_nr_name_fname(U, Nr, _, _)
     },
-    html([", ", a(href("#~a"-U), [\usedbysym, \thinnbsp, "C~d"-Nr])]),
+    html([", ", a(href("#~a"-U), ["C~d"-Nr])]),
     chunk_uses_rest(Us).
 
 chunk_next(M) -->
