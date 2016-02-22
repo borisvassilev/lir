@@ -63,7 +63,7 @@ make)
     <<Weave the documentation>>
     ;;
 weave)
-;;
+    ;;
 *)
     echo "ERROR: unknown command $1"
     ;;
