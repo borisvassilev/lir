@@ -1070,13 +1070,13 @@ For HTML documentation, [[<<lir.css>>]] is used.
 The text width is limited and a left margin is inserted to improve readability.
 <<Text width and margin>>=
 p {
-    max-width: 13cm;
+    max-width: 14cm;
 }
 ul,
 ol,
 dl,
 span.chunkdefs {
-    max-width: 11cm;
+    max-width: 12cm;
 }
 body {
     padding-left: 1cm;
@@ -1088,6 +1088,7 @@ h1,
 h2,
 h3 {
     font-family: sans-serif;
+    max-width: 12cm;
 }
 @
 
