@@ -455,11 +455,14 @@ It uses the module [[<<driver.pl>>]] to do the actual work.
 :- use_module(driver, [nwpipeline_pandoc/1]).
 main :-
     current_prolog_flag(argv, Argv), % command line arguments
-    nwpipeline_pandoc(Argv),
+    setup_call_cleanup(
+        true,
+        nwpipeline_pandoc(Argv),
+        Det = true),
     <<Warn about non-determinism>>,
     halt. % exit with success
 main :-
-    format(user_error, "NWPIPE-PANDOC : FAILED~n", []),
+    throw(error(evaluation_error("nwpipe-pandoc failed")),_),
     halt(1). % otherwise, exit with failure (1)
 @
 
@@ -481,10 +484,10 @@ This can be avoided for the more commonly used meta-predicates (`maplist/1+N`, `
 During development, it is good to know if the program has left behind any unintentional choice points -- they are certainly errors, as the program is designed to succeed deterministically.
 They would be "hidden" by the `halt/0` used at the end of the main program.
 <<Warn about non-determinism>>=
-deterministic(D),
-(   D == true
+(   Det == true
 ->  true
-;   format(user_error, "NWPIPE-PANDOC : DANGLING CHOICE POINT(S)!~n", [])
+;   !,
+    throw(error(mode_error(notdet, Goal),_))
 )
 @
 
