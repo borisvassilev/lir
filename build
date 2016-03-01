@@ -3,12 +3,7 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-export LIR_LIBPATH="$HOME"/lib/lir
-export LIR_BINPATH="$HOME"/bin
-export NOWEB_LIBPATH=/usr/lib/noweb
-
-mkdir --parents "$LIR_LIBPATH"
-mkdir --parents "$LIR_BINPATH"
+notangle -t8 -R":make" lir.lir > Makefile
 
 echo "*** Pre-cleaning..."
 make clean

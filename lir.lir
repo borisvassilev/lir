@@ -13,6 +13,59 @@ This is a collection of tools that support programming language-agnostic reprodu
 This document is self-hosting: the implementation presented here can be used to produce the final human-readable version of itself.
 This makes informal validation trivial ("does the final document look right?"), but it also means that the only guarantee is that it implements enough to be able to compile itself.
 
+# Global definitions
+These are a few paths that would probably be different for each computer.
+Those have to be redefined before compiling this document.
+
+## Library paths
+<<Path to `lir`>>=
+"$HOME"/lib/lir
+<<Path to `lir` binaries>>=
+"$HOME"/bin
+<<Path to `noweb`>>=
+/usr/lib/noweb
+@
+
+## Makefile
+<<:make>>=
+nwpipemodules = driver.pl nwpipe.pl lirhtml.pl
+
+nwpipesources = nwpipe-pandoc.pl $(nwpipemodules)
+
+
+
+tangled = \
+	lir \
+	lir-weave \
+	$(nwpipesources) \
+	lir.css
+
+all : lir.lir
+	mkdir --parents <<Path to `lir`>>
+	mkdir --parents <<Path to `lir` binaries>>
+	<<Path to `noweb`>>/markup -t lir.lir \
+	    | <<Path to `noweb`>>/emptydefn \
+	    | <<Path to `noweb`>>/mnt -t $(tangled)
+	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
+	chmod u+x lir lir-weave
+.PHONY : all
+
+install :
+	mkdir --parents <<Path to `lir`>>
+	cp --verbose --preserve \
+	    lir.css \
+	    nwpipe-pandoc \
+	    	<<Path to `lir`>>
+	cp --verbose --preserve \
+	    lir lir-weave <<Path to `lir` binaries>>
+.PHONY : install
+
+clean :
+	-rm $(tangled) nwpipe-pandoc
+	-rm -r <<Path to `lir`>>
+.PHONY : clean
+@
+
 # Overview
 The tools provided by `lir` aim to support two goals:
 
@@ -83,8 +136,6 @@ BASENAME=$(basename "$LIR_SOURCE" .lir)
 LIR_DIR='.lir'
 MAKE_JOBS='--jobs'
 mkdir --verbose --parents "$LIR_DIR"
-export NOWEB_LIBPATH=@@NOWEB_LIBPATH@@
-export LIR_LIBPATH=@@LIR_LIBPATH@@
 @
 
 <<Define functions used by `lir`>>=
@@ -140,7 +191,7 @@ make --debug=b --directory="$LIR_DIR" --makefile=lirmakefile html
 cp --verbose --update ".lir/$BASENAME.html" .
 @
 
-# Tangling
+## Tangling
 "Tangling" is the process of extracting the source code embedded in the `lir` literate source file so that it can be compiled and executed to obtain results.
 
 First, we have [[<<lir-tangle>>]], which accepts three arguments, in this order: (1) the name of a `lir` source file; (2) the name of a chunk; and (3) the name of the file that the chunk will be extracted to.
@@ -180,7 +231,7 @@ done
 }
 @
 
-# Externally maintained files
+## Externally maintained files
 Not all data in an analysis naturally fits into the `lir` source file.
 Examples already mentioned above are the input data, or an externally maintained file like a bibliography.
 
@@ -207,7 +258,7 @@ done
 }
 @
 
-# Extracting names
+## Extracting names
 With the help of [[<<lir-mtangle>>]] and the tools it uses, we can tangle all relevant chunks to files.
 The question remains: which are the code chunks that need to be tangled?
 
@@ -254,21 +305,19 @@ Filters used in the pipelines above:
 sed -n 's/^@<<\(.*\)@>>$/\1/p'
 @
 <<Remove empty lines>>=
-sed '/^\s*$/d'
+sed -n '/^\s*$/!p'
 @
 <<Remove names starting with `:`>>=
 sed -n '/^:.*/!p'
 @
 
-# Weaving
+## Weaving
 Weaving means generating the final human readable documentation from the `lir` source file.
 The original source is transformed by several filters before passed to Pandoc for generating an HTML document that can be viewed in a browser.
 Everything is wrapped as a bash script that will be installed, along with [[<<lir>>]], in `LIR_BINPATH`.
 It reads the `lir` source from standard input and writes the HTML to standard output.
 <<lir-weave>>=
 <<Bash header>>
-export NOWEB_LIBPATH=@@NOWEB_LIBPATH@@
-export LIR_LIBPATH=@@LIR_LIBPATH@@
 PANDOC_OPTS="${@:2}"
 <<Weave `lir` source to HTML>>
 @
@@ -419,16 +468,16 @@ Since tabs can be significant, for example in Makefiles, those are preserved (th
 The `-delay` option to `noidx` makes sure that the index of code chunks is emitted before the last document chunk.
 This is necessary to be able to generate a bibliography with Pandoc.
 <<Source to `noweb` pipeline representation>>=
-"$NOWEB_LIBPATH"/markup -t \
-    | "$NOWEB_LIBPATH"/emptydefn \
-    | "$NOWEB_LIBPATH"/noidx -delay
+"<<Path to `noweb`>>"/markup -t \
+    | "<<Path to `noweb`>>"/emptydefn \
+    | "<<Path to `noweb`>>"/noidx -delay
 @
 
 To make it marginally easier to deal with the pipeline representation, we completely remove any empty text tokens from it before tranforming it to Pandoc source.
 We then use [[<<nwpipe-pandoc.pl>>]] to transform the `noweb` pipeline representation of the `lir` source file to a valid Pandoc source file.
 <<`Noweb` pipeline representation to Pandoc source>>=
 sed -n '/^@text $/!p' \
-    | "$LIR_LIBPATH"/nwpipe-pandoc
+    | "<<Path to `lir`>>"/nwpipe-pandoc
 @
 
 <<Pandoc source to HTML>>=
@@ -439,7 +488,7 @@ pandoc "$@" \
     --self-contained \
     --smart \
     --to=html5 \
-    --css="$LIR_LIBPATH"/lir.css \
+    --css="<<Path to `lir`>>"/lir.css \
     --output=-
 @
 
@@ -893,12 +942,17 @@ Use Pandoc to pre-format chunk names.
 :- use_module(library(sgml), [load_structure/3]).
 :- use_module(library(sgml_write), [xml_write/3]).
 
-through_pandoc(To, Str, FStr) :-
+through_pandoc(Format, Str, FStr) :-
 	atomics_to_string(L, "'", Str), % split
 	atomics_to_string(L, "'\\''", EscStr), % put together
-	atomics_to_string(["echo '", EscStr, "' | pandoc -t ", To], Pandoc),
-	process_create(path(bash), ['-c', Pandoc], [stdout(pipe(Out))]),
-	through_pandoc_1(To, Out, FStr),
+	atomics_to_string(
+            ["echo '", EscStr, "' | pandoc -t ", Format], 
+            Pandoc),
+	process_create(
+            path(bash),
+            ['-c', Pandoc],
+            [stdout(pipe(Out))]),
+	through_pandoc_1(Format, Out, FStr),
 	close(Out).
 
 through_pandoc_1(html5, Out, FStr) :-
