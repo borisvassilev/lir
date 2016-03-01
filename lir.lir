@@ -952,22 +952,15 @@ lir_pandoc(chunks_list(_Cs), P) -->
     lir_pandoc(P).
 lir_pandoc(index(_), P) --> [], lir_pandoc(P).
 
-%nbsp --> html(&(0xA0)).
 nbsp --> html(&(nbsp)).
 thinnbsp --> html(span(style("white-space:nowrap"), &(0x2009))).
-%openparen --> html(&(0x27E8)). % lang
-%openparen --> html(&(0x27EA)). % Lang
 openparen --> html(&('Lang')). % Lang
-%closeparen --> html(&(0x27E9)). % rang
-%closeparen --> html(&(0x27EB)). % Rang
 closeparen --> html(&('Rang')). % Rang
 prevsym --> html(&(0x21E7)). % UPWARDS WHITE ARROW
-%prevsym --> html(&(0x21EB)). % UPWARDS WHITE ARROW ON PEDESTAL
 nextsym --> html(&(0x21E9)). % DOWNWARDS WHITE ARROW
 contsym --> html(&(darr)).
 contmoresym --> html(&(0x21E3)). % DOWNWARDS DASHED ARROW
-%defeq --> html(&(0x2261)). equiv
-defeq --> html(=).
+defeq --> html(&(equiv)).
 defend --> html(&(0x25FC)). % Black square
 
 chunk_content([]) --> [].
@@ -997,7 +990,7 @@ chunk_defn(_M, L) -->
               [span(class(chunknr), "C~d:"-Nr), \nbsp,
                \openparen, \thinnbsp,
                a(href("#~a"-L), \[FName]),
-               \thinnbsp, \closeparen, \defeq])).
+               \thinnbsp, \closeparen, \thinnbsp, \defeq])).
 chunk_uses(M) -->
     {   code{uses:Us} :< M
     }, !,
