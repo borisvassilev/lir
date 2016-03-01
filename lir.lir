@@ -3,7 +3,7 @@ title: 'Reproducible computing with `lir`'
 author: Boris Vassilev
 version: 0.3
 <<:eval>>=
-echo "date: $(date --utc +%c)"
+echo "date: $(date --utc --iso-8601)"
 @
 rights: (c) 2015 Boris Vassilev, University of Helsinki
 ...
@@ -1071,16 +1071,16 @@ For HTML documentation, [[<<lir.css>>]] is used.
 The text width is limited and a left margin is inserted to improve readability.
 <<Text width and margin>>=
 p {
-    max-width: 14cm;
+    max-width: 13cm;
 }
 ul,
 ol,
 dl,
 span.chunkdefs {
-    max-width: 12cm;
+    max-width: 11cm;
 }
 body {
-    padding-left: 2cm;
+    padding-left: 1cm;
 }
 @
 
