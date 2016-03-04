@@ -1320,7 +1320,7 @@ The necessary standard libraries:
 
 <<Function definitions (`langs`)>>=
 <<Does a string have a prefix?>>
-<<What is the language of the chunk based on its name?>>
+<<Can you guess the language from the name?>>
 @
 
 <<Does a string have a prefix?>>=
@@ -1346,7 +1346,7 @@ string_prefix_rest(const std::string& s, const std::string& t,
 }
 @
 
-<<What is the language of the chunk based on its name?>>=
+<<Can you guess the language from the name?>>=
 bool
 name_dict_lang(const std::string& n,
                const std::map<std::string, std::string>& d,
