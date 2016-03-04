@@ -43,8 +43,9 @@ echo "*** Done!"
 
 rm -rf .lir
 echo "*** Using lir to tangle and weave lir..."
-lir tangle lir.lir
-lir make lir.lir
+lir tangle lir.lir \
+    && lir make lir.lir \
+    && lir weave lir.lir --bibliography=lir.bib
 echo "*** Weaved document is in lir.html!"
 @
 
@@ -135,9 +136,9 @@ tangle)
     ;;
 make)
     <<Make everything>>
-    <<Weave the documentation>>
     ;;
 weave)
+    <<Weave the documentation>>
     ;;
 purge)
     rm --recursive --one-file-system .lir
@@ -154,6 +155,7 @@ If the `.lir` working directory does not exist, it is created.
 The paths to the library directories for `noweb` and `lir` are made available for all scripts used by the wrapper script.
 <<Setup `lir` script>>=
 LIR_SOURCE="$2"
+MORE_OPTS="${@:2}"
 BASENAME=$(basename "$LIR_SOURCE" .lir)
 LIR_DIR='.lir'
 MAKE_JOBS='--jobs'
@@ -340,7 +342,7 @@ Everything is wrapped as a bash script that will be installed, along with [[<<li
 It reads the `lir` source from standard input and writes the HTML to standard output.
 <<lir-weave>>=
 <<Bash header>>
-PANDOC_OPTS="${@:2}"
+export PANDOC_OPTS="${@:2}"
 <<Weave `lir` source to HTML>>
 @
 
