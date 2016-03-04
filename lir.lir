@@ -23,47 +23,71 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-/usr/lib/noweb
+"$HOME"/lib/noweb
+@
+
+## Making and installing
+<<build.sh>>=
+<<Bash header>>
+
+echo "*** Making and Installing..."
+notangle -t8 -filter emptydefn -R"Makefile" lir.lir > Makefile
+export LIRPATH=<<Path to `lir`>>
+export LIRBINPATH=<<Path to `lir` binaries>>
+export NOWEBPATH=<<Path to `noweb`>>
+
+make clean
+make
+make install
+echo "*** Done!"
+
+rm -rf .lir
+echo "*** Using lir to tangle and weave lir..."
+lir tangle lir.lir
+lir make lir.lir
+echo "*** Weaved document is in lir.html!"
 @
 
 ## Makefile
-<<:make>>=
+<<Makefile>>=
 nwpipemodules = driver.pl nwpipe.pl lirhtml.pl
 
 nwpipesources = nwpipe-pandoc.pl $(nwpipemodules)
 
-
-
-tangled = \
-	lir \
-	lir-weave \
-	$(nwpipesources) \
-	lir.css
+tangled = lir lir-weave $(nwpipesources) lir.css
 
 all : lir.lir
-	mkdir --parents <<Path to `lir`>>
-	mkdir --parents <<Path to `lir` binaries>>
-	<<Path to `noweb`>>/markup -t lir.lir \
-	    | <<Path to `noweb`>>/emptydefn \
-	    | <<Path to `noweb`>>/mnt -t $(tangled)
+	$(NOWEBPATH)/markup -t lir.lir \
+	    | $(NOWEBPATH)/emptydefn \
+	    | $(NOWEBPATH)/mnt -t $(tangled)
 	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
 	chmod u+x lir lir-weave
-.PHONY : all
 
 install :
-	mkdir --parents <<Path to `lir`>>
+	mkdir --parents $(LIRPATH)
 	cp --verbose --preserve \
-	    lir.css \
-	    nwpipe-pandoc \
-	    	<<Path to `lir`>>
+	    lir.css nwpipe-pandoc $(LIRPATH)
+	mkdir --parents $(LIRBINPATH)
 	cp --verbose --preserve \
-	    lir lir-weave <<Path to `lir` binaries>>
+	    lir lir-weave $(LIRBINPATH)
 .PHONY : install
 
 clean :
 	-rm $(tangled) nwpipe-pandoc
-	-rm -r <<Path to `lir`>>
+	-rm -r $(LIRPATH)
 .PHONY : clean
+@
+
+## Bash scripts
+The portable [[<<Bash header>>]] is, according to [Stack Overflow](http://stackoverflow.com/questions/10376206/preferred-bash-shebang):
+<<Bash header>>=
+#! /usr/bin/env bash
+@
+Furthermore, we set the scripts to immediately exit with error on failure, consider failure in a pipe a failure, and to consider "empty" (unset) variables an error:
+<<Bash header>>=
+set -o errexit
+set -o pipefail
+set -o nounset
 @
 
 # Overview
@@ -99,11 +123,9 @@ This is usually done in three independent steps: _tangling_, _making_, and _weav
 It is invoked with one of `tangle`, `make`, or `weave` as the first argument.
 
 <<lir>>=
-<<Bash header>>
 <<lir.bash>>
-@
-
 <<lir.bash>>=
+<<Bash header>>
 <<Setup `lir` script>>
 <<Define functions used by `lir`>>
 case $1 in
@@ -342,14 +364,14 @@ lir.html: lir.lir
 
 Of the two transformations done on the `lir` source before giving it to the `noweb` tools, "including" files is the more general one and has to be done first.
 <<`Lir`-specific transformations>>=
-awk '<<Nameless code chunks as continuations>>' \
-    | awk '<<Close all codechunks with `@`>>' \
+awk '<<Nameless code chunks as continuations .awk>>' \
+    | awk '<<Close all codechunks with `@` .awk>>' \
     | awk -v evalcmd="bash -o errexit -o pipefail -o nounset" \
-          '<<Evaluate code chunk contents>>' \
-    | awk '<<Insert file listings>>'
+          '<<Evaluate code chunk contents .awk>>' \
+    | awk '<<Insert file listings .awk>>'
 @
 
-<<Nameless code chunks as continuations>>=
+<<Nameless code chunks as continuations .awk>>=
 BEGIN {
     <<Setup `awk` to treat lines as single-field records>>
     last_name = "@<<>>="
@@ -359,7 +381,7 @@ BEGIN {
 { print $0 }
 @
 
-<<Close all codechunks with `@`>>=
+<<Close all codechunks with `@` .awk>>=
 BEGIN {
     <<Setup `awk` to treat lines as single-field records>>
     in_chunk = 0
@@ -375,7 +397,7 @@ BEGIN {
 
 The contents of each code chunk named `:eval` will be evaluated by an invocation of `bash`.
 Whatever is written to standard output will be **pasted as it is** in place of the code chunk before anything else is done with the source file.
-<<Evaluate code chunk contents>>=
+<<Evaluate code chunk contents .awk>>=
 BEGIN {
     <<Setup `awk` to treat lines as single-field records>>
 }
@@ -405,7 +427,7 @@ _Use with care!_
 
 Each line inside a code chunk named `:listing` will be treated as a file name that has to be included verbatim in the weaved final document.
 The full contents of the file will be inserted unchanged in a code chunk named [[<<:listing `filename`>>]].
-<<Insert file listings>>=
+<<Insert file listings .awk>>=
 BEGIN {
     <<Setup `awk` to treat lines as single-field records>>
 }
@@ -1124,10 +1146,7 @@ The text width is limited and a left margin is inserted to improve readability.
 p {
     max-width: 14cm;
 }
-ul,
-ol,
-dl,
-span.chunkdefs {
+ul, ol, dl, span.chunkdefs {
     max-width: 12cm;
 }
 body {
@@ -1136,9 +1155,7 @@ body {
 @
 
 <<Headers in sans-serif>>=
-h1,
-h2,
-h3 {
+h1, h2, h3 {
     font-family: sans-serif;
     max-width: 12cm;
 }
@@ -1215,18 +1232,6 @@ span.quote {
 ul.chunkslist {
     list-style-type: square;
 }
-@
-
-# Common definitions
-The portable [[<<Bash header>>]] is, according to [Stack Overflow](http://stackoverflow.com/questions/10376206/preferred-bash-shebang):
-<<Bash header>>=
-#! /usr/bin/env bash
-@
-Furthermore, we set the scripts to immediately exit with error on failure, consider failure in a pipe a failure, and to consider "empty" (unset) variables an error:
-<<Bash header>>=
-set -o errexit
-set -o pipefail
-set -o nounset
 @
 
 # References
