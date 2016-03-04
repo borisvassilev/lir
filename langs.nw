@@ -37,7 +37,7 @@ content:
     <<`Content` transitions>>
 
     std::string un;
-    if (begins_with(line, {"@use "}, un))
+    if (string_prefix_rest(line, {"@use "}, un))
         uses[name].insert(un);
 
     goto content;
@@ -59,14 +59,14 @@ error:
 if (!std::getline(std::cin, line)) goto end;
 lines.push_back(line);
 
-if (begins_with(line, {"@begin code"})) goto code;
+if (string_prefix(line, {"@begin code"})) goto code;
 @
 
 <<`Code` transitions>>=
 if (!std::getline(std::cin, line)) goto error;
 lines.push_back(line);
 
-if (begins_with(line, {"@defn "}, name)) {
+if (string_prefix_rest(line, {"@defn "}, name)) {
     <<Process code chunk name>>
     goto content;
 }
@@ -83,7 +83,7 @@ if (name_dict_lang(name, langs, cl)) {
 if (!std::getline(std::cin, line)) goto error;
 lines.push_back(line);
 
-if (begins_with(line, {"@end code"})) goto out;
+if (string_prefix(line, {"@end code"})) goto out;
 @
 
 <<Variable definitions (`langs`)>>=
@@ -118,7 +118,7 @@ while (!pending.empty()) {
 for (auto l : lines) {
     std::cout << l << '\n';
 
-    if (begins_with(l, {"@defn "}, name)) {
+    if (string_prefix_rest(l, {"@defn "}, name)) {
         auto x = chunk_lang.find(name);
         if (x != chunk_lang.cend())
             std::cout << "@language " << x->second << '\n';
@@ -139,25 +139,32 @@ for (auto l : lines) {
 #include <queue>
 @
 
+Predicate that checks if a string has a prefix.
 <<Function definitions (`langs`)>>=
 bool
-begins_with(const std::string& s, const std::string& t)
+string_prefix(const std::string& s, const std::string& t)
 {
     if (0 == s.compare(0, t.length(), t)) return true;
     return false;
 }
+@
 
+Predicate that checks if a string has a prefix and returns the rest.
+<<Function definitions (`langs`)>>=
 bool
-begins_with(const std::string& s, const std::string& t,
-            std::string& rest)
+string_prefix_rest(const std::string& s, const std::string& t,
+                   std::string& rest)
 {
-    if (begins_with(s, t)) {
+    if (string_prefix(s, t)) {
         rest = s.substr(t.length());
         return true;
     }
     return false;
 }
+@
 
+A predicate that checks if a string ends with an extension available in a dictionary and returns the corresponding language.
+<<Function definitions (`langs`)>>=
 bool
 name_dict_lang(const std::string& n,
                const std::map<std::string, std::string>& d,
@@ -174,4 +181,3 @@ name_dict_lang(const std::string& n,
     return true;
 }
 @
-
