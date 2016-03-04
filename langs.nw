@@ -12,6 +12,12 @@ This is a table of known extensions.
 {"css", "css"}
 @
 
+The whole program.
+It implements a state machine with the states necessary to extract code chunk names and the uses within a code chunk.
+The start state is `out`;
+when a code chunk starts, it transitions to `code`, where it expects a code chunk name, and transitions to `content`;
+while in `content`, it collects uses, and goes back to `out` at the end of the code chunk.
+Throughout, each line from input is saved to a list of all lines.
 <<langs.cpp>>=
 <<Includes (`langs`)>>
 <<Function definitions (`langs`)>>
@@ -86,17 +92,6 @@ lines.push_back(line);
 if (string_prefix(line, {"@end code"})) goto out;
 @
 
-<<Variable definitions (`langs`)>>=
-std::vector<std::string> lines{};
-std::map<std::string, std::set<std::string>> uses{};
-std::map<std::string, std::string> chunk_lang{};
-std::queue<std::string> pending{};
-const std::map<std::string, std::string> langs{<<Ext-Lang>>};
-
-std::string line;
-std::string name;
-@
-
 This uses a queue to do a width-first traversal of the use-tree.
 Initially, the queue is filled with the 
 <<Propagate language to uses>>=
@@ -128,14 +123,43 @@ for (auto l : lines) {
 }
 @
 
+A list of all lines in the original order:
+<<Variable definitions (`langs`)>>=
+std::list<std::string> lines{};
+@
 
+The DAG of the code chunks in the S-representation:
+<<Variable definitions (`langs`)>>=
+std::map<std::string, std::set<std::string>> uses{};
+@
+
+The language of each code chunk:
+<<Variable definitions (`langs`)>>=
+std::map<std::string, std::string> chunk_lang{};
+@
+
+A queue used for the breadth-first traversal of the chunks DAG:
+<<Variable definitions (`langs`)>>=
+std::queue<std::string> pending{};
+@
+
+Mapping of extensions to languages:
+<<Variable definitions (`langs`)>>=
+const std::map<std::string, std::string> langs{<<Ext-Lang>>};
+@
+
+Two string, one for the last line that was read and one for the name of the last code chunk defined with `@defn`:
+<<Variable definitions (`langs`)>>=
+std::string line;
+std::string name;
+@
 
 <<Includes (`langs`)>>=
 #include <iostream>
-#include <vector>
+#include <string>
+#include <list>
 #include <map>
 #include <set>
-#include <string>
 #include <queue>
 @
 
