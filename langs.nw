@@ -41,11 +41,7 @@ code:
 content:
 {
     <<`Content` transitions>>
-
-    std::string un;
-    if (string_prefix_rest(line, {"@use "}, un))
-        uses[name].insert(un);
-
+    <<`Content`: collect uses>>
     goto content;
 }
 
@@ -90,6 +86,10 @@ if (!std::getline(std::cin, line)) goto error;
 lines.push_back(line);
 
 if (string_prefix(line, {"@end code"})) goto out;
+<<`Content`: collect uses>>=
+std::string un;
+if (string_prefix_rest(line, {"@use "}, un))
+    uses[name].insert(un);
 @
 
 This uses a queue to do a width-first traversal of the use-tree.
