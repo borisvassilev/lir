@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-"$HOME"/lib/noweb
+/usr/lib/noweb
 @
 
 ## Making and installing
@@ -1130,6 +1130,239 @@ chunk_defs_rest([D|Ds]) -->
 # Layout
 The system tries to separate content and layout as much as possible.
 It also aims to provide a sensible default layout for the human-readable documentation.
+
+## Setting the code chunk language
+The program in [[<<langs.cpp>>]] can be used as a filter to noweb.
+It deduces the programming language of code chunks based on the names of the chunks.
+This is a table of known extensions:
+<<Ext-Lang>>=
+{"pl", "prolog"},
+{"sh", "bash"},
+{"bash", "bash"},
+{"cpp", "cpp"},
+{"R", "R"},
+{"awk", "awk"},
+{"sed", "sed"},
+{"css", "css"}
+@
+
+The program implements a state machine with the states necessary to extract code chunk names and the uses within a code chunk.
+The start state is `out`;
+when a code chunk starts, it transitions to `code`, where it expects a code chunk name, and transitions to `content`;
+while in `content`, it collects uses, and goes back to `out` at the end of the code chunk.
+Throughout, each line from input is saved to a list of all lines.
+<<langs.cpp>>=
+<<Includes (`langs`)>>
+<<Function definitions (`langs`)>>
+
+int main()
+{
+    <<Variable definitions (`langs`)>>
+
+out:
+{   
+    <<`Out` transitions>>
+    goto out;
+}
+
+code:
+{
+    <<`Code` transitions>>
+    goto code;
+}
+
+content:
+{
+    <<`Content` transitions>>
+    <<`Content`: collect uses>>
+    goto content;
+}
+
+end:
+{
+    <<Propagate language to uses>>
+    <<Output all lines, with `@language` after each `@defn`>>
+    return 0;
+}
+
+error:
+    return 1;
+}
+@
+
+When in `out`, end of input signals transition to the `end` state.
+A `@begin code` token signals a transition to `code`.
+<<`Out` transitions>>=
+if (!std::getline(std::cin, line)) goto end;
+lines.push_back(line);
+
+if (string_prefix(line, {"@begin code"})) goto code;
+@
+
+When in `code`, end of input is an error.
+A `@defn` token contains the code chunk name.
+The name is processed and the state machine transitions to `content`.
+<<`Code` transitions>>=
+if (!std::getline(std::cin, line)) goto error;
+lines.push_back(line);
+
+if (string_prefix_rest(line, {"@defn "}, name)) {
+    <<Process code chunk name>>
+    goto content;
+}
+@
+
+A code chunk name is inserted to the DAG of code chunks.
+Initially the set of neighbours is empty.
+Note that `std::map::insert` will only insert if the key does not yet exist, so it is safe to do this.
+<<Process code chunk name>>=
+uses.insert({name, {}}); 
+<<Try to set code chunk language>>
+@
+
+If the language of the chunk can be guessed from the name, the chunk name and its language are recorded.
+The code chunk name is also added to the queue later used for the breadth-first traversal of the DAG of code chunks.
+<<Try to set code chunk language>>=
+std::string cl;
+if (name_dict_lang(name, langs, cl)) {
+    chunk_lang.insert({name, cl});
+    pending.push(name);
+}
+@
+
+When in `content`, end of input is an error.
+An `@end code` token signals the transition back to `out`.
+<<`Content` transitions>>=
+if (!std::getline(std::cin, line)) goto error;
+lines.push_back(line);
+
+if (string_prefix(line, {"@end code"})) goto out;
+@
+
+When in `content`, each `@uses` token is used to populate the set of neighbours of the current code chunk in the DAG.
+<<`Content`: collect uses>>=
+std::string un;
+if (string_prefix_rest(line, {"@use "}, un)) uses[name].insert(un);
+@
+
+The language of a code chunk can be deduced in two ways.
+First, from the code chunk name; this is done as soon as the code chunk is encountered for the first time (see [[<<Try to set code chunk language>>]]).
+Second, if a code chunk without a known language is used by a code chunk with a language, it inherits it.
+To achieve this, a breadth-first traversal of the DAG of code chunks is used.
+Initially, the queue holds the names of all chunks with known languages (also done while reading).
+Any child code chunk _that does not yet have a language_ has its language set to that of the parent, and is pushed to the back of the queue.
+<<Propagate language to uses>>=
+while (!pending.empty()) {
+    std::string next = pending.front();
+    pending.pop();
+
+    for (auto c : uses[next]) {
+        auto x = chunk_lang.find(c);
+        if (x == chunk_lang.cend()) {
+            chunk_lang.insert({c, chunk_lang[next]});
+            pending.push(c);
+        }
+    }
+}
+@
+
+At the end, all tokens are emitted.
+If the token is `@defn`, a `@language` token is added right after it.
+For code chunks that don't have a language, the `txt` language is used.
+<<Output all lines, with `@language` after each `@defn`>>=
+for (auto l : lines) {
+    std::cout << l << '\n';
+
+    if (string_prefix_rest(l, {"@defn "}, name)) {
+        auto x = chunk_lang.find(name);
+        if (x != chunk_lang.cend())
+            std::cout << "@language " << x->second << '\n';
+        else
+            std::cout << "@language txt\n";
+    }
+}
+@
+
+These variables are "global" to the `main` function, or in other words, are available to all states of the state machine.
+<<Variable definitions (`langs`)>>=
+<<A list of all lines as they are read>>
+<<The DAG of the code chunks in the S-representation>>
+<<The language of each code chunk>>
+<<A queue for the traversal of the chunks DAG>>
+<<Mapping of extensions to languages>>
+<<A list of all lines as they are read>>=
+std::list<std::string> lines{};
+<<The DAG of the code chunks in the S-representation>>=
+std::map<std::string, std::set<std::string>> uses{};
+<<The language of each code chunk>>=
+std::map<std::string, std::string> chunk_lang{};
+<<A queue for the traversal of the chunks DAG>>=
+std::queue<std::string> pending{};
+<<Mapping of extensions to languages>>=
+const std::map<std::string, std::string> langs{<<Ext-Lang>>};
+@
+
+Two strings, one for the last line that was read and one for the name of the last code chunk defined with `@defn`:
+<<Variable definitions (`langs`)>>=
+std::string line;
+std::string name;
+@
+
+The necessary standard libraries:
+<<Includes (`langs`)>>=
+#include <iostream>
+#include <string>
+#include <list>
+#include <map>
+#include <set>
+#include <queue>
+@
+
+<<Function definitions (`langs`)>>=
+<<Does a string have a prefix?>>
+<<What is the language of the chunk based on its name?>>
+@
+
+<<Does a string have a prefix?>>=
+bool
+string_prefix(const std::string& s, const std::string& t)
+{
+    if (0 == s.compare(0, t.length(), t)) return true;
+    return false;
+}
+@
+
+A three-argument version to get the rest, too:
+<<>>=
+bool
+string_prefix_rest(const std::string& s, const std::string& t,
+                   std::string& rest)
+{
+    if (string_prefix(s, t)) {
+        rest = s.substr(t.length());
+        return true;
+    }
+    return false;
+}
+@
+
+<<What is the language of the chunk based on its name?>>=
+bool
+name_dict_lang(const std::string& n,
+               const std::map<std::string, std::string>& d,
+               std::string& l)
+{
+    size_t x = n.find_last_of('.');
+    if (x == std::string::npos) return false;
+
+    ++x;
+    auto ext_lang = d.find(n.substr(x));
+    if (ext_lang == d.cend()) return false;
+
+    l = ext_lang->second;
+    return true;
+}
+@
 
 ## HTML
 For HTML documentation, [[<<lir.css>>]] is used.
