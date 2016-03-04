@@ -1,6 +1,6 @@
 This program can be used as a filter to noweb.
 It deduces the programming language of code chunks based on the names of the chunks.
-This is a table of known extensions.
+This is a table of known extensions:
 <<Ext-Lang>>=
 {"pl", "prolog"},
 {"sh", "bash"},
@@ -48,7 +48,7 @@ content:
 end:
 {
     <<Propagate language to uses>>
-    <<Output all lines with `@language` after `@defn`>>
+    <<Output all lines, with `@language` after each `@defn`>>
     return 0;
 }
 
@@ -109,8 +109,7 @@ if (string_prefix(line, {"@end code"})) goto out;
 When in `content`, each `@uses` token is used to populate the set of neighbours of the current code chunk in the DAG.
 <<`Content`: collect uses>>=
 std::string un;
-if (string_prefix_rest(line, {"@use "}, un))
-    uses[name].insert(un);
+if (string_prefix_rest(line, {"@use "}, un)) uses[name].insert(un);
 @
 
 The language of a code chunk can be deduced in two ways.
@@ -137,7 +136,7 @@ while (!pending.empty()) {
 At the end, all tokens are emitted.
 If the token is `@defn`, a `@language` token is added right after it.
 For code chunks that don't have a language, the `txt` language is used.
-<<Output all lines with `@language` after `@defn`>>=
+<<Output all lines, with `@language` after each `@defn`>>=
 for (auto l : lines) {
     std::cout << l << '\n';
 
@@ -176,12 +175,13 @@ Mapping of extensions to languages:
 const std::map<std::string, std::string> langs{<<Ext-Lang>>};
 @
 
-Two string, one for the last line that was read and one for the name of the last code chunk defined with `@defn`:
+Two strings, one for the last line that was read and one for the name of the last code chunk defined with `@defn`:
 <<Variable definitions (`langs`)>>=
 std::string line;
 std::string name;
 @
 
+The necessary standard libraries:
 <<Includes (`langs`)>>=
 #include <iostream>
 #include <string>
