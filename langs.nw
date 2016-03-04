@@ -1,15 +1,145 @@
 This program can be used as a filter to noweb.
 It deduces the programming language of code chunks based on the names of the chunks.
+This is a table of known extensions.
+<<Ext-Lang>>=
+{"pl", "prolog"},
+{"sh", "bash"},
+{"bash", "bash"},
+{"cpp", "cpp"},
+{"R", "R"},
+{"awk", "awk"},
+{"sed", "sed"},
+{"css", "css"}
+@
+
 <<langs.cpp>>=
+<<Includes (`langs`)>>
+<<Function definitions (`langs`)>>
+
+int main()
+{
+    <<Variable definitions (`langs`)>>
+
+out:
+{   
+    <<`Out` transitions>>
+    goto out;
+}
+
+code:
+{
+    <<`Code` transitions>>
+    goto code;
+}
+
+content:
+{
+    <<`Content` transitions>>
+
+    std::string un;
+    if (begins_with(line, {"@use "}, un))
+        uses[name].insert(un);
+
+    goto content;
+}
+
+end:
+{
+    <<Propagate language to uses>>
+    <<Output all lines with `@language` after `@defn`>>
+    return 0;
+}
+
+error:
+    return 1;
+}
+@
+
+<<`Out` transitions>>=
+if (!std::getline(std::cin, line)) goto end;
+lines.push_back(line);
+
+if (begins_with(line, {"@begin code"})) goto code;
+@
+
+<<`Code` transitions>>=
+if (!std::getline(std::cin, line)) goto error;
+lines.push_back(line);
+
+if (begins_with(line, {"@defn "}, name)) {
+    <<Process code chunk name>>
+    goto content;
+}
+<<Process code chunk name>>=
+uses.insert({name, {}}); 
+std::string cl;
+if (name_dict_lang(name, langs, cl)) {
+    chunk_lang.insert({name, cl});
+    pending.push(name);
+}
+@
+
+<<`Content` transitions>>=
+if (!std::getline(std::cin, line)) goto error;
+lines.push_back(line);
+
+if (begins_with(line, {"@end code"})) goto out;
+@
+
+<<Variable definitions (`langs`)>>=
+std::vector<std::string> lines{};
+std::map<std::string, std::set<std::string>> uses{};
+std::map<std::string, std::string> chunk_lang{};
+std::queue<std::string> pending{};
+const std::map<std::string, std::string> langs{<<Ext-Lang>>};
+
+std::string line;
+std::string name;
+@
+
+This uses a queue to do a width-first traversal of the use-tree.
+Initially, the queue is filled with the 
+<<Propagate language to uses>>=
+while (!pending.empty()) {
+    std::string next = pending.front();
+    pending.pop();
+
+    for (auto c : uses[next]) {
+        auto x = chunk_lang.find(c);
+        if (x == chunk_lang.cend()) {
+            chunk_lang.insert({c, chunk_lang[next]});
+            pending.push(c);
+        }
+    }
+}
+@
+
+<<Output all lines with `@language` after `@defn`>>=
+for (auto l : lines) {
+    std::cout << l << '\n';
+
+    if (begins_with(l, {"@defn "}, name)) {
+        auto x = chunk_lang.find(name);
+        if (x != chunk_lang.cend())
+            std::cout << "@language " << x->second << '\n';
+        else
+            std::cout << "@language txt\n";
+    }
+}
+@
+
+
+
+<<Includes (`langs`)>>=
 #include <iostream>
-#include <algorithm>
 #include <vector>
 #include <map>
 #include <set>
 #include <string>
-#include <cctype>
 #include <queue>
+@
 
+<<Function definitions (`langs`)>>=
 bool
 begins_with(const std::string& s, const std::string& t)
 {
@@ -22,119 +152,26 @@ begins_with(const std::string& s, const std::string& t,
             std::string& rest)
 {
     if (begins_with(s, t)) {
-        rest = s.substr(t.length(), std::string::npos);
+        rest = s.substr(t.length());
         return true;
     }
     return false;
 }
 
-size_t
-get_extension(const std::string& s)
+bool
+name_dict_lang(const std::string& n,
+               const std::map<std::string, std::string>& d,
+               std::string& l)
 {
-    size_t x = s.find_last_of('.');
-    if (x == std::string::npos) return x;
+    size_t x = n.find_last_of('.');
+    if (x == std::string::npos) return false;
+
     ++x;
-    if (std::all_of(s.cbegin() + x, s.cend(), isalnum)) return x;
-    return std::string::npos;
-}
+    auto ext_lang = d.find(n.substr(x));
+    if (ext_lang == d.cend()) return false;
 
-int
-main()
-{
-    std::string s, name;
-    std::vector<std::string> lines{};
-    std::map<std::string, std::set<std::string>> uses{};
-    std::map<std::string, std::string> chunk_lang{};
-
-    std::map<std::string, std::string> langs{
-        {"pl", "prolog"},
-        {"sh", "bash"},
-        {"bash", "bash"},
-        {"cpp", "cpp"},
-        {"R", "R"},
-        {"awk", "awk"},
-        {"sed", "sed"},
-        {"css", "css"}};
-
-    std::queue<std::string> pending{};
-    
-out:
-{
-    if (!std::getline(std::cin, s)) goto end;
-    lines.push_back(s);
-    if (begins_with(s, {"@begin code"})) goto code;
-    goto out;
-}
-
-code:
-{
-    if (!std::getline(std::cin, s)) goto error;
-    lines.push_back(s);
-
-    if (begins_with(s, {"@defn "}, name)) {
-        uses.insert({name, {}}); // insert if not already there
-
-        size_t ext_pos = get_extension(name);
-        if (ext_pos != std::string::npos) {
-            std::string ext = name.substr(ext_pos);
-            auto lang = langs.find(ext);
-            if (lang != langs.cend()) {
-                chunk_lang.insert({name, lang->second});
-                pending.push(name);
-            }
-        }
-        goto name;
-    }
-
-    goto code;
-}
-
-name:
-{
-    if (!std::getline(std::cin, s)) goto error;
-    lines.push_back(s);
-    std::string use_name;
-
-    if (begins_with(s, {"@use "}, use_name)) {
-        uses[name].insert(use_name);
-        goto name;
-    }
-
-    if (begins_with(s, {"@end code"})) goto out;
-    goto name;
-}
-
-end:
-{
-    while (!pending.empty()) {
-        std::string next = pending.front();
-        pending.pop();
-
-        std::set<std::string> candidates = uses[next];
-
-        for (auto c : candidates) {
-            auto x = chunk_lang.find(c);
-            if (x == chunk_lang.cend()) {
-                chunk_lang.insert({c, chunk_lang[next]});
-                pending.push(c);
-            }
-        }
-    }
-
-    for (auto l : lines) {
-        std::cout << l << '\n';
-
-        if (begins_with(l, {"@defn "}, name)) {
-            auto x = chunk_lang.find(name);
-            if (x != chunk_lang.cend()) {
-                std::cout << "@language " << x->second << '\n';
-            } else std::cout << "@language txt\n";
-        }
-    }
-
-    return 0;
-}
-
-error: return 1;
+    l = ext_lang->second;
+    return true;
 }
 @
+
