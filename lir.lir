@@ -131,7 +131,10 @@ It is invoked with one of `tangle`, `make`, or `weave` as the first argument.
 <<Define functions used by `lir`>>
 case $1 in
 tangle)
-    mkdir --verbose --parents .lir
+    mkdir --verbose --parents "$LIR_DIR"
+    ln --symbolic --force \
+        $(readlink --canonicalize "$LIR_SOURCE") \
+        "$LIR_DIR/$LIR_SOURCE"
     <<Tangle relevant chunks>>
     <<Use external dependencies>>
     ;;
@@ -186,7 +189,6 @@ lir.bib
 
 Note that the `lir` source file itself is a special case of an external dependency.
 <<Use external dependencies>>=
-echo "$LIR_SOURCE" | lir-use "$LIR_DIR"
 if notangle -filter emptydefn -t8 -R":use" "$LIR_SOURCE" \
     | sort --unique \
     | <<Remove empty lines>> \
