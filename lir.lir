@@ -150,20 +150,35 @@ tangle)
     < "$filechunks" lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
     < "$sourcechunks" lir-use "$LIR_DIR"
 
-    notangle -t8 -filter emptydefn -R":make" "$LIR_SOURCE" \
-        > "$LIR_DIR"/.makedag
+    if grep --quiet --line-regexp ":make" "$rootchunks"
+    then
+        notangle -t8 -filter emptydefn -R":make" "$LIR_SOURCE" \
+            > "$LIR_DIR"/.makedag
+    else
+        echo "" > "$LIR_DIR"/.makedag
+    fi
 
     echo -n "all: " > "$LIR_DIR"/.makeall
     < "$sinkchunks" tr '\n' ' ' >> "$LIR_DIR"/.makeall
     echo ";" >> "$LIR_DIR"/.makeall
 
+    echo -n "$BASENAME.html: $LIR_SOURCE " > "$LIR_DIR"/.makehtml
+    < "$sinkchunks" tr '\n' ' ' >> "$LIR_DIR"/.makehtml
+    echo ";" >> "$LIR_DIR"/.makehtml
+    echo -e '\tlir-weave < $< > $@' >> "$LIR_DIR"/.makehtml
+
     rm "$rootchunks" "$filechunks" "$sourcechunks" "$sinkchunks"
     ;;
 make)
-    <<Make everything>>
+    make --debug=b --jobs --directory="$LIR_DIR" \
+        --makefile=.makeall --makefile=.makedag \
+        all
     ;;
 weave)
-    <<Weave the documentation>>
+    make --debug=b --directory="$LIR_DIR" \
+        --makefile=.makehtml \
+        "$BASENAME".html
+    cp --verbose --update ".lir/$BASENAME.html" .
     ;;
 purge)
     rm --recursive --one-file-system "$LIR_DIR"
@@ -183,7 +198,6 @@ LIR_SOURCE="$2"
 LIR_DIR=.lir
 MORE_OPTS="${@:2}"
 BASENAME=$(basename "$LIR_SOURCE" .lir)
-MAKE_JOBS='--jobs'
 @
 
 <<Define functions used by `lir`>>=
@@ -201,27 +215,6 @@ A bibliography file, for example, is best maintained by a proper reference manag
 Such files can be listed explicitly in a code chunk named `:use` like so:
 <<:use>>=
 lir.bib
-@
-
-Note that the `lir` source file itself is a special case of an external dependency.
-
-Then, from inside the working directory:
-<<Make everything>>=
-notangle -filter emptydefn -t8 -R":make" "$LIR_SOURCE" \
-    > "$LIR_DIR"/lirmakefile
-make --debug=b "$MAKE_JOBS" --directory="$LIR_DIR" --makefile=lirmakefile all
-@
-
-This is what an empty Makefile with only `all` declared would look like:
-<<:make>>=
-.PHONY : all
-all: ;
-
-@
-
-<<Weave the documentation>>=
-make --debug=b --directory="$LIR_DIR" --makefile=lirmakefile html
-cp --verbose --update ".lir/$BASENAME.html" .
 @
 
 ## Tangling
@@ -316,18 +309,7 @@ It reads the `lir` source from standard input and writes the HTML to standard ou
 <<Bash header>>
 export PANDOC_OPTS="${@:2}"
 <<Weave `lir` source to HTML>>
-@
 
-Using it, we can add a rule for building the HTML documentation.
-For this project, it would be:
-<<:make>>=
-.PHONY: html
-html: lir.html
-
-lir.html: lir.lir
-	lir-weave $(PANDOC_OPTS) < $< > $@
-
-@
 
 <<Weave `lir` source to HTML>>=
 <<`Lir`-specific transformations>> \
