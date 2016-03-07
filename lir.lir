@@ -135,8 +135,22 @@ tangle)
     ln --symbolic --force \
         $(readlink --canonicalize "$LIR_SOURCE") \
         "$LIR_DIR/$LIR_SOURCE"
-    <<Tangle relevant chunks>>
-    <<Use external dependencies>>
+    rootchunks=$(mktemp)
+    filechunks=$(mktemp)
+    sourcechunks=$(mktemp)
+    sinkchunks=$(mktemp)
+    noroots "$LIR_SOURCE" \
+        | <<Drop double angle brackets>> \
+        | <<Remove empty lines>> \
+        > "$rootchunks"
+    <<Remove special chunknames>> "$rootchunks" > "$filechunks"
+    <<Get source chunknames>> "$rootchunks" > "$sourcechunks"
+    <<Get sink chunknames>> "$rootchunks" > "$sinkchunks"
+    
+    < "$filechunks" lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
+    < "$sourcechunks" lir-use "$LIR_DIR"
+
+    rm "$rootchunks" "$filechunks" "$sourcechunks" "$sinkchunks"
     ;;
 make)
     <<Make everything>>
@@ -169,15 +183,10 @@ MAKE_JOBS='--jobs'
 <<lir-use>>
 <<lir-tangle>>
 <<lir-mtangle>>
-<<lir-chunknames>>
 <<lir-cmpcp>>
 @
 
-Then, determine which chunks need to be tangled using [[<<lir-chunknames>>]], and tangle those using [[<<lir-mtangle>>]].
-<<Tangle relevant chunks>>=
-lir-chunknames "$LIR_SOURCE" \
-    | lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
-@
+Then, determine which chunks need to be tangled, and tangle those using [[<<lir-mtangle>>]].
 
 Then, bring in external dependencies (uses).
 Not everything fits in a single source file.
@@ -188,15 +197,6 @@ lir.bib
 @
 
 Note that the `lir` source file itself is a special case of an external dependency.
-<<Use external dependencies>>=
-if notangle -filter emptydefn -t8 -R":use" "$LIR_SOURCE" \
-    | sort --unique \
-    | <<Remove empty lines>> \
-    | lir-use "$LIR_DIR"
-then
-    :
-fi
-@
 
 Then, from inside the working directory:
 <<Make everything>>=
@@ -286,55 +286,18 @@ done
 
 ## Extracting names
 With the help of [[<<lir-mtangle>>]] and the tools it uses, we can tangle all relevant chunks to files.
-The question remains: which are the code chunks that need to be tangled?
-
-`lir` assumes that all root chunks (code chunks that are not used in other chunks) are meant to be tangled to files.
-The `noroots` tool provided by `noweb` will print to standard output all root chunk names, enclosed in double angle brackets.
-It is used by [[<<lir-chunknames>>]], which takes as its single argument the `lir` source file.
-
-One implicitly ignored chunk is the "anonymous", unnamed code chunk as in "`@<<>>=`"; this is interpreted as a continuation of the previous chunk by `lir`, but "`@<<>>=`" will appear in the list of root chunks as listed by `noroots`.
-A `lir` source file can also contain root chunks that have names beginning with `:`.
-These are used by the user to control `lir`'s functionality, and are not actual code.
-<<lir-chunknames>>=
-lir-chunknames () {
-rootchunks=$(mktemp)
-noroots "$1" \
-    | <<Drop double angle brackets>> \
-    | <<Remove empty lines>> \
-    | <<Remove names starting with `:`>> \
-    | sort --unique \
-    > "$rootchunks"
-@
-
-If there is a root chunk that does not need to be tangled (for whatever reason), it can be declared in a chunk named [[<<:ignore>>]], one chunk name per line.
-<<lir-chunknames>>=
-ignoredchunks=$(mktemp)
-if notangle -filter emptydefn -t8 -R":ignore" "$1" \
-        | <<Remove empty lines>> \
-        | <<Drop double angle brackets>> \
-        | sort --unique \
-        > "$ignoredchunks"
-then
-    :
-fi
-@
-
-The chunk names declared in [[<<:ignore>>]] are removed from the list of chunk names emitted by [[<<lir-chunknames>>]] using the standard command line tool `comm`.
-<<lir-chunknames>>=
-comm -2 -3 "$rootchunks" "$ignoredchunks"
-rm "$rootchunks" "$ignoredchunks"
-}
-@
 
 Filters used in the pipelines above:
 <<Drop double angle brackets>>=
 sed -n 's/^@<<\(.*\)@>>$/\1/p'
-@
 <<Remove empty lines>>=
 sed -n '/^\s*$/!p'
-@
-<<Remove names starting with `:`>>=
-sed -n '/^:.*/!p'
+<<Remove special chunknames>>=
+sed -n '/^:/!p'
+<<Get source chunknames>>=
+sed -n 's/^:source \(.\+\)$/\1/p'
+<<Get sink chunknames>>=
+sed -n 's/^:\(figure\|table\|listing\|input\) \(.\+\)/\2/p'
 @
 
 ## Weaving
@@ -1290,13 +1253,13 @@ for (auto l : lines) {
 These variables are "global" to the `main` function, or in other words, are available to all states of the state machine.
 <<Variable definitions (`langs`)>>=
 <<A list of all lines as they are read>>
-<<The DAG of the code chunks in the S-representation>>
+<<The DAG of the code chunks as adjacency-list>>
 <<The language of each code chunk>>
 <<A queue for the traversal of the chunks DAG>>
 <<Mapping of extensions to languages>>
 <<A list of all lines as they are read>>=
 std::list<std::string> lines{};
-<<The DAG of the code chunks in the S-representation>>=
+<<The DAG of the code chunks as adjacency-list>>=
 std::map<std::string, std::set<std::string>> uses{};
 <<The language of each code chunk>>=
 std::map<std::string, std::string> chunk_lang{};
