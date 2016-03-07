@@ -150,6 +150,13 @@ tangle)
     < "$filechunks" lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
     < "$sourcechunks" lir-use "$LIR_DIR"
 
+    notangle -t8 -filter emptydefn -R":make" "$LIR_SOURCE" \
+        > "$LIR_DIR"/.makedag
+
+    echo -n "all: " > "$LIR_DIR"/.makeall
+    < "$sinkchunks" tr '\n' ' ' >> "$LIR_DIR"/.makeall
+    echo ";" >> "$LIR_DIR"/.makeall
+
     rm "$rootchunks" "$filechunks" "$sourcechunks" "$sinkchunks"
     ;;
 make)
