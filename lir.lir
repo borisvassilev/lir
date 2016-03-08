@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-"$HOME"/lib/noweb
+/usr/lib/noweb
 @
 
 ## Making and installing
@@ -132,25 +132,25 @@ It is invoked with one of `tangle`, `make`, or `weave` as the first argument.
 case $1 in
 tangle)
     mkdir --verbose --parents "$LIR_DIR"
+    tmpdir=$(mktemp --directory -p "$LIR_DIR")
     ln --symbolic --force \
         $(readlink --canonicalize "$LIR_SOURCE") \
         "$LIR_DIR/$LIR_SOURCE"
-    rootchunks=$(mktemp)
-    filechunks=$(mktemp)
-    sourcechunks=$(mktemp)
-    sinkchunks=$(mktemp)
     noroots "$LIR_SOURCE" \
         | <<Drop double angle brackets>> \
         | <<Remove empty lines>> \
-        > "$rootchunks"
-    <<Remove special chunknames>> "$rootchunks" > "$filechunks"
-    <<Get source chunknames>> "$rootchunks" > "$sourcechunks"
-    <<Get sink chunknames>> "$rootchunks" > "$sinkchunks"
+        > "$tmpdir"/rootchunks
+    <<Remove special chunknames>> "$tmpdir"/rootchunks \
+        > "$tmpdir"/filechunks
+    <<Get source chunknames>> "$tmpdir"/rootchunks \
+        > "$tmpdir"/sourcechunks
+    <<Get sink chunknames>> "$tmpdir"/rootchunks \
+        > "$tmpdir"/sinkchunks
     
-    < "$filechunks" lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
-    < "$sourcechunks" lir-use "$LIR_DIR"
+    < "$tmpdir"/filechunks lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
+    < "$tmpdir"/sourcechunks lir-use "$LIR_DIR"
 
-    if grep --quiet --line-regexp ":make" "$rootchunks"
+    if grep --quiet --line-regexp ":make" "$tmpdir"/rootchunks
     then
         notangle -t8 -filter emptydefn -R":make" "$LIR_SOURCE" \
             > "$LIR_DIR"/.makedag
@@ -159,15 +159,15 @@ tangle)
     fi
 
     echo -n "all: " > "$LIR_DIR"/.makeall
-    < "$sinkchunks" tr '\n' ' ' >> "$LIR_DIR"/.makeall
+    < "$tmpdir"/sinkchunks tr '\n' ' ' >> "$LIR_DIR"/.makeall
     echo ";" >> "$LIR_DIR"/.makeall
 
     echo -n "$BASENAME.html: $LIR_SOURCE " > "$LIR_DIR"/.makehtml
-    < "$sinkchunks" tr '\n' ' ' >> "$LIR_DIR"/.makehtml
+    < "$tmpdir"/sinkchunks tr '\n' ' ' >> "$LIR_DIR"/.makehtml
     echo ";" >> "$LIR_DIR"/.makehtml
     echo -e '\tlir-weave < $< > $@' >> "$LIR_DIR"/.makehtml
 
-    rm "$rootchunks" "$filechunks" "$sourcechunks" "$sinkchunks"
+    rm -r "$tmpdir"
     ;;
 make)
     make --debug=b --jobs --directory="$LIR_DIR" \
