@@ -133,8 +133,14 @@ case $1 in
 tangle)
     mkdir --verbose --parents "$LIR_DIR"
     tmpdir=$(mktemp --directory -p "$LIR_DIR")
+
     STATE_SOURCE="$LIR_DIR"/"$LIR_SOURCE"
-    cat "$LIR_SOURCE" > "$STATE_SOURCE"
+    awk '<<Nameless code chunks as continuations .awk>>' "$LIR_SOURCE" \
+        | awk '<<Close all codechunks with `@` .awk>>' \
+        | awk -v evalcmd="bash -o errexit -o pipefail -o nounset" \
+              '<<Evaluate code chunk contents .awk>>' \
+        > "$STATE_SOURCE"
+
     noroots "$STATE_SOURCE" \
         | <<Drop double angle brackets>> \
         | <<Remove empty lines>> \
@@ -151,7 +157,7 @@ tangle)
 
     if grep --quiet --line-regexp ":make" "$tmpdir"/rootchunks
     then
-        notangle -t8 -filter emptydefn -R":make" "$STATE_SOURCE" \
+        notangle -t8 -R":make" "$STATE_SOURCE" \
             > "$LIR_DIR"/.makedag
     else
         echo "" > "$LIR_DIR"/.makedag
@@ -224,7 +230,7 @@ It uses `noweb`'s `notangle` to extract from (1) the chunk (2) to a temporary fi
 <<lir-tangle>>=
 lir-tangle () {
     tmpfile=$(mktemp)
-    notangle -filter emptydefn -t8 -R"$2" "$1" > "$tmpfile"
+    notangle -t8 -R"$2" "$1" > "$tmpfile"
     lir-cmpcp "$tmpfile" "$3"
     rm "$tmpfile"
 }
@@ -319,11 +325,7 @@ export PANDOC_OPTS="${@:2}"
 
 Of the two transformations done on the `lir` source before giving it to the `noweb` tools, "including" files is the more general one and has to be done first.
 <<`Lir`-specific transformations>>=
-awk '<<Nameless code chunks as continuations .awk>>' \
-    | awk '<<Close all codechunks with `@` .awk>>' \
-    | awk -v evalcmd="bash -o errexit -o pipefail -o nounset" \
-          '<<Evaluate code chunk contents .awk>>' \
-    | awk '<<Insert file listings .awk>>'
+awk '<<Insert file listings .awk>>'
 @
 
 <<Nameless code chunks as continuations .awk>>=
@@ -446,7 +448,6 @@ The `-delay` option to `noidx` makes sure that the index of code chunks is emitt
 This is necessary to be able to generate a bibliography with Pandoc.
 <<Source to `noweb` pipeline representation>>=
 "<<Path to `noweb`>>"/markup -t \
-    | "<<Path to `noweb`>>"/emptydefn \
     | "<<Path to `noweb`>>"/noidx -delay
 @
 
