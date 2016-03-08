@@ -160,15 +160,15 @@ tangle)
     < "$tmpdir"/filechunks lir-mtangle "$STATE_SOURCE" "$LIR_DIR"
     < "$tmpdir"/sourcechunks lir-use "$LIR_DIR"
 
-    if grep --quiet --line-regexp ":make" "$tmpdir"/rootchunks
+    if grep --quiet --line-regexp ':make' "$tmpdir"/rootchunks
     then
-        notangle -t8 -R":make" "$STATE_SOURCE" \
+        notangle -t8 -R':make' "$STATE_SOURCE" \
             > "$LIR_DIR"/.makedag
     else
-        echo "" > "$LIR_DIR"/.makedag
+        echo '' > "$LIR_DIR"/.makedag
     fi
 
-    echo -n "all: " > "$LIR_DIR"/.makeall
+    echo -n 'all: ' > "$LIR_DIR"/.makeall
     < "$tmpdir"/sinkchunks tr '\n' ' ' >> "$LIR_DIR"/.makeall
     echo ";" >> "$LIR_DIR"/.makeall
 
