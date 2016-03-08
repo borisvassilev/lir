@@ -133,10 +133,9 @@ case $1 in
 tangle)
     mkdir --verbose --parents "$LIR_DIR"
     tmpdir=$(mktemp --directory -p "$LIR_DIR")
-    ln --symbolic --force \
-        $(readlink --canonicalize "$LIR_SOURCE") \
-        "$LIR_DIR/$LIR_SOURCE"
-    noroots "$LIR_SOURCE" \
+    STATE_SOURCE="$LIR_DIR"/"$LIR_SOURCE"
+    cat "$LIR_SOURCE" > "$STATE_SOURCE"
+    noroots "$STATE_SOURCE" \
         | <<Drop double angle brackets>> \
         | <<Remove empty lines>> \
         > "$tmpdir"/rootchunks
@@ -147,12 +146,12 @@ tangle)
     <<Get sink chunknames>> "$tmpdir"/rootchunks \
         > "$tmpdir"/sinkchunks
     
-    < "$tmpdir"/filechunks lir-mtangle "$LIR_SOURCE" "$LIR_DIR"
+    < "$tmpdir"/filechunks lir-mtangle "$STATE_SOURCE" "$LIR_DIR"
     < "$tmpdir"/sourcechunks lir-use "$LIR_DIR"
 
     if grep --quiet --line-regexp ":make" "$tmpdir"/rootchunks
     then
-        notangle -t8 -filter emptydefn -R":make" "$LIR_SOURCE" \
+        notangle -t8 -filter emptydefn -R":make" "$STATE_SOURCE" \
             > "$LIR_DIR"/.makedag
     else
         echo "" > "$LIR_DIR"/.makedag
@@ -162,7 +161,7 @@ tangle)
     < "$tmpdir"/sinkchunks tr '\n' ' ' >> "$LIR_DIR"/.makeall
     echo ";" >> "$LIR_DIR"/.makeall
 
-    echo -n "$BASENAME.html: $LIR_SOURCE " > "$LIR_DIR"/.makehtml
+    echo -n "$BASENAME.html: $BASENAME.lir " > "$LIR_DIR"/.makehtml
     < "$tmpdir"/sinkchunks tr '\n' ' ' >> "$LIR_DIR"/.makehtml
     echo ";" >> "$LIR_DIR"/.makehtml
     echo -e '\tlir-weave < $< > $@' >> "$LIR_DIR"/.makehtml
