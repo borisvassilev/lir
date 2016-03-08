@@ -67,10 +67,10 @@ all : lir.lir
 install :
 	mkdir --parents $(LIRPATH)
 	cp --verbose --preserve \
-	    lir.css nwpipe-pandoc $(LIRPATH)
+	    lir.css nwpipe-pandoc lir-weave $(LIRPATH)
 	mkdir --parents $(LIRBINPATH)
 	cp --verbose --preserve \
-	    lir lir-weave $(LIRBINPATH)
+	    lir $(LIRBINPATH)
 .PHONY : install
 
 clean :
@@ -175,7 +175,7 @@ tangle)
     echo -n "$BASENAME.html: $BASENAME.lir " > "$LIR_DIR"/.makehtml
     < "$tmpdir"/sinkchunks tr '\n' ' ' >> "$LIR_DIR"/.makehtml
     echo ";" >> "$LIR_DIR"/.makehtml
-    echo -e '\tlir-weave < $< > $@' >> "$LIR_DIR"/.makehtml
+    echo -e "\t<<Path to `lir`>>"'/lir-weave < $< > $@' >> "$LIR_DIR"/.makehtml
 
     rm -r "$tmpdir"
     ;;
