@@ -127,9 +127,14 @@ It is invoked with one of `tangle`, `make`, or `weave` as the first argument.
 <<lir.bash>>
 <<lir.bash>>=
 <<Bash header>>
-<<Setup `lir` script>>
 <<Define functions used by `lir`>>
-case $1 in
+
+LIR_SOURCE="$2"
+LIR_DIR=.lir
+MORE_OPTS="${@:2}"
+BASENAME=$(basename "$LIR_SOURCE" .lir)
+
+case "$1" in
 tangle)
     mkdir --verbose --parents "$LIR_DIR"
     tmpdir=$(mktemp --directory -p "$LIR_DIR")
@@ -192,17 +197,6 @@ purge)
     echo "ERROR: unknown command $1"
     ;;
 esac
-@
-
-The script will exit immediately on any command that fails.
-Any arguments after the first will be given as options to Pandoc.
-If the `.lir` working directory does not exist, it is created.
-The paths to the library directories for `noweb` and `lir` are made available for all scripts used by the wrapper script.
-<<Setup `lir` script>>=
-LIR_SOURCE="$2"
-LIR_DIR=.lir
-MORE_OPTS="${@:2}"
-BASENAME=$(basename "$LIR_SOURCE" .lir)
 @
 
 <<Define functions used by `lir`>>=
