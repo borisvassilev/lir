@@ -13,7 +13,7 @@ This is a collection of tools that support programming language-agnostic reprodu
 This document is self-hosting: the implementation presented here can be used to produce the final human-readable version of itself.
 This makes informal validation trivial ("does the final document look right?"), but it also means that the only guarantee is that it implements enough to be able to compile itself.
 
-# Global definitions
+# Installation
 These are a few paths that would probably be different for each computer.
 Those have to be redefined before compiling this document.
 
@@ -92,21 +92,21 @@ set -o nounset
 @
 
 # Overview
-The tools provided by `lir` aim to support two goals:
+The tools provided by `lir` support two goals:
 
 1. Generating results by running the code in a `lir` source file.
 2. Presenting all code and possibly results in a human-readable form.
 
 This is usually done in three independent steps: _tangling_, _making_, and _weaving_.
 
-  * **Tangling**: Extract all source code from the `lir` source file and bring in external dependencies, done by [[<<lir-tangle>>]].
+  * **Tangling**: Extract all source code from the `lir` source file and bring in external dependencies.
 
     This might be scripts that are immediately executable, or code that needs to be compiled.
 
     For externally maintained files to be managed by `lir`, they need to be explicitly declared in the `lir` source file.
     Example use cases would be input data files, or a bibliography file maintained by a reference manager.
 
-  * **Making**: Generate all results, implemented by [[<<lir-make>>]].
+  * **Making**: Generate all results.
 
     This is a step that usually will include resolving dependencies.
     In the case of intermediate analysis steps, a final result will depend on an intermediate result.
@@ -114,15 +114,13 @@ This is usually done in three independent steps: _tangling_, _making_, and _weav
 
     In the case of programs that need to be compiled, a compilation step will have to occur before actually running the program.
 
-  * **Weaving**: Compile the final documentation, implemented by [[<<lir-weave>>]].
+  * **Weaving**: Compile the final documentation.
 
     Once all results and figures have been generated, the original `lir` source file is processed to obtain a valid Pandoc markdown source file.
     At that point, Pandoc is used to compile this to a final human readable file with any results and figures generated in the previous step.
 
 ## The wrapper script
-`Lir` provides a bash script, [[<<lir>>]], which runs one of [[<<lir-tangle>>]], [[<<lir-make>>]], or [[<<lir-weave>>]].
-It is invoked with one of `tangle`, `make`, or `weave` as the first argument.
-
+The program is installed as a script that can be invoked with one of the three actions, `tangle`, `make`, or `weave`, as the first argument.
 <<lir>>=
 <<lir.bash>>
 <<lir.bash>>=
@@ -199,6 +197,7 @@ purge)
 esac
 @
 
+## Tangling
 <<Define functions used by `lir`>>=
 <<lir-use>>
 <<lir-tangle>>
@@ -206,20 +205,11 @@ esac
 <<lir-cmpcp>>
 @
 
-Then, determine which chunks need to be tangled, and tangle those using [[<<lir-mtangle>>]].
-
-Then, bring in external dependencies (uses).
-Not everything fits in a single source file.
-A bibliography file, for example, is best maintained by a proper reference manager.
-Such files can be listed explicitly in a code chunk named `:use` like so:
 <<:use>>=
 lir.bib
 @
 
-## Tangling
-"Tangling" is the process of extracting the source code embedded in the `lir` literate source file so that it can be compiled and executed to obtain results.
-
-First, we have [[<<lir-tangle>>]], which accepts three arguments, in this order: (1) the name of a `lir` source file; (2) the name of a chunk; and (3) the name of the file that the chunk will be extracted to.
+A helper function [[<<lir-tangle>>]] accepts three arguments, in this order: (1) the name of a source file; (2) the name of a chunk; and (3) the name of the file that the chunk will be extracted to.
 It uses `noweb`'s `notangle` to extract from (1) the chunk (2) to a temporary file, compares it to (3) and only writes (2) to (3) if (3) does not exist, or is different from the temporary file.
 <<lir-tangle>>=
 lir-tangle () {
@@ -230,9 +220,7 @@ lir-tangle () {
 }
 @
 
-
-The tool [[<<lir-tangle>>]] uses another tool, [[<<lir-cmpcp>>]].
-It overwrites a file with a newer version of a file after comparing them.
+The function used, [[<<lir-cmpcp>>]], overwrites a file with a newer version of a file after comparing their contents.
 It takes two arguments: (1) the new file, and (2) the old file.
 The standard command line tool `cmp` used for the comparison will exit with status 0 (success) if the two files have identical contents; with status 1 if they are different, and with status 2 if there is some trouble: for example, if one of the files does not exist.
 <<lir-cmpcp>>=
@@ -244,9 +232,8 @@ fi
 }
 @
 
-The tool [[<<lir-tangle>>]] allows us to implement another tool, [[<<lir-mtangle>>]] ("multiple" tangle).
-It accepts as argument (1) the `lir` source file, (2) the target directory, and the rest of the arguments are the code chunk names that are to be extracted from (1) to the directory (2), under their own names.
-(The last point might be important: any string is a valid chunk name, so one could end up with strange file names with blanks or other special characters in them.)
+With the help of [[<<lir-tangle>>]] we implement [[<<lir-mtangle>>]] ("multiple" tangle).
+It reads from standard input a list of chunk names, one per line, and tangles each chunk from the literate source file in (1) to a file of the same name as the chunk in the directory in (2).
 <<lir-mtangle>>=
 lir-mtangle () {
 while IFS='' read -r chunk
@@ -256,7 +243,6 @@ done
 }
 @
 
-## Externally maintained files
 Not all data in an analysis naturally fits into the `lir` source file.
 Examples already mentioned above are the input data, or an externally maintained file like a bibliography.
 
@@ -264,7 +250,8 @@ Taking in use such a file means simply making a symbolic link to the file in the
 _However_, keep in mind that the externally maintained file still needs to be in the project directory, and its name should on a path relative to the project directory.
 The `make` utility will check the timestamp on the _target of the link_, so when a "used" file changes, this will be taken into consideration.
 
-The arguments to the script are (1) the directory in which the symbolic links will be made and from (2) on, the file names that should be taken in use:
+The argument to the function is the directory in which the symbolic links will be made.
+The file names are read from standard input, one per line.
 <<lir-use>>=
 lir-use () {
 while IFS='' read -r used
@@ -283,10 +270,6 @@ done
 }
 @
 
-## Extracting names
-With the help of [[<<lir-mtangle>>]] and the tools it uses, we can tangle all relevant chunks to files.
-
-Filters used in the pipelines above:
 <<Drop double angle brackets>>=
 sed -n 's/^@<<\(.*\)@>>$/\1/p'
 <<Remove empty lines>>=
@@ -299,29 +282,7 @@ sed -n 's/^:source \(.\+\)$/\1/p'
 sed -n 's/^:\(figure\|table\|listing\|input\) \(.\+\)/\2/p'
 @
 
-## Weaving
-Weaving means generating the final human readable documentation from the `lir` source file.
-The original source is transformed by several filters before passed to Pandoc for generating an HTML document that can be viewed in a browser.
-Everything is wrapped as a bash script that will be installed, along with [[<<lir>>]], in `LIR_BINPATH`.
-It reads the `lir` source from standard input and writes the HTML to standard output.
-<<lir-weave>>=
-<<Bash header>>
-export PANDOC_OPTS="${@:2}"
-<<Weave `lir` source to HTML>>
-
-
-<<Weave `lir` source to HTML>>=
-<<`Lir`-specific transformations>> \
-    | <<Source to `noweb` pipeline representation>> \
-    | <<`Noweb` pipeline representation to Pandoc source>> \
-    | <<Pandoc source to HTML>>
-@
-
-Of the two transformations done on the `lir` source before giving it to the `noweb` tools, "including" files is the more general one and has to be done first.
-<<`Lir`-specific transformations>>=
-awk '<<Insert file listings .awk>>'
-@
-
+## Source transformations
 <<Nameless code chunks as continuations .awk>>=
 BEGIN {
     <<Setup `awk` to treat lines as single-field records>>
@@ -330,8 +291,6 @@ BEGIN {
 /^@<<>>=$/ { $0 = last_name }
 /^@<<.+>>=$/ { last_name = $0 }
 { print $0 }
-@
-
 <<Close all codechunks with `@` .awk>>=
 BEGIN {
     <<Setup `awk` to treat lines as single-field records>>
@@ -344,7 +303,6 @@ BEGIN {
 /<<End code `awk` regex>>/ { in_chunk = 0 }
 { print $0 }
 @
-
 
 The contents of each code chunk named `:eval` will be evaluated by an invocation of `bash`.
 Whatever is written to standard output will be **pasted as it is** in place of the code chunk before anything else is done with the source file.
@@ -359,57 +317,6 @@ BEGIN {
 }
 { print $0 }    
 @
-<<Execute contents as standard input of [[evalcmd]]>>=
-while (getline > 0 && $0 !~ /<<End code `awk` regex>>/)
-    print $0 |& evalcmd
-close(evalcmd, "to")
-@
-<<Write output of [[evalcmd]] to awk's output>>=
-save_rs = RS
-RS = "^$"
-evalcmd |& getline x
-close(evalcmd)
-printf "%s", x
-RS = save_rs
-@
-
-Each line inside a code chunk named `:include` will be treated as a file name that has to be **pasted as it is** to the `lir` source file **before** the source file is passed to Pandoc.
-_Use with care!_
-
-Each line inside a code chunk named `:listing` will be treated as a file name that has to be included verbatim in the weaved final document.
-The full contents of the file will be inserted unchanged in a code chunk named [[<<:listing `filename`>>]].
-<<Insert file listings .awk>>=
-BEGIN {
-    <<Setup `awk` to treat lines as single-field records>>
-}
-/^@<<:listing@>>=$/ {
-    <<Output listing of each file named here>>
-}
-{ print $0 }
-@
-<<Output listing of each file named here>>=
-while (getline > 0) {
-    if ($0 ~ /<<End code `awk` regex>>/) {
-        break
-    }
-    if (NF > 0) {
-        <<The complete record is the [[filename]]>>
-        <<Write [[filename]] to `awk`'s output>>
-    }
-}
-@
-<<The complete record is the [[filename]]>>=
-filename=$0
-print "@<<:listing `" filename "`@>>="
-@
-<<Write [[filename]] to `awk`'s output>>=
-save_rs = RS
-RS = "^$"
-getline filecontents < filename
-close(filename)
-print filecontents
-RS = save_rs
-@
 
 To make `awk` treat lines of input as records with one field each, set both the record and the field separator to the newline character.
 With these settings, an empty line (nothing but a new line) will have 0 fields (`NF == 0`) and a length of 0 (`length($0) == 0`).
@@ -418,23 +325,37 @@ RS="\n"
 FS="\n"
 @
 
-The end of a code chunk is either a line with a `@` in the first column, or the beginning of another code chunk.
+<<Execute contents as standard input of [[evalcmd]]>>=
+while (getline > 0 && $0 !~ /<<End code `awk` regex>>/)
+    print $0 |& evalcmd
+close(evalcmd, "to")
+<<Write output of [[evalcmd]] to awk's output>>=
+save_rs = RS
+RS = "^$"
+evalcmd |& getline x
+close(evalcmd)
+printf "%s", x
+RS = save_rs
 <<Begin code `awk` regex>>=
 ^@<<.*@>>=$
 <<End code `awk` regex>>=
 ^@
-<<:ignore>>=
-<<Begin or end code `awk` regex>>
-<<Begin or end code `awk` regex>>=
-<<Begin code `awk` regex>>|<<End code `awk` regex>>
 @
 
-**Warning**: both `:listing` and `:include` work on lines.
-That is, any **non-empty** line is assumed to be a file name.
-In other words, if you put a line of one or more white-space characters (spaces or tabs), and since those are valid filenames (in Linux, at least), `lir` will look for that file name and try to list or include that file.
-
-This also means that the filenames included in this fashion cannot contain newline characters.
-If you really want this, you should use more advanced trickery.
+## Weaving
+Weaving means generating the final human readable documentation from the `lir` source file.
+The original source is transformed by several filters before passed to Pandoc for generating an HTML document that can be viewed in a browser.
+Everything is wrapped as a bash script that will be installed, along with [[<<lir>>]], in `LIR_BINPATH`.
+It reads the `lir` source from standard input and writes the HTML to standard output.
+<<lir-weave>>=
+<<Bash header>>
+export PANDOC_OPTS="${@:2}"
+<<Weave `lir` source to HTML>>
+<<Weave `lir` source to HTML>>=
+<<Source to `noweb` pipeline representation>> \
+    | <<`Noweb` pipeline representation to Pandoc source>> \
+    | <<Pandoc source to HTML>>
+@
 
 A custom `noweb` pipeline is used, as we definitely want to be able to use "anonymous" chunks as continuations of the previous chunk.
 Since tabs can be significant, for example in Makefiles, those are preserved (the `-t` option to `markup`).
@@ -464,7 +385,7 @@ pandoc "$@" \
     --output=-
 @
 
-# `Noweb` to Pandoc
+# `Lir` to Pandoc
 The program [[<<nwpipe-pandoc.pl>>]] is written in Prolog, using the SWI-Prolog implementation [@Wielemaker2012].
 It is written as a stand-alone command line program: once compiled, can be run from the command line as a part of a pipe.
 It uses the module [[<<driver.pl>>]] to do the actual work.
@@ -530,7 +451,7 @@ nwpipeline_pandoc(_) :-
     emit_html(user_output, T).
 @
 
-## Parsing the `noweb` pipeline tokens
+## Parse the `noweb` pipeline
 This module is used by the [[<<driver.pl>>]] to convert the list of lines representing the line-oriented `noweb` pipeline to a Prolog term.
 This is done in two steps.
 
@@ -702,7 +623,7 @@ item(index(Index, Rest)) -->
     items(Items).
 @
 
-## Converting the pipeline to a structured term
+## Convert the pipeline to a term
 The structure of the document is implicitly present in the `noweb` pipeline representation: documentation and code chunks are delimited by a start and an end token, new lines and other formatting are contained in text tokens, and so on.
 The pipeline representation also contains cross-referencing information, using labels and references to them.
 It is however a bit inconvenient to use this representation for generating markup.
@@ -881,8 +802,7 @@ We don't have an index for now.
 index_list(index_endindex, []) --> [].
 @
 
-## Emit Pandoc source
-Here:
+## Emit Pandoc HTML
 <<lirhtml.pl>>=
 :- module(lirhtml, [emit_html/2]).
 
@@ -945,6 +865,10 @@ name_filecontents(text(T), \[FC]) :- !,
 name_filecontents(Term, Text) :-
     format(string(Text), " * ~w~n", [Term]).
 
+@
+
+Everything to Pandoc HTML:
+<<>>=
 lir_pandoc(P) -->
     [X], !,
     lir_pandoc(X, P).
@@ -977,7 +901,10 @@ lir_pandoc(chunks_list(_Cs), P) -->
 */
     lir_pandoc(P).
 lir_pandoc(index(_), P) --> [], lir_pandoc(P).
+@
 
+Symbols in HTML:
+<<>>=
 nbsp --> html(&(nbsp)).
 thinnbsp --> html(span(style("white-space:nowrap"), &(0x2009))).
 openparen --> html(&('Lang')). % Lang
@@ -988,7 +915,10 @@ contsym --> html(&(darr)).
 contmoresym --> html(&(0x21E3)). % DOWNWARDS DASHED ARROW
 defeq --> html(&(equiv)).
 defend --> html(&(0x25FC)). % Black square
+@
 
+Chunk contents:
+<<>>=
 chunk_content([]) --> [].
 chunk_content([C|Cs]) -->
     chunk_content_(C, Cs).
@@ -1008,7 +938,10 @@ chunk_content_(code_use(L, R, N), Cs) -->
                  [\[FN]]),
                \thinnbsp, \closeparen])),
     chunk_content(Cs).
+@
 
+Code chunk headers:
+<<>>=
 chunk_defn(_M, L) -->
     {   label_nr_name_fname(L, Nr, _, FName)
     },
@@ -1022,7 +955,10 @@ chunk_uses(M) -->
     }, !,
     html(span(class(chunkuses), \chunk_uses_(Us))).
 chunk_uses(_) --> [].
+@
 
+Uses in the header:
+<<>>=
 chunk_uses_([U|Us]) -->
     {   label_nr_name_fname(U, Nr, _, _)
     }, !,
@@ -1037,7 +973,10 @@ chunk_uses_rest([U|Us]) -->
     },
     html([", ", a(href("#~a"-U), ["C~d"-Nr])]),
     chunk_uses_rest(Us).
+@
 
+Previous and next chunks in the header:
+<<>>=
 chunk_next(M) -->
     {   code{next:L} :< M,
         label_nr_name_fname(L, Nr, _, _)
@@ -1081,10 +1020,10 @@ chunk_defs_rest([D|Ds]) -->
 The system tries to separate content and layout as much as possible.
 It also aims to provide a sensible default layout for the human-readable documentation.
 
-## Setting the code chunk language
-The program in [[<<langs.cpp>>]] can be used as a filter to noweb.
+## Code chunk language
+The program in [[<<langs.cpp>>]] can be used as a filter to `noweb`.
 It deduces the programming language of code chunks based on the names of the chunks.
-This is a table of known extensions:
+This is a table that maps known extensions to programming language names.
 <<Ext-Lang>>=
 {"pl", "prolog"},
 {"sh", "bash"},
