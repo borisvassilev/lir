@@ -654,6 +654,12 @@ lir_file(docs, L) --> [X],
     docs(X, L).
 lir_file(code, [code_label_meta(C, Label, M)|L]) -->
     code(C, Label, M),
+    {   get_dict(name, M, Name),
+        (   sub_string(Name, 0, _, _, ":")
+        ->  format(user_error, "Special name: ~s~n", [Name])
+        ;   true
+        )
+    },
     lir_rest(L).
 lir_file(nl, [nl|L]) -->
     lir_rest(L).
