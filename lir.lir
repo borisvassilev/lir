@@ -1265,7 +1265,8 @@ For HTML documentation, [[<<lir.css>>]] is used.
 <<Text width and margin>>
 <<Headers in sans-serif>>
 <<Quoted code in monospace>>
-<<Use names formatting>>
+<<Use names typesetting>>
+<<Highlight chunk names on hover>>
 <<List of chunks formatting>>
 @
 
@@ -1289,7 +1290,7 @@ h1, h2, h3 {
 }
 @
 
-<<Use names formatting>>=
+<<Use names typesetting>>=
 span.chunkdefs a,
 span.chunkuses a,
 span.chunkprev a,
@@ -1306,18 +1307,17 @@ span.chunknext {
     font-size: small;
 }
 span.quoteduse {
-    font-family: Serif;
+    font-family: serif;
 }
 span.embeddeduse {
-    font-family: Serif;
+    font-family: serif;
 }
 span.chunknr {
     font-weight: bold;
 }
 @
 
-Use names in quoted code and code chunks are typeset in different colors and are high-lighted when the mouse is over them.
-<<>>=
+<<Highlight chunk names on hover>>=
 span.quoteduse a {
     color: DarkGreen;
 }
