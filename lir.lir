@@ -652,12 +652,12 @@ It will contain a list of chunks and an index.
 <<Parse a file>>=
 lir_file(docs, L) --> [X],
     docs(X, L).
-lir_file(code, [code_label_meta(C, Label, M)|L]) -->
-    code(C, Label, M),
-    {   get_dict(name, M, Name),
-        (   sub_string(Name, 0, _, _, ":")
-        ->  format(user_error, "Special name: ~s~n", [Name])
-        ;   true
+lir_file(code, [Code|L]) -->
+    code(C, Name, Label, M),
+    {   (   Name = name(N)
+        ->  Code = code_name_label_meta(C, N, Label, M)
+        ;   Name = display(KW, FN_str)
+        ->  Code = display(KW, FN_str, C)
         )
     },
     lir_rest(L).
@@ -718,10 +718,11 @@ quote(endquote, []) --> [].
 @
 
 <<Parse a code chunk>>=
-code(Cs, L, M) -->
+code(Cs, Defn, L, M) -->
     [X],
     defn(X, M_pairs0),
-    {   selectchk(label(L), M_pairs0, M_pairs),
+    {   selectchk(label(L), M_pairs0, M_pairs1),
+        selectchk(defn(Defn), M_pairs1, M_pairs),
         dict_create(M, code, M_pairs)
     },
     code_content(Cs).
@@ -736,7 +737,13 @@ defn(xref_label(L), [label(L)|M]) --> [X],
     defn(X, M).
 defn(xref_ref(L), [ref(L)|M]) --> [X],
     defn(X, M).
-defn(defn(N), [name(N)|M]) --> [X],
+defn(defn(N), [defn(Name)|M]) -->
+    {   (   display_item(N, KW, FN_str)
+        ->  Name = display(KW, FN_str)
+        ;   Name = name(N)
+        )
+    },
+    [X],
     defn(X, M).
 defn(xref_notused(_N), [uses(notused)|M]) --> [X],
     defn(X, M).
@@ -755,7 +762,25 @@ defn(xref_begindefs, [defs(Ds)|M]) --> [X],
     [Y],
     defn(Y, M).
 
+<<Treat display items differently>>
 <<Parse defs and uses>>
+@
+
+<<Treat display items differently>>=
+display_item(Name, KW, FN_str) :-
+    sub_string(Name, 0, 1, _, ":"),
+    once( sub_string(Name, Before_sep, 1, After_sep, " ") ),
+    Length_kw is Before_sep - 1,
+    sub_string(Name, 1, Length_kw, _After_kw, KW_str),
+    display_item_keyword(KW_str, KW),
+    Before_fn is Before_sep + 1,
+    sub_string(Name, Before_fn, After_sep, 0, FN_str).
+
+/* Seems this is deterministic when 1st argument is a string */
+display_item_keyword("figure", figure).
+display_item_keyword("listing", listing).
+display_item_keyword("input", input).
+display_item_keyword("table", table).
 @
 
 <<Parse the code chunk contents>>=
@@ -824,15 +849,18 @@ emit_html(Out, L) :-
 Add to the database a table with all code chunks.
 <<>>=
 formatting(L, R) :-
-    include([code_label_meta(_,_,_)]>>true, L, L0),
-    maplist([code_label_meta(_, Label, Meta), Label-Meta]>>true, L0, LMs),
+    include([code_name_label_meta(_,_,_,_)]>>true, L, L0),
+    maplist(get_name_label, L0, NLs),
     retractall(label_nr_name_fname(_,_,_,_)),
-    forall(nth0(N, LMs, Lab-M),
-            (   through_pandoc(html5, M.name, FN),
-                assertz(label_nr_name_fname(Lab, N, M.name, FN))
+    forall(nth0(N, NLs, name_label(Name, Label)),
+            (   through_pandoc(html5, Name, FN),
+                assertz(label_nr_name_fname(Label, N, Name, FN))
             )),
     L = R,
     true.
+
+get_name_label(code_name_label_meta(_, N, L, _),
+                    name_label(N, L)).
 @
 
 Use Pandoc to pre-format chunk names.
@@ -891,7 +919,7 @@ lir_pandoc(quote_use(Name, Label),
                    a(href("#~a"-Label), Name),
                    \thinnbsp, \closeparen])|P]) -->
     lir_pandoc(P).
-lir_pandoc(code_label_meta(C, L, M),
+lir_pandoc(code_name_label_meta(C, _, L, M),
             [div(class(codechunk),
              [\chunk_defn(M, L),
               \chunk_uses(M),
@@ -907,6 +935,10 @@ lir_pandoc(chunks_list(_Cs), P) -->
 */
     lir_pandoc(P).
 lir_pandoc(index(_), P) --> [], lir_pandoc(P).
+lir_pandoc(display(KW, FN_str, Meta),
+           [div(class(displayitem),
+            [p([], KW), p([], FN_str), pre(\chunk_content(Meta))])|P]) -->
+    lir_pandoc(P).
 @
 
 Symbols in HTML:
@@ -921,6 +953,10 @@ contsym --> html(&(darr)).
 contmoresym --> html(&(0x21E3)). % DOWNWARDS DASHED ARROW
 defeq --> html(&(equiv)).
 defend --> html(&(0x25FC)). % Black square
+@
+
+Display items:
+<<>>=
 @
 
 Chunk contents:
