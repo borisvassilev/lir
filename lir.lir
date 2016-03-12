@@ -850,35 +850,38 @@ Add to the database a table with all code chunks.
 <<>>=
 codechunks_to_db(L) :-
     include([code_name_label_meta(_,_,_,_)]>>true, L, CNLMs),
+    maplist([code_name_label_meta(_,N,_,_), N]>>true, CNLMs, Ns),
+    fmt_names_fmtd(html5, Ns, FNs),
+    maplist([code_name_label_meta(_, Name, Label, _),
+             FN,
+             name_label_fmtd(Name, Label, FN)]>>true,
+             CNLMs, FNs, NLFs),
     retractall(label_nr_name_fname(_,_,_,_)),
-    forall(nth0(N, CNLMs, code_name_label_meta(_, Name, Label, _)),
-           (   fmt_str_fmtd(html5, Name, FN),
-               assertz(label_nr_name_fname(Label, N, Name, FN))
-           )).
-
-get_name_label(code_name_label_meta(_, N, L, _),
-               name_label(N, L)).
+    forall(nth0(N, NLFs, name_label_fmtd(Name, Label, FN)),
+           assertz(label_nr_name_fname(Label, N, Name, FN))).
 @
 
 Use Pandoc to pre-format chunk names.
 <<>>=
+:- use_module(library(process), [process_create/3]).
 :- use_module(library(sgml), [load_structure/3]).
+
+fmt_names_fmtd(html5, Ns, FNs) :-
+    atomics_to_string(Ns, "\n\n", Ns_str),
+    process_create(path(pandoc),
+                   ["--to=html5"],
+                   [stdin(pipe(Pandoc_in)),
+                    stdout(pipe(Pandoc_out))]),
+    format(Pandoc_in, "~s", [Ns_str]),
+    close(Pandoc_in),
+    load_structure(Pandoc_out, DOM, [dialect(xml)]),
+    close(Pandoc_out),
+    maplist(paragraph_fmtd, DOM, FNs).
+
 :- use_module(library(sgml_write), [xml_write/3]).
 
-fmt_str_fmtd(Format, Str, FStr) :-
-    atomics_to_string(L, "'", Str), % split
-    atomics_to_string(L, "'\\''", EscStr), % put together
-    atomics_to_string(["echo '", EscStr, "' | pandoc -t ", Format], 
-                      Pandoc),
-    process_create(path(bash),
-        ['-c', Pandoc],
-        [stdout(pipe(Out))]),
-    html_str_fmtd(Out, FStr),
-    close(Out).
-
-html_str_fmtd(Out, FStr) :-
-    load_structure(Out, [element(p, [], StrDOM)], [dialect(xml)]),
-    with_output_to(string(FStr),
+paragraph_fmtd(element(p, [], StrDOM), Fmtd) :-
+    with_output_to(string(Fmtd),
                    xml_write(current_output,
                              StrDOM,
                              [header(false), layout(false)])).
