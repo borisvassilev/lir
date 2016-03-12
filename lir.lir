@@ -840,27 +840,24 @@ index_list(index_endindex, []) --> [].
 :- use_module(library(http/html_write)).
 
 emit_html(Out, L) :-
-    formatting(L, F),
-    phrase(lir_pandoc(P), F),
+    codechunks_to_db(L),
+    phrase(lir_pandoc(P), L),
     phrase(html(P), H),
     print_html(Out, H).
 @
 
 Add to the database a table with all code chunks.
 <<>>=
-formatting(L, R) :-
-    include([code_name_label_meta(_,_,_,_)]>>true, L, L0),
-    maplist(get_name_label, L0, NLs),
+codechunks_to_db(L) :-
+    include([code_name_label_meta(_,_,_,_)]>>true, L, CNLMs),
     retractall(label_nr_name_fname(_,_,_,_)),
-    forall(nth0(N, NLs, name_label(Name, Label)),
-            (   through_pandoc(html5, Name, FN),
-                assertz(label_nr_name_fname(Label, N, Name, FN))
-            )),
-    L = R,
-    true.
+    forall(nth0(N, CNLMs, code_name_label_meta(_, Name, Label, _)),
+           (   fmt_str_fmtd(html5, Name, FN),
+               assertz(label_nr_name_fname(Label, N, Name, FN))
+           )).
 
 get_name_label(code_name_label_meta(_, N, L, _),
-                    name_label(N, L)).
+               name_label(N, L)).
 @
 
 Use Pandoc to pre-format chunk names.
@@ -868,24 +865,23 @@ Use Pandoc to pre-format chunk names.
 :- use_module(library(sgml), [load_structure/3]).
 :- use_module(library(sgml_write), [xml_write/3]).
 
-through_pandoc(Format, Str, FStr) :-
-	atomics_to_string(L, "'", Str), % split
-	atomics_to_string(L, "'\\''", EscStr), % put together
-	atomics_to_string(
-            ["echo '", EscStr, "' | pandoc -t ", Format], 
-            Pandoc),
-	process_create(
-            path(bash),
-            ['-c', Pandoc],
-            [stdout(pipe(Out))]),
-	through_pandoc_1(Format, Out, FStr),
-	close(Out).
+fmt_str_fmtd(Format, Str, FStr) :-
+    atomics_to_string(L, "'", Str), % split
+    atomics_to_string(L, "'\\''", EscStr), % put together
+    atomics_to_string(["echo '", EscStr, "' | pandoc -t ", Format], 
+                      Pandoc),
+    process_create(path(bash),
+        ['-c', Pandoc],
+        [stdout(pipe(Out))]),
+    html_str_fmtd(Out, FStr),
+    close(Out).
 
-through_pandoc_1(html5, Out, FStr) :-
-	load_structure(Out, [element(p, [], StrDOM)], [dialect(xml)]),
-	with_output_to(string(FStr),
-		xml_write(current_output, StrDOM,
-			[header(false), layout(false)])).
+html_str_fmtd(Out, FStr) :-
+    load_structure(Out, [element(p, [], StrDOM)], [dialect(xml)]),
+    with_output_to(string(FStr),
+                   xml_write(current_output,
+                             StrDOM,
+                             [header(false), layout(false)])).
 @
 
 Everything to Pandoc HTML:
