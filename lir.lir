@@ -922,9 +922,7 @@ lir_pandoc(chunks_list(_Cs), P) -->
     lir_pandoc(P).
 lir_pandoc(index(_), P) --> [], lir_pandoc(P).
 lir_pandoc(display(KW, FN_str, Meta),
-           [div(class(displayitem),
-            [p([], KW), p([], FN_str),
-             pre(\chunk_content(Meta))])|P]) -->
+           [\display(KW, FN_str, Meta)|P]) -->
     lir_pandoc(P).
 @
 
@@ -944,6 +942,15 @@ defend --> html(&(0x25FC)). % Black square
 
 Display items:
 <<>>=
+display(listing, FN, Meta) -->
+    {   file_contents(FN, FC)
+    },
+    html(div(class(lirlisting), [pre(\[FC]), pre(Meta)])).
+
+file_contents(FN, FC) :-
+    setup_call_cleanup(open(FN, read, In),
+                       read_string(In, _, FC),
+                       close(In)).
 @
 
 Chunk contents:
