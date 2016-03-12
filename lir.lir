@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-/usr/lib/noweb
+"$HOME"/lib/noweb
 @
 
 ## Making and installing
@@ -886,19 +886,6 @@ through_pandoc_1(html5, Out, FStr) :-
 	with_output_to(string(FStr),
 		xml_write(current_output, StrDOM,
 			[header(false), layout(false)])).
-
-lir_include(":include", C, [div(class(include), Contents)|P], P) :- !,
-    maplist(name_filecontents, C, Contents).
-lir_include(_, _, P, P).
-
-name_filecontents(text(T), \[FC]) :- !,
-    split_string(T, "\n", "\n", [F]),
-    setup_call_cleanup(open(F, read, In),
-                       read_string(In, _, FC),
-                       close(In)).
-name_filecontents(Term, Text) :-
-    format(string(Text), " * ~w~n", [Term]).
-
 @
 
 Everything to Pandoc HTML:
@@ -937,7 +924,8 @@ lir_pandoc(chunks_list(_Cs), P) -->
 lir_pandoc(index(_), P) --> [], lir_pandoc(P).
 lir_pandoc(display(KW, FN_str, Meta),
            [div(class(displayitem),
-            [p([], KW), p([], FN_str), pre(\chunk_content(Meta))])|P]) -->
+            [p([], KW), p([], FN_str),
+             pre(\chunk_content(Meta))])|P]) -->
     lir_pandoc(P).
 @
 
