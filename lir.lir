@@ -945,12 +945,21 @@ Display items:
 display(listing, FN, Meta) -->
     {   file_contents(FN, FC)
     },
-    html(div(class(lirlisting), [pre(\[FC]), pre(Meta)])).
+    html(div(class(lirlisting),
+             [\listing_header(FN),
+              pre(\[FC]),
+              \display_meta(Meta)])).
+
+listing_header(Filename) -->
+    html([span(class(listingname), "Listing:"),
+          span(class(listingfile), code(Filename))]).
 
 file_contents(FN, FC) :-
     setup_call_cleanup(open(FN, read, In),
                        read_string(In, _, FC),
                        close(In)).
+
+display_meta(M) --> html(pre(M)).
 @
 
 Chunk contents:
