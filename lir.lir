@@ -657,12 +657,10 @@ lir_file(code, [Code|L]) -->
     {   (   Name = name(N)
         ->  Code = code_name_label_meta(C, N, Label, M)
         ;   Name = display(KW, FN_str)
-        ->  format(user_error, "+++ ~w~n", [M]),
-            C = [text(Text)],
+        ->  C = [text(Text)],
             string_codes(Text, Codes),
             phrase(yaml(Display_meta), Codes),
-            format(user_error, "+++ ~w~n", [Display_meta]),
-            Code = display(KW, FN_str, Text)
+            Code = display(KW, FN_str, Display_meta)
         )
     },
     lir_rest(L).
@@ -675,16 +673,70 @@ lir_file(index_beginindex, [index(I)|L]) --> [X],
     index_list(X, I),
     lir_rest(L).
 
-yaml(yaml{raw:Cs}) -->
-    yaml_cs(Cs).
+yaml(D) -->
+    yaml_es(Es),
+    {   dict_create(D, yaml, Es)
+    }.
 
-yaml_cs([C|Cs]) --> [C], !, yaml_cs(Cs).
-yaml_cs([]) --> [].
+yaml_es([E|Es]) --> yaml_entry(E), !, yaml_es(Es).
+yaml_es([]) --> [].
+
+yaml_entry(K-V) --> yaml_key_val(K, V).
+
+yaml_key_val(K, V) --> yaml_key_codes(KCs), ": ", !,
+    {   atom_codes(K, KCs)
+    },
+    [C],
+    yaml_val(C, V).
+
+yaml_key_codes([C|Cs]) --> [C],
+    {   code_type(C, graph)
+    },
+    yaml_key_codes(Cs).
+yaml_key_codes([]) --> [].
+
+:- use_module(library(dcg/basics)).
+
+yaml_val(0'|, V) --> "\n", !,
+    yaml_indented_block(V_codes),
+    {   string_codes(V, V_codes)
+    }.
+yaml_val(C, V_str) --> string_without("\n", Cs), "\n",
+    {   string_codes(V_str, [C|Cs])
+    }.
+
+yaml_indented_block(Block) --> white, whites, !,
+    indented_lines(Block).
+yaml_indented_block([]) --> [].
+
+indented_lines([C|Cs]) --> [C],
+    {   C \== 0'\n
+    },
+    !,
+    indented_lines(Cs).
+indented_lines([0'\n|Block]) --> [0'\n], !,
+    yaml_indented_block(Block).
+
+yaml_val_cs([C|Cs]) --> [C],
+    yaml_val_cs(Cs).
+yaml_val_cs([]) --> [].
 
 <<Parse a documentation chunk>>
 <<Parse a code chunk>>
 <<Parse the list of chunks>>
 <<Parse the index>>
+@
+
+<<:make>>=
+test-display: lir.lir
+	ls -l -h lir.lir > test-display
+
+@
+<<:listing test-display>>=
+title: A test for display environments
+caption: |
+    This is just a small example,
+    nothing more.
 @
 
 A documentation chunk can contain text, new lines, and quoted code.
@@ -954,23 +1006,25 @@ defend --> html(&(0x25FC)). % Black square
 Display items:
 <<>>=
 display(listing, FN, Meta) -->
-    {   file_contents(FN, FC)
+    {   file_contents(FN, FC),
+        yaml{title:Title, caption:Caption} :< Meta
     },
     html(div(class(lirlisting),
-             [\listing_header(FN),
+             [\listing_header(FN, Title),
               pre(\[FC]),
-              \display_meta(Meta)])).
+              \listing_caption(Caption)])).
 
-listing_header(Filename) -->
-    html([span(class(listingname), "Listing:"),
-          span(class(listingfile), code(Filename))]).
+listing_header(Filename, Title) -->
+    html([span(class(listingname), "Listing:"), \nbsp,
+          span(class(listingfile), code(Filename)), ".", \nbsp,
+          span(class(listingtitle), [Title])]).
+
+listing_caption(M) --> html(p(M)).
 
 file_contents(FN, FC) :-
     setup_call_cleanup(open(FN, read, In),
                        read_string(In, _, FC),
                        close(In)).
-
-display_meta(M) --> html(pre(M)).
 @
 
 Chunk contents:
