@@ -403,7 +403,7 @@ main :-
         nwpipeline_pandoc(Argv)),
     halt. % exit with success
 main :-
-    throw(error(evaluation_error("nwpipe-pandoc failed")),_),
+    throw(error(evaluation_error("nwpipe-pandoc failed"),_)),
     halt(1). % otherwise, exit with failure (1)
 @
 
@@ -657,7 +657,12 @@ lir_file(code, [Code|L]) -->
     {   (   Name = name(N)
         ->  Code = code_name_label_meta(C, N, Label, M)
         ;   Name = display(KW, FN_str)
-        ->  Code = display(KW, FN_str, C)
+        ->  format(user_error, "+++ ~w~n", [M]),
+            C = [text(Text)],
+            string_codes(Text, Codes),
+            phrase(yaml(Display_meta), Codes),
+            format(user_error, "+++ ~w~n", [Display_meta]),
+            Code = display(KW, FN_str, Text)
         )
     },
     lir_rest(L).
@@ -669,6 +674,12 @@ lir_file(xref_beginchunks, [chunks_list(Cs)|L]) --> [X],
 lir_file(index_beginindex, [index(I)|L]) --> [X],
     index_list(X, I),
     lir_rest(L).
+
+yaml(yaml{raw:Cs}) -->
+    yaml_cs(Cs).
+
+yaml_cs([C|Cs]) --> [C], !, yaml_cs(Cs).
+yaml_cs([]) --> [].
 
 <<Parse a documentation chunk>>
 <<Parse a code chunk>>
