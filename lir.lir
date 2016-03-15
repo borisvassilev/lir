@@ -279,7 +279,7 @@ sed -n '/^:/!p'
 <<Get source chunknames>>=
 sed -n 's/^:source \(.\+\)$/\1/p'
 <<Get sink chunknames>>=
-sed -n 's/^:\(figure\|table\|listing\|input\) \(.\+\)/\2/p'
+sed -n 's/^:\(figure\|table\|listing\) \(.\+\)/\2/p'
 @
 
 ## Source transformations
@@ -391,6 +391,7 @@ It is written as a stand-alone command line program: once compiled, can be run f
 It uses the module [[<<driver.pl>>]] to do the actual work.
 <<nwpipe-pandoc.pl>>=
 <<No banner or informational messages>>
+<<Turn on error stack trace>>
 <<Expand meta-predicates at compile time>>
 <<Use lambdas>>
 <<Succeed once without choice points>>
@@ -405,6 +406,9 @@ main :-
 main :-
     throw(error(evaluation_error("nwpipe-pandoc failed"),_)),
     halt(1). % otherwise, exit with failure (1)
+@
+
+<<Turn on error stack trace>>=
 @
 
 During development, it is good to know if the program has left behind any unintentional choice points -- they are certainly errors, as the program is designed to succeed deterministically.
@@ -660,9 +664,11 @@ lir_file(code, [Code|L]) -->
     {   (   Name = name(N)
         ->  Code = code_name_label_meta(C, N, Label, M)
         ;   Name = display(KW, FN_str)
-        ->  C = [text(Text)],
-            string_codes(Text, Codes),
-            yaml_to_dict(Codes, Display_meta),
+        ->  (   C = [text(Text)]
+            ->  string_codes(Text, Codes),
+                yaml_to_dict(Codes, Display_meta)
+            ;   Display_meta = yaml{}
+            ),
             Code = display(KW, FN_str, Display_meta, Label)
         )
     },
@@ -871,7 +877,6 @@ display_item(Name, KW, FN_str) :-
 /* Seems this is deterministic when 1st argument is a string */
 display_item_keyword("figure", figure).
 display_item_keyword("listing", listing).
-display_item_keyword("input", input).
 display_item_keyword("table", table).
 @
 
@@ -935,6 +940,9 @@ emit_html(Out, L) :-
     codechunks_to_db(L),
     phrase(lir_pandoc(P), L),
     phrase(html(P), H),
+    setup_call_cleanup(open("before-pandoc.debug", write, BP),
+                       print_html(BP, H),
+                       close(BP)),
     print_html(Out, H).
 @
 
@@ -1014,7 +1022,8 @@ lir_pandoc(chunks_list(_Cs), P) -->
     lir_pandoc(P).
 lir_pandoc(index(_), P) --> [], lir_pandoc(P).
 lir_pandoc(display(KW, FN_str, Meta, Label),
-           [div([class(lirdisplay),id(Label)], [\display(KW, FN_str, Meta)])|P]) -->
+           [div([class(lirdisplay),id(Label)],
+                [\display(KW, FN_str, Meta)])|P]) -->
     lir_pandoc(P).
 @
 
