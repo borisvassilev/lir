@@ -663,7 +663,7 @@ lir_file(code, [Code|L]) -->
         ->  C = [text(Text)],
             string_codes(Text, Codes),
             yaml_to_dict(Codes, Display_meta),
-            Code = display(KW, FN_str, Display_meta)
+            Code = display(KW, FN_str, Display_meta, Label)
         )
     },
     lir_rest(L).
@@ -1013,8 +1013,8 @@ lir_pandoc(chunks_list(_Cs), P) -->
 */
     lir_pandoc(P).
 lir_pandoc(index(_), P) --> [], lir_pandoc(P).
-lir_pandoc(display(KW, FN_str, Meta),
-           [\display(KW, FN_str, Meta)|P]) -->
+lir_pandoc(display(KW, FN_str, Meta, Label),
+           [div([class(lirdisplay),id(Label)], [\display(KW, FN_str, Meta)])|P]) -->
     lir_pandoc(P).
 @
 
