@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-/usr/lib/noweb
+"$HOME"/lib/noweb
 @
 
 ## Making and installing
@@ -682,6 +682,7 @@ lir_file(index_beginindex, [index(I)|L]) --> [X],
 <<Parse the index>>
 @
 
+A module that allows the user to parse a codelist containing YAML data to a Prolog dictionary containing a native representation of the YAML data.
 This module makes use of SWI-Prolog's library [`dcg/basics`](http://eu.swi-prolog.org/pldoc/doc/swi/library/dcg/basics.pl).
 <<yaml.pl>>=
 :- module(yaml, [yaml_to_dict/2]).
