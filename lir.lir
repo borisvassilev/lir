@@ -51,7 +51,7 @@ echo "*** Weaved document is in lir.html!"
 
 ## Makefile
 <<Makefile>>=
-nwpipemodules = driver.pl nwpipe.pl lirhtml.pl
+nwpipemodules = driver.pl nwpipe.pl lirhtml.pl yaml.pl
 
 nwpipesources = nwpipe-pandoc.pl $(nwpipemodules)
 
@@ -649,7 +649,10 @@ lir_rest([]) --> [].
 
 A file is a sequence of documentation and code chunks.
 It will contain a list of chunks and an index.
+To parse the contents of display item meta-data, we use the [[<<yaml.pl>>]] module.
 <<Parse a file>>=
+:- use_module(yaml, [yaml_to_dict/2]).
+
 lir_file(docs, L) --> [X],
     docs(X, L).
 lir_file(code, [Code|L]) -->
@@ -659,7 +662,7 @@ lir_file(code, [Code|L]) -->
         ;   Name = display(KW, FN_str)
         ->  C = [text(Text)],
             string_codes(Text, Codes),
-            phrase(yaml(Display_meta), Codes),
+            yaml_to_dict(Codes, Display_meta),
             Code = display(KW, FN_str, Display_meta)
         )
     },
@@ -673,30 +676,59 @@ lir_file(index_beginindex, [index(I)|L]) --> [X],
     index_list(X, I),
     lir_rest(L).
 
-yaml(D) -->
-    yaml_es(Es),
-    {   dict_create(D, yaml, Es)
-    }.
+<<Parse a documentation chunk>>
+<<Parse a code chunk>>
+<<Parse the list of chunks>>
+<<Parse the index>>
+@
 
-yaml_es([E|Es]) --> yaml_entry(E), !, yaml_es(Es).
+This module makes use of SWI-Prolog's library [`dcg/basics`](http://eu.swi-prolog.org/pldoc/doc/swi/library/dcg/basics.pl).
+<<yaml.pl>>=
+:- module(yaml, [yaml_to_dict/2]).
+
+:- use_module(library(dcg/basics), [white//0,
+                                    whites//0,
+                                    string_without//2]).
+
+yaml_to_dict(Codes, Dict) :-
+    phrase(yaml_es(Es), Codes),
+    dict_create(Dict, yaml, Es).
+
+<<Make a list of YAML key-value pairs>>
+@
+
+<<Make a list of YAML key-value pairs>>=
+yaml_es([K-V|Es]) --> yaml_key_val(K, V), !, yaml_es(Es).
 yaml_es([]) --> [].
 
-yaml_entry(K-V) --> yaml_key_val(K, V).
+<<Parse one YAML key-value pair>>
+@
 
+The keyword starts at the very beginning of the line, does not contain any blank characters (space, tab, newline...), and is ended by a colon followed by a single space.
+The character that follows that space, here called `C`, determines if this is a block scalar or not.
+<<Parse one YAML key-value pair>>=
 yaml_key_val(K, V) --> yaml_key_codes(KCs), ": ", !,
     {   atom_codes(K, KCs)
     },
     [C],
     yaml_val(C, V).
 
+<<Get YAML key>>
+<<Get YAML value>>
+@
+
+
+Any graph character will do, but no blanks of any kind allowed.
+<<Get YAML key>>=
 yaml_key_codes([C|Cs]) --> [C],
     {   code_type(C, graph)
     },
     yaml_key_codes(Cs).
 yaml_key_codes([]) --> [].
+@
 
-:- use_module(library(dcg/basics)).
-
+The only recognized block notation is literal style, indicated by a "`|`".
+<<Get YAML value>>=
 yaml_val(0'|, V) --> "\n", !,
     yaml_indented_block(V_codes),
     {   string_codes(V, V_codes)
@@ -705,6 +737,11 @@ yaml_val(C, V_str) --> string_without("\n", Cs), "\n",
     {   string_codes(V_str, [C|Cs])
     }.
 
+<<Read YAML indented block>>
+@
+
+All indenting is removed, but all newlines are preserved.
+<<Read YAML indented block>>=
 yaml_indented_block(Block) --> white, whites, !,
     indented_lines(Block).
 yaml_indented_block([]) --> [].
@@ -716,15 +753,6 @@ indented_lines([C|Cs]) --> [C],
     indented_lines(Cs).
 indented_lines([0'\n|Block]) --> [0'\n], !,
     yaml_indented_block(Block).
-
-yaml_val_cs([C|Cs]) --> [C],
-    yaml_val_cs(Cs).
-yaml_val_cs([]) --> [].
-
-<<Parse a documentation chunk>>
-<<Parse a code chunk>>
-<<Parse the list of chunks>>
-<<Parse the index>>
 @
 
 <<:make>>=
