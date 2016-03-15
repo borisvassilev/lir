@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-"$HOME"/lib/noweb
+/usr/lib/noweb
 @
 
 ## Making and installing
