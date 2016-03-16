@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-/usr/lib/noweb
+"$HOME"/lib/noweb
 @
 
 ## Making and installing
@@ -1049,20 +1049,26 @@ defend --> html(&(0x25FC)). % Black square
 Display items:
 <<>>=
 display(listing, FN, Meta) -->
-    {   file_contents(FN, FC),
-        yaml{title:Title, caption:Caption} :< Meta
+    {   file_contents(FN, FC)
     },
     html(div(class(lirlisting),
-             [\listing_header(FN, Title),
-              pre(\[FC]),
-              \listing_caption(Caption)])).
+             [\listing_header(FN),
+              \listing_contents(FC),
+              \listing_caption(Meta)])).
 
-listing_header(Filename, Title) -->
-    html([span(class(listingname), "Listing:"), \nbsp,
-          span(class(listingfile), code(Filename)), ".", \nbsp,
-          span(class(listingtitle), [Title])]).
+listing_header(Filename) -->
+    html(div(class(listingheader),
+             [span(class(listingname), "Listing"), \nbsp,
+              span(class(listingfile), code(Filename))])).
 
-listing_caption(M) --> html(p(M)).
+listing_contents(C) -->
+    html([div(class(listingcontents),
+              pre([\[C]]))]).
+
+listing_caption(M) -->
+    html(div(class(listingmeta),
+             [span(class(listingtitle), [M.title]), " ",
+              span(class(listingcaption), [M.caption])])).
 
 file_contents(FN, FC) :-
     setup_call_cleanup(open(FN, read, In),
@@ -1414,6 +1420,7 @@ For HTML documentation, [[<<lir.css>>]] is used.
 <<Quoted code in monospace>>
 <<Use names formatting>>
 <<List of chunks formatting>>
+<<Display item formatting>>
 @
 
 The text width is limited and a left margin is inserted to improve readability.
@@ -1459,7 +1466,7 @@ span.embeddeduse {
     font-family: Serif;
 }
 span.chunknr {
-    font-weight: bold;
+    font-weight: Bold;
 }
 @
 
@@ -1505,7 +1512,37 @@ span.quote {
 
 <<List of chunks formatting>>=
 ul.chunkslist {
-    list-style-type: square;
+    list-style-type: Square;
 }
 @
 
+<<Display item formatting>>=
+div.lirlisting {
+    max-width: 14cm;
+}
+span.listingname {
+    font-weight: Bold;
+}
+div.listingcontents {
+    padding: 4mm;
+    margin-top: 3mm;
+    margin-bottom: 3mm;
+    border-style: Solid;
+    border-width: 0.3mm;
+}
+span.listingfile {
+    font-style: Italic;
+}
+div.listingmeta {
+    max-width: 12cm;
+}
+span.listingtitle {
+    font-weight: Bold;
+}
+span.listingfile {
+    color: DarkRed;
+}
+div.listingfile:hover {
+    color: DarkGoldenRod;
+}
+@
