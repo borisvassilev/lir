@@ -1096,8 +1096,7 @@ chunk_content_(text(T), Cs, DB) -->
     html(T),
     chunk_content(Cs, DB).
 chunk_content_(code_use(L, R, N), Cs, DB) -->
-    {   %label_nr_name_fname(R, _, N, FN)
-        DB = nrs(DB_Code,_),
+    {   DB = nrs(DB_Code,_),
         get_assoc(R, DB_Code, nr_name_fname(_, N, FN))
     },
     html(span(class(embeddeduse),
@@ -1111,8 +1110,7 @@ chunk_content_(code_use(L, R, N), Cs, DB) -->
 Code chunk headers:
 <<>>=
 chunk_defn(_M, L, DB) -->
-    {   %label_nr_name_fname(L, Nr, _, FName)
-        DB = nrs(DB_Code, _),
+    {   DB = nrs(DB_Code, _),
         get_assoc(L, DB_Code, nr_name_fname(Nr, _, FName))
     },
     html(span([class(defn),id(L)],
@@ -1130,8 +1128,7 @@ chunk_uses(_, _) --> [].
 Uses in the header:
 <<>>=
 chunk_uses_([U|Us], DB) -->
-    {   %label_nr_name_fname(U, Nr, _, _)
-        DB = nrs(DB_Code,_),
+    {   DB = nrs(DB_Code,_),
         get_assoc(U, DB_Code, nr_name_fname(Nr, _, _))
     }, !,
     html([br([]),
@@ -1141,8 +1138,7 @@ chunk_uses_([U|Us], DB) -->
 chunk_uses_(notused, _DB) --> html([br([]), "root chunk"]).
 chunk_uses_rest([], _DB) --> [].
 chunk_uses_rest([U|Us], DB) -->
-    {   %label_nr_name_fname(U, Nr, _, _)
-        DB = nrs(DB_Code,_),
+    {   DB = nrs(DB_Code,_),
         get_assoc(U, DB_Code, nr_name_fname(Nr, _, _))
     },
     html([", ", a(href("#~a"-U), ["C~d"-Nr])]),
@@ -1153,7 +1149,6 @@ Previous and next chunks in the header:
 <<>>=
 chunk_next(M, DB) -->
     {   code{next:L} :< M,
-        %label_nr_name_fname(L, Nr, _, _)
         DB = nrs(DB_Code,_),
         get_assoc(L, DB_Code, nr_name_fname(Nr, _, _))
     }, !,
@@ -1164,7 +1159,6 @@ chunk_next(_, _DB) -->
 
 chunk_prev(M, DB) -->
     {   code{prev:L} :< M,
-        %label_nr_name_fname(L, Nr, _, _)
         DB = nrs(DB_Code,_),
         get_assoc(L, DB_Code, nr_name_fname(Nr, _, _))
     },
@@ -1180,8 +1174,7 @@ chunk_defs(M, DB) -->
 chunk_defs(_, _) --> [].
 
 chunk_defs_([D|Ds], DB) -->
-    {   %label_nr_name_fname(D, Nr, _, _)
-        DB = nrs(DB_Code,_),
+    {   DB = nrs(DB_Code,_),
         get_assoc(D, DB_Code, nr_name_fname(Nr, _, _))
     },
     html([br([]),
@@ -1190,8 +1183,7 @@ chunk_defs_([D|Ds], DB) -->
     chunk_defs_rest(Ds, DB).
 chunk_defs_rest([], _) --> [].
 chunk_defs_rest([D|Ds], DB) -->
-    {   %label_nr_name_fname(D, Nr, _, _)
-        DB = nrs(DB_Code,_),
+    {   DB = nrs(DB_Code,_),
         get_assoc(D, DB_Code, nr_name_fname(Nr, _, _))
     },
     html([" + ", a(href("#~a"-D), [\contmoresym, \thinnbsp, "C~d"-Nr])]),
