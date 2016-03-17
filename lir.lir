@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-"$HOME"/lib/noweb
+/usr/lib/noweb
 @
 
 ## Making and installing
@@ -378,7 +378,6 @@ pandoc "$@" \
     --from=markdown \
     --table-of-contents \
     --standalone \
-    --self-contained \
     --smart \
     --to=html5 \
     --css="<<Path to `lir`>>"/lir.css \
@@ -945,9 +944,6 @@ emit_html(Out, L) :-
     codechunks_to_db(L),
     phrase(lir_pandoc(P), L),
     phrase(html(P), H),
-    setup_call_cleanup(open("before-pandoc.debug", write, BP),
-                       print_html(BP, H),
-                       close(BP)),
     print_html(Out, H).
 @
 
@@ -962,8 +958,12 @@ codechunks_to_db(L) :-
              name_label_fmtd(Name, Label, FN)]>>true,
              CNLMs, FNs, NLFs),
     retractall(label_nr_name_fname(_,_,_,_)),
-    forall(nth0(N, NLFs, name_label_fmtd(Name, Label, FN)),
-           assertz(label_nr_name_fname(Label, N, Name, FN))).
+    forall(nth1(N, NLFs, name_label_fmtd(Name, Label, FN)),
+           assertz(label_nr_name_fname(Label, N, Name, FN))),
+
+    include([display(_,_,_,_)]>>true, L, Ds),
+    forall(nth1(N, Ds, display(KW, FN, DM, Label)),
+           assertz(label_nr_kw_fn_dm(Label, N, KW, FN, DM))).
 @
 
 Use Pandoc to pre-format chunk names.
@@ -1028,7 +1028,7 @@ lir_pandoc(chunks_list(_Cs), P) -->
 lir_pandoc(index(_), P) --> [], lir_pandoc(P).
 lir_pandoc(display(KW, FN_str, Meta, Label),
            [div([class(lirdisplay),id(Label)],
-                [\display(KW, FN_str, Meta)])|P]) -->
+                [\display(KW, FN_str, Meta, Label)])|P]) -->
     lir_pandoc(P).
 @
 
@@ -1048,18 +1048,19 @@ defend --> html(&(0x25FC)). % Black square
 
 Display items:
 <<>>=
-display(listing, FN, Meta) -->
+display(listing, FN, Meta, Label) -->
     {   file_contents(FN, FC)
     },
     html(div(class(lirlisting),
-             [\listing_header(FN),
+             [\listing_header(FN, Label),
               \listing_contents(FC),
               \listing_caption(Meta)])).
 
-listing_header(Filename) -->
+listing_header(Filename, Label) -->
     html(div(class(listingheader),
-             [span(class(listingname), "Listing"), \nbsp,
-              span(class(listingfile), code(Filename))])).
+               [span(class(listingname), "Listing"), \nbsp,
+                span(class(listingfile), 
+                     a(href("#~a"-Label), code(Filename)))])).
 
 listing_contents(C) -->
     html([div(class(listingcontents),
@@ -1122,7 +1123,7 @@ chunk_uses_([U|Us]) -->
     {   label_nr_name_fname(U, Nr, _, _)
     }, !,
     html([br([]),
-         "Used by ",
+         "Appears in ",
          a(href("#~a"-U),["C~d"-Nr])]),
     chunk_uses_rest(Us).
 chunk_uses_(notused) --> html([br([]), "root chunk"]).
@@ -1444,6 +1445,7 @@ h1, h2, h3 {
 @
 
 <<Use names formatting>>=
+span.listingfile a,
 span.chunkdefs a,
 span.chunkuses a,
 span.chunkprev a,
@@ -1488,6 +1490,7 @@ span.embeddedusesym {
 span.embeddeduse a:hover {
     color: DodgerBlue;
 }
+span.listingfile a,
 span.chunkdefs a,
 span.chunkprev a,
 span.chunknext a,
@@ -1495,6 +1498,7 @@ span.defn a,
 span.chunkuses a {
     color: DarkRed;
 }
+span.listingfile a:hover,
 span.chunkdefs a:hover,
 span.chunkprev a:hover,
 span.chunknext a:hover,
