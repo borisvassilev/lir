@@ -941,15 +941,17 @@ index_list(index_endindex, []) --> [].
 :- use_module(library(http/html_write)).
 
 emit_html(Out, L) :-
-    codechunks_to_db(L),
-    phrase(lir_pandoc(P), L),
+    codechunks_to_db(L, DB),
+    phrase(lir_pandoc(P, DB), L),
     phrase(html(P), H),
     print_html(Out, H).
 @
 
 Add to the database a table with all code chunks.
 <<>>=
-codechunks_to_db(L) :-
+:- use_module(library(assoc)).
+
+codechunks_to_db(L, nrs(Code_chunks, Display_items)) :-
     include([code_name_label_meta(_,_,_,_)]>>true, L, CNLMs),
     maplist([code_name_label_meta(_,N,_,_), N]>>true, CNLMs, Ns),
     fmt_names_fmtd(html5, Ns, FNs),
@@ -957,11 +959,24 @@ codechunks_to_db(L) :-
              FN,
              name_label_fmtd(Name, Label, FN)]>>true,
              CNLMs, FNs, NLFs),
+
+    bagof(Label-nr_name_fname(N, Name, FN),
+          NLFs^nth1(N, NLFs, name_label_fmtd(Name, Label, FN)),
+          LNNFs),
+    list_to_assoc(LNNFs, Code_chunks),
+
     retractall(label_nr_name_fname(_,_,_,_)),
     forall(nth1(N, NLFs, name_label_fmtd(Name, Label, FN)),
            assertz(label_nr_name_fname(Label, N, Name, FN))),
 
     include([display(_,_,_,_)]>>true, L, Ds),
+
+    bagof(Label-nr_kw_fn_dm(N, KW, FN, DM),
+          Ds^nth1(N, Ds, display(KW, FN, DM, Label)),
+          LNKFDs),
+    list_to_assoc(LNKFDs, Display_items),
+
+    retractall(display(_, _, _, _)),
     forall(nth1(N, Ds, display(KW, FN, DM, Label)),
            assertz(label_nr_kw_fn_dm(Label, N, KW, FN, DM))).
 @
@@ -994,42 +1009,43 @@ paragraph_fmtd(element(p, [], StrDOM), Fmtd) :-
 
 Everything to Pandoc HTML:
 <<>>=
-lir_pandoc(P) -->
+lir_pandoc(P, DB) -->
     [X], !,
-    lir_pandoc(X, P).
-lir_pandoc([]) --> [].
-lir_pandoc(nl, ["\n"|P]) --> lir_pandoc(P).
-lir_pandoc(text(T), [\[T]|P]) --> lir_pandoc(P).
-lir_pandoc(quote(Q), [span(class(quote), QC)|P]) -->
-    {   phrase(lir_pandoc(QC), Q)
+    lir_pandoc(X, P, DB).
+lir_pandoc([], _DB) --> [].
+
+lir_pandoc(nl, ["\n"|P], DB) --> lir_pandoc(P, DB).
+lir_pandoc(text(T), [\[T]|P], DB) --> lir_pandoc(P, DB).
+lir_pandoc(quote(Q), [span(class(quote), QC)|P], DB) -->
+    {   phrase(lir_pandoc(QC, DB), Q)
     },
-    lir_pandoc(P).
+    lir_pandoc(P, DB).
 lir_pandoc(quote_use(Name, Label),
             [span(class(quoteduse),
                   [\openparen, \thinnbsp,
                    a(href("#~a"-Label), Name),
-                   \thinnbsp, \closeparen])|P]) -->
-    lir_pandoc(P).
+                   \thinnbsp, \closeparen])|P], DB) -->
+    lir_pandoc(P, DB).
 lir_pandoc(code_name_label_meta(C, _, L, M),
-            [div(class(codechunk),
-             [\chunk_defn(M, L),
-              \chunk_uses(M),
-              \chunk_defs(M),
-              \chunk_prev(M),
-              pre(\chunk_content(C)),
-              \chunk_next(M)])|P]) -->
-    lir_pandoc(P).
-lir_pandoc(chunks_list(_Cs), P) -->
+           [div(class(codechunk),
+                [\chunk_defn(M, L),
+                 \chunk_uses(M),
+                 \chunk_defs(M),
+                 \chunk_prev(M),
+                 pre(\chunk_content(C, DB)),
+                 \chunk_next(M)])|P], DB) -->
+    lir_pandoc(P, DB).
+lir_pandoc(chunks_list(_Cs), P, DB) -->
 /*
             ["# List of Chunks\n\n",
              div(class(listofchunks), \chunks_list(Cs))|P]) -->
 */
-    lir_pandoc(P).
-lir_pandoc(index(_), P) --> [], lir_pandoc(P).
+    lir_pandoc(P, DB).
+lir_pandoc(index(_), P, DB) --> [], lir_pandoc(P, DB).
 lir_pandoc(display(KW, FN_str, Meta, Label),
            [div([class(lirdisplay),id(Label)],
-                [\display(KW, FN_str, Meta, Label)])|P]) -->
-    lir_pandoc(P).
+                [\display(KW, FN_str, Meta, Label)])|P], DB) -->
+    lir_pandoc(P, DB).
 @
 
 Symbols in HTML:
@@ -1079,25 +1095,27 @@ file_contents(FN, FC) :-
 
 Chunk contents:
 <<>>=
-chunk_content([]) --> [].
-chunk_content([C|Cs]) -->
-    chunk_content_(C, Cs).
+chunk_content([], _DB) --> [].
+chunk_content([C|Cs], DB) -->
+    chunk_content_(C, Cs, DB).
 
-chunk_content_(nl, Cs) -->
+chunk_content_(nl, Cs, DB) -->
     html("\n"),
-    chunk_content(Cs).
-chunk_content_(text(T), Cs) -->
+    chunk_content(Cs, DB).
+chunk_content_(text(T), Cs, DB) -->
     html(T),
-    chunk_content(Cs).
-chunk_content_(code_use(L, R, N), Cs) -->
-    {   label_nr_name_fname(R, _, N, FN)
+    chunk_content(Cs, DB).
+chunk_content_(code_use(L, R, N), Cs, DB) -->
+    {   %label_nr_name_fname(R, _, N, FN)
+        DB = nrs(DB_Code,_),
+        get_assoc(R, DB_Code, nr_name_fname(_, N, FN))
     },
     html(span(class(embeddeduse),
               [\openparen, \thinnbsp,
                a([id(L), href("#~a"-R)],
                  [\[FN]]),
                \thinnbsp, \closeparen])),
-    chunk_content(Cs).
+    chunk_content(Cs, DB).
 @
 
 Code chunk headers:
