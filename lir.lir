@@ -1429,7 +1429,12 @@ The text width is limited and a left margin is inserted to improve readability.
 p {
     max-width: 14cm;
 }
-ul, ol, dl, span.chunkdefs {
+blockquote {
+    max-width: 11cm;
+    font-size: 0.9em;
+}
+ul, ol, dl,
+span.chunkdefs {
     max-width: 12cm;
 }
 body {
