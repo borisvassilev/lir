@@ -1528,10 +1528,9 @@ span.listingname {
     font-weight: Bold;
 }
 div.listingcontents {
-    padding: 4mm;
     margin-top: 3mm;
     margin-bottom: 3mm;
-    border-style: Solid;
+    border-style: Solid None Solid None;
     border-width: 0.3mm;
 }
 span.listingfile {
