@@ -959,26 +959,16 @@ codechunks_to_db(L, nrs(Code_chunks, Display_items)) :-
              FN,
              name_label_fmtd(Name, Label, FN)]>>true,
              CNLMs, FNs, NLFs),
-
     bagof(Label-nr_name_fname(N, Name, FN),
           NLFs^nth1(N, NLFs, name_label_fmtd(Name, Label, FN)),
           LNNFs),
     list_to_assoc(LNNFs, Code_chunks),
 
-    retractall(label_nr_name_fname(_,_,_,_)),
-    forall(nth1(N, NLFs, name_label_fmtd(Name, Label, FN)),
-           assertz(label_nr_name_fname(Label, N, Name, FN))),
-
     include([display(_,_,_,_)]>>true, L, Ds),
-
     bagof(Label-nr_kw_fn_dm(N, KW, FN, DM),
           Ds^nth1(N, Ds, display(KW, FN, DM, Label)),
           LNKFDs),
-    list_to_assoc(LNKFDs, Display_items),
-
-    retractall(display(_, _, _, _)),
-    forall(nth1(N, Ds, display(KW, FN, DM, Label)),
-           assertz(label_nr_kw_fn_dm(Label, N, KW, FN, DM))).
+    list_to_assoc(LNKFDs, Display_items).
 @
 
 Use Pandoc to pre-format chunk names.
@@ -1028,12 +1018,12 @@ lir_pandoc(quote_use(Name, Label),
     lir_pandoc(P, DB).
 lir_pandoc(code_name_label_meta(C, _, L, M),
            [div(class(codechunk),
-                [\chunk_defn(M, L),
-                 \chunk_uses(M),
-                 \chunk_defs(M),
-                 \chunk_prev(M),
+                [\chunk_defn(M, L, DB),
+                 \chunk_uses(M, DB),
+                 \chunk_defs(M, DB),
+                 \chunk_prev(M, DB),
                  pre(\chunk_content(C, DB)),
-                 \chunk_next(M)])|P], DB) -->
+                 \chunk_next(M, DB)])|P], DB) -->
     lir_pandoc(P, DB).
 lir_pandoc(chunks_list(_Cs), P, DB) -->
 /*
@@ -1120,78 +1110,92 @@ chunk_content_(code_use(L, R, N), Cs, DB) -->
 
 Code chunk headers:
 <<>>=
-chunk_defn(_M, L) -->
-    {   label_nr_name_fname(L, Nr, _, FName)
+chunk_defn(_M, L, DB) -->
+    {   %label_nr_name_fname(L, Nr, _, FName)
+        DB = nrs(DB_Code, _),
+        get_assoc(L, DB_Code, nr_name_fname(Nr, _, FName))
     },
     html(span([class(defn),id(L)],
               [span(class(chunknr), "C~d:"-Nr), \nbsp,
                \openparen, \thinnbsp,
                a(href("#~a"-L), \[FName]),
                \thinnbsp, \closeparen, \thinnbsp, \defeq])).
-chunk_uses(M) -->
+chunk_uses(M, DB) -->
     {   code{uses:Us} :< M
     }, !,
-    html(span(class(chunkuses), \chunk_uses_(Us))).
-chunk_uses(_) --> [].
+    html(span(class(chunkuses), \chunk_uses_(Us, DB))).
+chunk_uses(_, _) --> [].
 @
 
 Uses in the header:
 <<>>=
-chunk_uses_([U|Us]) -->
-    {   label_nr_name_fname(U, Nr, _, _)
+chunk_uses_([U|Us], DB) -->
+    {   %label_nr_name_fname(U, Nr, _, _)
+        DB = nrs(DB_Code,_),
+        get_assoc(U, DB_Code, nr_name_fname(Nr, _, _))
     }, !,
     html([br([]),
          "Appears in ",
          a(href("#~a"-U),["C~d"-Nr])]),
-    chunk_uses_rest(Us).
-chunk_uses_(notused) --> html([br([]), "root chunk"]).
-chunk_uses_rest([]) --> [].
-chunk_uses_rest([U|Us]) -->
-    {   label_nr_name_fname(U, Nr, _, _)
+    chunk_uses_rest(Us, DB).
+chunk_uses_(notused, _DB) --> html([br([]), "root chunk"]).
+chunk_uses_rest([], _DB) --> [].
+chunk_uses_rest([U|Us], DB) -->
+    {   %label_nr_name_fname(U, Nr, _, _)
+        DB = nrs(DB_Code,_),
+        get_assoc(U, DB_Code, nr_name_fname(Nr, _, _))
     },
     html([", ", a(href("#~a"-U), ["C~d"-Nr])]),
-    chunk_uses_rest(Us).
+    chunk_uses_rest(Us, DB).
 @
 
 Previous and next chunks in the header:
 <<>>=
-chunk_next(M) -->
+chunk_next(M, DB) -->
     {   code{next:L} :< M,
-        label_nr_name_fname(L, Nr, _, _)
+        %label_nr_name_fname(L, Nr, _, _)
+        DB = nrs(DB_Code,_),
+        get_assoc(L, DB_Code, nr_name_fname(Nr, _, _))
     }, !,
     html(span(class(chunknext),
          a(href("#~a"-L), [\nextsym, \thinnbsp, "C~d"-Nr]))).
-chunk_next(_) -->
-    html(\defend). % white square
+chunk_next(_, _DB) -->
+    html(\defend).
 
-chunk_prev(M) -->
+chunk_prev(M, DB) -->
     {   code{prev:L} :< M,
-        label_nr_name_fname(L, Nr, _, _)
+        %label_nr_name_fname(L, Nr, _, _)
+        DB = nrs(DB_Code,_),
+        get_assoc(L, DB_Code, nr_name_fname(Nr, _, _))
     },
     html([br([]),
           span(class(chunkprev),
                a(href("#~a"-L), [\prevsym, \thinnbsp, "C~d"-Nr]))]).
-chunk_prev(_) --> [].
+chunk_prev(_, _DB) --> [].
 
-chunk_defs(M) -->
+chunk_defs(M, DB) -->
     {   code{defs:Ds} :< M
     }, !,
-    html(span(class(chunkdefs), \chunk_defs_(Ds))).
-chunk_defs(_) --> [].
+    html(span(class(chunkdefs), \chunk_defs_(Ds, DB))).
+chunk_defs(_, _) --> [].
 
-chunk_defs_([D|Ds]) -->
-    {   label_nr_name_fname(D, Nr, _, _)
+chunk_defs_([D|Ds], DB) -->
+    {   %label_nr_name_fname(D, Nr, _, _)
+        DB = nrs(DB_Code,_),
+        get_assoc(D, DB_Code, nr_name_fname(Nr, _, _))
     },
     html([br([]),
           "definition continued in ",
           a(href("#~a"-D), [\contsym, \thinnbsp, "C~d"-Nr])]),
-    chunk_defs_rest(Ds).
-chunk_defs_rest([]) --> [].
-chunk_defs_rest([D|Ds]) -->
-    {   label_nr_name_fname(D, Nr, _, _)
+    chunk_defs_rest(Ds, DB).
+chunk_defs_rest([], _) --> [].
+chunk_defs_rest([D|Ds], DB) -->
+    {   %label_nr_name_fname(D, Nr, _, _)
+        DB = nrs(DB_Code,_),
+        get_assoc(D, DB_Code, nr_name_fname(Nr, _, _))
     },
     html([" + ", a(href("#~a"-D), [\contmoresym, \thinnbsp, "C~d"-Nr])]),
-    chunk_defs_rest(Ds).
+    chunk_defs_rest(Ds, DB).
 @
 
 # Layout
