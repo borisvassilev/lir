@@ -960,13 +960,13 @@ codechunks_to_db(L,
     
     pairs_keys_values(LFs, Ls, FNs),
     dict_create(CC_names, name, LFs),
-    bagof(Label-Nr, Ls^nth1(Nr, Ls, Label), LNrs),
+    findall(Label-Nr, nth1(Nr, Ls, Label), LNrs),
     dict_create(CC_nrs, nr, LNrs),
 
     include([display(listing,_,_,_)]>>true, L, DLs),
-    bagof(Label-Nr,
-          DLs^nth1(Nr, DLs, display(listing, _, _, Label)),
-          DLNrs),
+    findall(Label-Nr,
+            nth1(Nr, DLs, display(listing, _, _, Label)),
+            DLNrs),
     dict_create(DL_nrs, nrs, DLNrs).
 @
 
