@@ -955,12 +955,12 @@ codechunks_to_db(L, db{code:Code_chunks, display:Display_items}) :-
     include([code_name_label_meta(_,_,_,_)]>>true, L, CNLMs),
     maplist([code_name_label_meta(_,N,_,_), N]>>true, CNLMs, Ns),
     fmt_names_fmtd(html5, Ns, FNs),
-    maplist([code_name_label_meta(_, Name, Label, _),
+    maplist([code_name_label_meta(_, _, Label, _),
              FN,
-             name_label_fmtd(Name, Label, FN)]>>true,
+             label_fmtd(Label, FN)]>>true,
              CNLMs, FNs, NLFs),
-    setof(Label-nr_name_fname(N, Name, FN),
-          NLFs^nth1(N, NLFs, name_label_fmtd(Name, Label, FN)),
+    setof(Label-nr_fname(N, FN),
+          NLFs^nth1(N, NLFs, label_fmtd(Label, FN)),
           LNNFs),
     dict_create(Code_chunks, cc, LNNFs),
 
@@ -1095,8 +1095,8 @@ chunk_content_(nl, Cs, DB) -->
 chunk_content_(text(T), Cs, DB) -->
     html(T),
     chunk_content(Cs, DB).
-chunk_content_(code_use(L, R, N), Cs, DB) -->
-    {  get_dict(R, DB.code, nr_name_fname(_, N, FN))
+chunk_content_(code_use(L, R, _), Cs, DB) -->
+    {  get_dict(R, DB.code, nr_fname(_, FN))
     },
     html(span(class(embeddeduse),
               [\openparen, \thinnbsp,
@@ -1109,7 +1109,7 @@ chunk_content_(code_use(L, R, N), Cs, DB) -->
 Code chunk headers:
 <<>>=
 chunk_defn(_M, L, DB) -->
-    {   get_dict(L, DB.code, nr_name_fname(Nr, _, FName))
+    {   get_dict(L, DB.code, nr_fname(Nr, FName))
     },
     html(span([class(defn),id(L)],
               [span(class(chunknr), "C~d:"-Nr), \nbsp,
@@ -1126,7 +1126,7 @@ chunk_uses(_, _) --> [].
 Uses in the header:
 <<>>=
 chunk_uses_([U|Us], DB) -->
-    {   get_dict(U, DB.code, nr_name_fname(Nr, _, _))
+    {   get_dict(U, DB.code, nr_fname(Nr, _))
     }, !,
     html([br([]),
          "Appears in ",
@@ -1135,7 +1135,7 @@ chunk_uses_([U|Us], DB) -->
 chunk_uses_(notused, _DB) --> html([br([]), "root chunk"]).
 chunk_uses_rest([], _DB) --> [].
 chunk_uses_rest([U|Us], DB) -->
-    {   get_dict(U, DB.code, nr_name_fname(Nr, _, _))
+    {   get_dict(U, DB.code, nr_fname(Nr, _))
     },
     html([", ", a(href("#~a"-U), ["C~d"-Nr])]),
     chunk_uses_rest(Us, DB).
@@ -1145,7 +1145,7 @@ Previous and next chunks in the header:
 <<>>=
 chunk_next(M, DB) -->
     {   code{next:L} :< M,
-        get_dict(L, DB.code, nr_name_fname(Nr, _, _))
+        get_dict(L, DB.code, nr_fname(Nr, _))
     }, !,
     html(span(class(chunknext),
          a(href("#~a"-L), [\nextsym, \thinnbsp, "C~d"-Nr]))).
@@ -1154,7 +1154,7 @@ chunk_next(_, _DB) -->
 
 chunk_prev(M, DB) -->
     {   code{prev:L} :< M,
-        get_dict(L, DB.code, nr_name_fname(Nr, _, _))
+        get_dict(L, DB.code, nr_fname(Nr, _))
     },
     html([br([]),
           span(class(chunkprev),
@@ -1168,7 +1168,7 @@ chunk_defs(M, DB) -->
 chunk_defs(_, _) --> [].
 
 chunk_defs_([D|Ds], DB) -->
-    {   get_dict(D, DB.code, nr_name_fname(Nr, _, _))
+    {   get_dict(D, DB.code, nr_fname(Nr, _))
     },
     html([br([]),
           "definition continued in ",
@@ -1176,7 +1176,7 @@ chunk_defs_([D|Ds], DB) -->
     chunk_defs_rest(Ds, DB).
 chunk_defs_rest([], _) --> [].
 chunk_defs_rest([D|Ds], DB) -->
-    {   get_dict(D, DB.code, nr_name_fname(Nr, _, _))
+    {   get_dict(D, DB.code, nr_fname(Nr, _))
     },
     html([" + ", a(href("#~a"-D), [\contmoresym, \thinnbsp, "C~d"-Nr])]),
     chunk_defs_rest(Ds, DB).
