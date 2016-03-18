@@ -261,7 +261,7 @@ do
     original=$(readlink --canonicalize "$used")
     if [ -f "$original" ]
     then
-        ln --symbolic --force "$original" "$1/$used"
+        ln --verbose --symbolic --force "$original" "$1/$used"
     else
         >&2 echo "LIR ERROR: File not found! ($original)"
         exit 1
