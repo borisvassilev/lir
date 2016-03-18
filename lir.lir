@@ -950,7 +950,8 @@ emit_html(Out, L) :-
 Add to the database a table with all code chunks.
 <<>>=
 codechunks_to_db(L,
-                 db{code:code{name:CC_names, nr:CC_nrs}}) :-
+                 db{code:code{name:CC_names, nr:CC_nrs},
+                    listing:listing{nr:DL_nrs}}) :-
     include([code_name_label_meta(_,_,_,_)]>>true,
             L, CNLMs),
     maplist([code_name_label_meta(_,N,L,_), N,L]>>true,
@@ -959,19 +960,14 @@ codechunks_to_db(L,
     
     pairs_keys_values(LFs, Ls, FNs),
     dict_create(CC_names, name, LFs),
-    dict_pairs(CC_names, name, CC_pairs),
-    forall(member(K-V, CC_pairs),
-           format(user_error, "~w : ~w~n", [K,V])),
     bagof(Label-Nr, Ls^nth1(Nr, Ls, Label), LNrs),
     dict_create(CC_nrs, nr, LNrs),
-    true.
-/*
-    include([display(_,_,_,_)]>>true, L, Ds),
-    setof(Label-nr_kw_fn_dm(N, KW, FN, DM),
-          Ds^nth1(N, Ds, display(KW, FN, DM, Label)),
-          LNKFDs),
-    dict_create(Display_items, di, LNKFDs).
-*/
+
+    include([display(listing,_,_,_)]>>true, L, DLs),
+    bagof(Label-Nr,
+          DLs^nth1(Nr, DLs, display(listing, _, _, Label)),
+          DLNrs),
+    dict_create(DL_nrs, nrs, DLNrs).
 @
 
 Use Pandoc to pre-format chunk names.
@@ -1037,7 +1033,7 @@ lir_pandoc(chunks_list(_Cs), P, DB) -->
 lir_pandoc(index(_), P, DB) --> [], lir_pandoc(P, DB).
 lir_pandoc(display(KW, FN_str, Meta, Label),
            [div([class(lirdisplay),id(Label)],
-                [\display(KW, FN_str, Meta, Label)])|P], DB) -->
+                [\display(KW, FN_str, Meta, Label, DB)])|P], DB) -->
     lir_pandoc(P, DB).
 @
 
@@ -1057,19 +1053,21 @@ defend --> html(&(0x25FC)). % Black square
 
 Display items:
 <<>>=
-display(listing, FN, Meta, Label) -->
+display(listing, FN, Meta, Label, DB) -->
     {   file_contents(FN, FC)
     },
     html(div(class(lirlisting),
-             [\listing_header(FN, Label),
+             [\listing_header(FN, Label, DB),
               \listing_contents(FC),
               \listing_caption(Meta)])).
 
-listing_header(Filename, Label) -->
+listing_header(Filename, Label, DB) -->
     html(div(class(listingheader),
-               [span(class(listingname), "Listing"), \nbsp,
-                span(class(listingfile), 
-                     a(href("#~a"-Label), code(Filename)))])).
+             [span(class(listingname),
+                   ["L~d:"-DB.listing.nr.Label]), 
+              \nbsp,
+              span(class(listingfile), 
+                   a(href("#~a"-Label), code(Filename)))])).
 
 listing_contents(C) -->
     html([div(class(listingcontents),
