@@ -178,12 +178,12 @@ tangle)
     rm -r "$tmpdir"
     ;;
 make)
-    make --debug=b --jobs --directory="$LIR_DIR" \
+    make --jobs --directory="$LIR_DIR" \
         --makefile=.makeall --makefile=.makedag \
         all
     ;;
 weave)
-    make --debug=b --directory="$LIR_DIR" \
+    make --directory="$LIR_DIR" \
         --makefile=.makehtml \
         "$BASENAME".html
     cp --verbose --update ".lir/$BASENAME.html" .
