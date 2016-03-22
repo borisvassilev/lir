@@ -951,7 +951,8 @@ Add to the database a table with all code chunks.
 <<>>=
 codechunks_to_db(L,
                  db{code:code{name:CC_names, nr:CC_nrs},
-                    listing:listing{nr:DL_nrs}}) :-
+                    listing:listing{nr:DL_nrs},
+                    figure:figure{nr:DF_nrs}}) :-
     include([code_name_label_meta(_,_,_,_)]>>true,
             L, CNLMs),
     maplist([code_name_label_meta(_,N,L,_), N,L]>>true,
@@ -967,7 +968,13 @@ codechunks_to_db(L,
     findall(Label-Nr,
             nth1(Nr, DLs, display(listing, _, _, Label)),
             DLNrs),
-    dict_create(DL_nrs, nrs, DLNrs).
+    dict_create(DL_nrs, nrs, DLNrs),
+
+    include([display(figure,_,_,_)]>>true, L, FLs),
+    findall(Label-Nr,
+            nth1(Nr, FLs, display(figure, _, _, Label)),
+            DFNrs),
+    dict_create(DF_nrs, nrs, DFNrs).
 @
 
 Use Pandoc to pre-format chunk names.
@@ -1060,6 +1067,11 @@ display(listing, FN, Meta, Label, DB) -->
              [\listing_header(FN, Label, DB),
               \listing_contents(FC),
               \listing_caption(Meta)])).
+display(figure, FN, Meta, Label, DB) -->
+    html(div(class(lirfigure),
+             [\figure_header(FN, Label, DB),
+              \figure_contents(FN),
+              \figure_caption(Meta)])).
 
 listing_header(Filename, Label, DB) -->
     html(div(class(listingheader),
@@ -1069,14 +1081,31 @@ listing_header(Filename, Label, DB) -->
               span(class(listingfile), 
                    a(href("#~a"-Label), code(Filename)))])).
 
+figure_header(Filename, Label, DB) -->
+    html(div(class(figureheader),
+             [span(class(figurename),
+                   ["L~d:"-DB.figure.nr.Label]), 
+              \nbsp,
+              span(class(figurefile), 
+                   a(href("#~a"-Label), code(Filename)))])).
+
 listing_contents(C) -->
     html([div(class(listingcontents),
               pre([\[C]]))]).
+
+figure_contents(FN) -->
+    html(div(class(figurecontents),
+             [img(src(".lir/~s"-FN))])).
 
 listing_caption(M) -->
     html(div(class(listingmeta),
              [span(class(listingtitle), [M.title]), " ",
               span(class(listingcaption), [M.caption])])).
+
+figure_caption(M) -->
+    html(div(class(figuremeta),
+             [span(class(figuretitle), [M.title]), " ",
+              span(class(figurecaption), [M.caption])])).
 
 file_contents(FN, FC) :-
     setup_call_cleanup(open(FN, read, In),
@@ -1444,6 +1473,7 @@ h1, h2, h3 {
 
 <<Use names formatting>>=
 span.listingfile a,
+span.figurefile a,
 span.chunkdefs a,
 span.chunkuses a,
 span.chunkprev a,
@@ -1489,6 +1519,7 @@ span.embeddeduse a:hover {
     color: DodgerBlue;
 }
 span.listingfile a,
+span.figurefile a,
 span.chunkdefs a,
 span.chunkprev a,
 span.chunknext a,
@@ -1497,6 +1528,7 @@ span.chunkuses a {
     color: DarkRed;
 }
 span.listingfile a:hover,
+span.figurefile a:hover,
 span.chunkdefs a:hover,
 span.chunkprev a:hover,
 span.chunknext a:hover,
@@ -1522,8 +1554,15 @@ ul.chunkslist {
 div.lirlisting {
     max-width: 14cm;
 }
+span.figurename,
 span.listingname {
     font-weight: Bold;
+}
+div.figurecontents img {
+    display: block;
+    max-width: 14cm;
+    width: auto;
+    height: auto;
 }
 div.listingcontents {
     margin-top: 3mm;
@@ -1531,19 +1570,20 @@ div.listingcontents {
     border-style: Solid None Solid None;
     border-width: 0.3mm;
 }
+span.figurefile,
 span.listingfile {
     font-style: Italic;
 }
+div.figuremeta,
 div.listingmeta {
     max-width: 12cm;
 }
+span.figuretitle,
 span.listingtitle {
     font-weight: Bold;
 }
+span.figurefile,
 span.listingfile {
     color: DarkRed;
-}
-div.listingfile:hover {
-    color: DarkGoldenRod;
 }
 @
