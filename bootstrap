@@ -1,2 +1,3 @@
 notangle -filter emptydefn -R"build.sh" lir.lir > build
 chmod u+x build
+./build

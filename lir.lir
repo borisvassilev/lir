@@ -51,7 +51,7 @@ echo "*** Weaved document is in lir.html!"
 
 ## Makefile
 <<Makefile>>=
-nwpipemodules = driver.pl nwpipe.pl lirhtml.pl
+nwpipemodules = driver.pl nwpipe.pl lirhtml.pl yaml.pl
 
 nwpipesources = nwpipe-pandoc.pl $(nwpipemodules)
 
@@ -178,12 +178,12 @@ tangle)
     rm -r "$tmpdir"
     ;;
 make)
-    make --debug=b --jobs --directory="$LIR_DIR" \
+    make --jobs --directory="$LIR_DIR" \
         --makefile=.makeall --makefile=.makedag \
         all
     ;;
 weave)
-    make --debug=b --directory="$LIR_DIR" \
+    make --directory="$LIR_DIR" \
         --makefile=.makehtml \
         "$BASENAME".html
     cp --verbose --update ".lir/$BASENAME.html" .
@@ -261,7 +261,7 @@ do
     original=$(readlink --canonicalize "$used")
     if [ -f "$original" ]
     then
-        ln --symbolic --force "$original" "$1/$used"
+        ln --verbose --symbolic --force "$original" "$1/$used"
     else
         >&2 echo "LIR ERROR: File not found! ($original)"
         exit 1
@@ -279,7 +279,7 @@ sed -n '/^:/!p'
 <<Get source chunknames>>=
 sed -n 's/^:source \(.\+\)$/\1/p'
 <<Get sink chunknames>>=
-sed -n 's/^:\(figure\|table\|listing\|input\) \(.\+\)/\2/p'
+sed -n 's/^:\(figure\|table\|listing\) \(.\+\)/\2/p'
 @
 
 ## Source transformations
@@ -378,7 +378,6 @@ pandoc "$@" \
     --from=markdown \
     --table-of-contents \
     --standalone \
-    --self-contained \
     --smart \
     --to=html5 \
     --css="<<Path to `lir`>>"/lir.css \
@@ -391,6 +390,7 @@ It is written as a stand-alone command line program: once compiled, can be run f
 It uses the module [[<<driver.pl>>]] to do the actual work.
 <<nwpipe-pandoc.pl>>=
 <<No banner or informational messages>>
+<<Turn on error stack trace>>
 <<Expand meta-predicates at compile time>>
 <<Use lambdas>>
 <<Succeed once without choice points>>
@@ -403,8 +403,11 @@ main :-
         nwpipeline_pandoc(Argv)),
     halt. % exit with success
 main :-
-    throw(error(evaluation_error("nwpipe-pandoc failed")),_),
+    throw(error(evaluation_error("nwpipe-pandoc failed"),_)),
     halt(1). % otherwise, exit with failure (1)
+@
+
+<<Turn on error stack trace>>=
 @
 
 During development, it is good to know if the program has left behind any unintentional choice points -- they are certainly errors, as the program is designed to succeed deterministically.
@@ -649,15 +652,20 @@ lir_rest([]) --> [].
 
 A file is a sequence of documentation and code chunks.
 It will contain a list of chunks and an index.
+To parse the contents of display item meta-data, we use the [[<<yaml.pl>>]] module.
 <<Parse a file>>=
+:- use_module(yaml, [yaml_to_dict/2]).
+
 lir_file(docs, L) --> [X],
     docs(X, L).
-lir_file(code, [code_label_meta(C, Label, M)|L]) -->
-    code(C, Label, M),
-    {   get_dict(name, M, Name),
-        (   sub_string(Name, 0, _, _, ":")
-        ->  format(user_error, "Special name: ~s~n", [Name])
-        ;   true
+lir_file(code, [Code|L]) -->
+    code(C, Name, Label, M),
+    {   (   Name = name(N)
+        ->  Code = code_name_label_meta(C, N, Label, M)
+        ;   Name = display(KW, FN_str)
+        ->  code_codelist(C, Codes),
+            yaml_to_dict(Codes, Display_meta),
+            Code = display(KW, FN_str, Display_meta, Label)
         )
     },
     lir_rest(L).
@@ -670,10 +678,104 @@ lir_file(index_beginindex, [index(I)|L]) --> [X],
     index_list(X, I),
     lir_rest(L).
 
+code_codelist(C, L) :-
+    maplist(code_atomic, C, L0),
+    atomics_to_string(L0, S0),
+    string_codes(S0, L).
+
+code_atomic(text(Text), Text).
+code_atomic(nl, "\n").
+
 <<Parse a documentation chunk>>
 <<Parse a code chunk>>
 <<Parse the list of chunks>>
 <<Parse the index>>
+@
+
+A module that allows the user to parse a codelist containing YAML data to a Prolog dictionary containing a native representation of the YAML data.
+This module makes use of SWI-Prolog's library [`dcg/basics`](http://eu.swi-prolog.org/pldoc/doc/swi/library/dcg/basics.pl).
+<<yaml.pl>>=
+:- module(yaml, [yaml_to_dict/2]).
+
+:- use_module(library(dcg/basics), [white//0,
+                                    whites//0,
+                                    string_without//2]).
+
+yaml_to_dict(Codes, Dict) :-
+    phrase(yaml_es(Es), Codes),
+    dict_create(Dict, yaml, Es).
+
+<<Make a list of YAML key-value pairs>>
+@
+
+<<Make a list of YAML key-value pairs>>=
+yaml_es([K-V|Es]) --> yaml_key_val(K, V), !, yaml_es(Es).
+yaml_es([]) --> [].
+
+<<Parse one YAML key-value pair>>
+@
+
+The keyword starts at the very beginning of the line, does not contain any blank characters (space, tab, newline...), and is ended by a colon followed by a single space.
+The character that follows that space, here called `C`, determines if this is a block scalar or not.
+<<Parse one YAML key-value pair>>=
+yaml_key_val(K, V) --> yaml_key_codes(KCs), ": ", !,
+    {   atom_codes(K, KCs)
+    },
+    [C],
+    yaml_val(C, V).
+
+<<Get YAML key>>
+<<Get YAML value>>
+@
+
+
+Any graph character will do, but no blanks of any kind allowed.
+<<Get YAML key>>=
+yaml_key_codes([C|Cs]) --> [C],
+    {   code_type(C, graph)
+    },
+    yaml_key_codes(Cs).
+yaml_key_codes([]) --> [].
+@
+
+The only recognized block notation is literal style, indicated by a "`|`".
+<<Get YAML value>>=
+yaml_val(0'|, V) --> "\n", !,
+    yaml_indented_block(V_codes),
+    {   string_codes(V, V_codes)
+    }.
+yaml_val(C, V_str) --> string_without("\n", Cs), "\n",
+    {   string_codes(V_str, [C|Cs])
+    }.
+
+<<Read YAML indented block>>
+@
+
+All indenting is removed, but all newlines are preserved.
+<<Read YAML indented block>>=
+yaml_indented_block(Block) --> white, whites, !,
+    indented_lines(Block).
+yaml_indented_block([]) --> [].
+
+indented_lines([C|Cs]) --> [C],
+    {   C \== 0'\n
+    },
+    !,
+    indented_lines(Cs).
+indented_lines([0'\n|Block]) --> [0'\n], !,
+    yaml_indented_block(Block).
+@
+
+<<:make>>=
+test-display: lir.lir
+	ls -l -h lir.lir > test-display
+
+@
+<<:listing test-display>>=
+title: A test for display environments
+caption: |
+    This is just a small example,
+    nothing more.
 @
 
 A documentation chunk can contain text, new lines, and quoted code.
@@ -718,10 +820,11 @@ quote(endquote, []) --> [].
 @
 
 <<Parse a code chunk>>=
-code(Cs, L, M) -->
+code(Cs, Defn, L, M) -->
     [X],
     defn(X, M_pairs0),
-    {   selectchk(label(L), M_pairs0, M_pairs),
+    {   selectchk(label(L), M_pairs0, M_pairs1),
+        selectchk(defn(Defn), M_pairs1, M_pairs),
         dict_create(M, code, M_pairs)
     },
     code_content(Cs).
@@ -736,7 +839,13 @@ defn(xref_label(L), [label(L)|M]) --> [X],
     defn(X, M).
 defn(xref_ref(L), [ref(L)|M]) --> [X],
     defn(X, M).
-defn(defn(N), [name(N)|M]) --> [X],
+defn(defn(N), [defn(Name)|M]) -->
+    {   (   display_item(N, KW, FN_str)
+        ->  Name = display(KW, FN_str)
+        ;   Name = name(N)
+        )
+    },
+    [X],
     defn(X, M).
 defn(xref_notused(_N), [uses(notused)|M]) --> [X],
     defn(X, M).
@@ -755,7 +864,24 @@ defn(xref_begindefs, [defs(Ds)|M]) --> [X],
     [Y],
     defn(Y, M).
 
+<<Treat display items differently>>
 <<Parse defs and uses>>
+@
+
+<<Treat display items differently>>=
+display_item(Name, KW, FN_str) :-
+    sub_string(Name, 0, 1, _, ":"),
+    once( sub_string(Name, Before_sep, 1, After_sep, " ") ),
+    Length_kw is Before_sep - 1,
+    sub_string(Name, 1, Length_kw, _After_kw, KW_str),
+    display_item_keyword(KW_str, KW),
+    Before_fn is Before_sep + 1,
+    sub_string(Name, Before_fn, After_sep, 0, FN_str).
+
+/* Seems this is deterministic when 1st argument is a string */
+display_item_keyword("figure", figure).
+display_item_keyword("listing", listing).
+display_item_keyword("table", table).
 @
 
 <<Parse the code chunk contents>>=
@@ -815,98 +941,107 @@ index_list(index_endindex, []) --> [].
 :- use_module(library(http/html_write)).
 
 emit_html(Out, L) :-
-    formatting(L, F),
-    phrase(lir_pandoc(P), F),
+    codechunks_to_db(L, DB),
+    phrase(lir_pandoc(P, DB), L),
     phrase(html(P), H),
     print_html(Out, H).
 @
 
 Add to the database a table with all code chunks.
 <<>>=
-formatting(L, R) :-
-    include([code_label_meta(_,_,_)]>>true, L, L0),
-    maplist([code_label_meta(_, Label, Meta), Label-Meta]>>true, L0, LMs),
-    retractall(label_nr_name_fname(_,_,_,_)),
-    forall(nth0(N, LMs, Lab-M),
-            (   through_pandoc(html5, M.name, FN),
-                assertz(label_nr_name_fname(Lab, N, M.name, FN))
-            )),
-    L = R,
-    true.
+codechunks_to_db(L,
+                 db{code:code{name:CC_names, nr:CC_nrs},
+                    listing:listing{nr:DL_nrs},
+                    figure:figure{nr:DF_nrs}}) :-
+    include([code_name_label_meta(_,_,_,_)]>>true,
+            L, CNLMs),
+    maplist([code_name_label_meta(_,N,L,_), N,L]>>true,
+            CNLMs, Ns, Ls),
+    fmt_names_fmtd(html5, Ns, FNs),
+    
+    pairs_keys_values(LFs, Ls, FNs),
+    dict_create(CC_names, name, LFs),
+    findall(Label-Nr, nth1(Nr, Ls, Label), LNrs),
+    dict_create(CC_nrs, nr, LNrs),
+
+    include([display(listing,_,_,_)]>>true, L, DLs),
+    findall(Label-Nr,
+            nth1(Nr, DLs, display(listing, _, _, Label)),
+            DLNrs),
+    dict_create(DL_nrs, nr, DLNrs),
+
+    include([display(figure,_,_,_)]>>true, L, FLs),
+    findall(Label-Nr,
+            nth1(Nr, FLs, display(figure, _, _, Label)),
+            DFNrs),
+    dict_create(DF_nrs, nr, DFNrs).
 @
 
 Use Pandoc to pre-format chunk names.
 <<>>=
+:- use_module(library(process), [process_create/3]).
 :- use_module(library(sgml), [load_structure/3]).
+
+fmt_names_fmtd(html5, Ns, FNs) :-
+    atomics_to_string(Ns, "\n\n", Ns_str),
+    process_create(path(pandoc),
+                   ["--to=html5"],
+                   [stdin(pipe(Pandoc_in)),
+                    stdout(pipe(Pandoc_out))]),
+    format(Pandoc_in, "~s", [Ns_str]),
+    close(Pandoc_in),
+    load_structure(Pandoc_out, DOM, [dialect(xml)]),
+    close(Pandoc_out),
+    maplist(paragraph_fmtd, DOM, FNs).
+
 :- use_module(library(sgml_write), [xml_write/3]).
 
-through_pandoc(Format, Str, FStr) :-
-	atomics_to_string(L, "'", Str), % split
-	atomics_to_string(L, "'\\''", EscStr), % put together
-	atomics_to_string(
-            ["echo '", EscStr, "' | pandoc -t ", Format], 
-            Pandoc),
-	process_create(
-            path(bash),
-            ['-c', Pandoc],
-            [stdout(pipe(Out))]),
-	through_pandoc_1(Format, Out, FStr),
-	close(Out).
-
-through_pandoc_1(html5, Out, FStr) :-
-	load_structure(Out, [element(p, [], StrDOM)], [dialect(xml)]),
-	with_output_to(string(FStr),
-		xml_write(current_output, StrDOM,
-			[header(false), layout(false)])).
-
-lir_include(":include", C, [div(class(include), Contents)|P], P) :- !,
-    maplist(name_filecontents, C, Contents).
-lir_include(_, _, P, P).
-
-name_filecontents(text(T), \[FC]) :- !,
-    split_string(T, "\n", "\n", [F]),
-    setup_call_cleanup(open(F, read, In),
-                       read_string(In, _, FC),
-                       close(In)).
-name_filecontents(Term, Text) :-
-    format(string(Text), " * ~w~n", [Term]).
-
+paragraph_fmtd(element(p, [], StrDOM), Fmtd) :-
+    with_output_to(string(Fmtd),
+                   xml_write(current_output,
+                             StrDOM,
+                             [header(false), layout(false)])).
 @
 
 Everything to Pandoc HTML:
 <<>>=
-lir_pandoc(P) -->
+lir_pandoc(P, DB) -->
     [X], !,
-    lir_pandoc(X, P).
-lir_pandoc([]) --> [].
-lir_pandoc(nl, ["\n"|P]) --> lir_pandoc(P).
-lir_pandoc(text(T), [\[T]|P]) --> lir_pandoc(P).
-lir_pandoc(quote(Q), [span(class(quote), QC)|P]) -->
-    {   phrase(lir_pandoc(QC), Q)
+    lir_pandoc(X, P, DB).
+lir_pandoc([], _DB) --> [].
+
+lir_pandoc(nl, ["\n"|P], DB) --> lir_pandoc(P, DB).
+lir_pandoc(text(T), [\[T]|P], DB) --> lir_pandoc(P, DB).
+lir_pandoc(quote(Q), [span(class(quote), QC)|P], DB) -->
+    {   phrase(lir_pandoc(QC, DB), Q)
     },
-    lir_pandoc(P).
+    lir_pandoc(P, DB).
 lir_pandoc(quote_use(Name, Label),
             [span(class(quoteduse),
                   [\openparen, \thinnbsp,
                    a(href("#~a"-Label), Name),
-                   \thinnbsp, \closeparen])|P]) -->
-    lir_pandoc(P).
-lir_pandoc(code_label_meta(C, L, M),
-            [div(class(codechunk),
-             [\chunk_defn(M, L),
-              \chunk_uses(M),
-              \chunk_defs(M),
-              \chunk_prev(M),
-              pre(\chunk_content(C)),
-              \chunk_next(M)])|P]) -->
-    lir_pandoc(P).
-lir_pandoc(chunks_list(_Cs), P) -->
+                   \thinnbsp, \closeparen])|P], DB) -->
+    lir_pandoc(P, DB).
+lir_pandoc(code_name_label_meta(C, _, L, M),
+           [div(class(codechunk),
+                [\chunk_defn(M, L, DB),
+                 \chunk_uses(M, DB),
+                 \chunk_defs(M, DB),
+                 \chunk_prev(M, DB),
+                 pre(\chunk_content(C, DB)),
+                 \chunk_next(M, DB)])|P], DB) -->
+    lir_pandoc(P, DB).
+lir_pandoc(chunks_list(_Cs), P, DB) -->
 /*
             ["# List of Chunks\n\n",
              div(class(listofchunks), \chunks_list(Cs))|P]) -->
 */
-    lir_pandoc(P).
-lir_pandoc(index(_), P) --> [], lir_pandoc(P).
+    lir_pandoc(P, DB).
+lir_pandoc(index(_), P, DB) --> [], lir_pandoc(P, DB).
+lir_pandoc(display(KW, FN_str, Meta, Label),
+           [div([class(lirdisplay),id(Label)],
+                [\display(KW, FN_str, Meta, Label, DB)])|P], DB) -->
+    lir_pandoc(P, DB).
 @
 
 Symbols in HTML:
@@ -923,103 +1058,149 @@ defeq --> html(&(equiv)).
 defend --> html(&(0x25FC)). % Black square
 @
 
+Display items:
+<<>>=
+display(listing, FN, Meta, Label, DB) -->
+    {   file_contents(FN, FC)
+    },
+    html(div(class(lirlisting),
+             [\listing_header(FN, Label, DB),
+              \listing_contents(FC),
+              \listing_caption(Meta)])).
+display(figure, FN, Meta, Label, DB) -->
+    html(div(class(lirfigure),
+             [\figure_header(FN, Label, DB),
+              \figure_contents(FN),
+              \figure_caption(Meta)])).
+
+listing_header(Filename, Label, DB) -->
+    html(div(class(listingheader),
+             [span(class(listingname),
+                   ["L~d:"-DB.listing.nr.Label]), 
+              \nbsp,
+              span(class(listingfile), 
+                   a(href("#~a"-Label), code(Filename)))])).
+
+figure_header(Filename, Label, DB) -->
+    html(div(class(figureheader),
+             [span(class(figurename),
+                   ["F~d:"-DB.figure.nr.Label]), 
+              \nbsp,
+              span(class(figurefile), 
+                   a(href("#~a"-Label), code(Filename)))])).
+
+listing_contents(C) -->
+    html([div(class(listingcontents),
+              pre([\[C]]))]).
+
+figure_contents(FN) -->
+    html(div(class(figurecontents),
+             [img(src(".lir/~s"-FN))])).
+
+listing_caption(M) -->
+    html(div(class(listingmeta),
+             [span(class(listingtitle), [M.title]), " ",
+              span(class(listingcaption), [M.caption])])).
+
+figure_caption(M) -->
+    html(div(class(figuremeta),
+             [span(class(figuretitle), [M.title]), " ",
+              span(class(figurecaption), [M.caption])])).
+
+file_contents(FN, FC) :-
+    setup_call_cleanup(open(FN, read, In),
+                       read_string(In, _, FC),
+                       close(In)).
+@
+
 Chunk contents:
 <<>>=
-chunk_content([]) --> [].
-chunk_content([C|Cs]) -->
-    chunk_content_(C, Cs).
+chunk_content([], _DB) --> [].
+chunk_content([C|Cs], DB) -->
+    chunk_content_(C, Cs, DB).
 
-chunk_content_(nl, Cs) -->
+chunk_content_(nl, Cs, DB) -->
     html("\n"),
-    chunk_content(Cs).
-chunk_content_(text(T), Cs) -->
+    chunk_content(Cs, DB).
+chunk_content_(text(T), Cs, DB) -->
     html(T),
-    chunk_content(Cs).
-chunk_content_(code_use(L, R, N), Cs) -->
-    {   label_nr_name_fname(R, _, N, FN)
-    },
+    chunk_content(Cs, DB).
+chunk_content_(code_use(L, R, _), Cs, DB) -->
     html(span(class(embeddeduse),
               [\openparen, \thinnbsp,
                a([id(L), href("#~a"-R)],
-                 [\[FN]]),
+                 [\[DB.code.name.R]]),
                \thinnbsp, \closeparen])),
-    chunk_content(Cs).
+    chunk_content(Cs, DB).
 @
 
 Code chunk headers:
 <<>>=
-chunk_defn(_M, L) -->
-    {   label_nr_name_fname(L, Nr, _, FName)
-    },
+chunk_defn(_M, L, DB) -->
     html(span([class(defn),id(L)],
-              [span(class(chunknr), "C~d:"-Nr), \nbsp,
+              [span(class(chunknr), "C~d:"-DB.code.nr.L), \nbsp,
                \openparen, \thinnbsp,
-               a(href("#~a"-L), \[FName]),
+               a(href("#~a"-L), \[DB.code.name.L]),
                \thinnbsp, \closeparen, \thinnbsp, \defeq])).
-chunk_uses(M) -->
+chunk_uses(M, DB) -->
     {   code{uses:Us} :< M
     }, !,
-    html(span(class(chunkuses), \chunk_uses_(Us))).
-chunk_uses(_) --> [].
+    html(span(class(chunkuses), \chunk_uses_(Us, DB))).
+chunk_uses(_, _) --> [].
 @
 
 Uses in the header:
 <<>>=
-chunk_uses_([U|Us]) -->
-    {   label_nr_name_fname(U, Nr, _, _)
-    }, !,
+chunk_uses_([U|Us], DB) -->
     html([br([]),
-         "Used by ",
-         a(href("#~a"-U),["C~d"-Nr])]),
-    chunk_uses_rest(Us).
-chunk_uses_(notused) --> html([br([]), "root chunk"]).
-chunk_uses_rest([]) --> [].
-chunk_uses_rest([U|Us]) -->
-    {   label_nr_name_fname(U, Nr, _, _)
-    },
-    html([", ", a(href("#~a"-U), ["C~d"-Nr])]),
-    chunk_uses_rest(Us).
+         "Appears in ",
+         a(href("#~a"-U),["C~d"-DB.code.nr.U])]),
+    chunk_uses_rest(Us, DB).
+chunk_uses_(notused, _DB) --> html([br([]), "root chunk"]).
+chunk_uses_rest([], _DB) --> [].
+chunk_uses_rest([U|Us], DB) -->
+    html([", ", a(href("#~a"-U), ["C~d"-DB.code.nr.U])]),
+    chunk_uses_rest(Us, DB).
 @
 
 Previous and next chunks in the header:
 <<>>=
-chunk_next(M) -->
-    {   code{next:L} :< M,
-        label_nr_name_fname(L, Nr, _, _)
+chunk_next(M, DB) -->
+    {   code{next:L} :< M
     }, !,
     html(span(class(chunknext),
-         a(href("#~a"-L), [\nextsym, \thinnbsp, "C~d"-Nr]))).
-chunk_next(_) -->
-    html(\defend). % white square
+         a(href("#~a"-L),
+           [\nextsym, \thinnbsp, "C~d"-DB.code.nr.L]))).
+chunk_next(_, _DB) -->
+    html(\defend).
 
-chunk_prev(M) -->
-    {   code{prev:L} :< M,
-        label_nr_name_fname(L, Nr, _, _)
+chunk_prev(M, DB) -->
+    {   code{prev:L} :< M
     },
     html([br([]),
           span(class(chunkprev),
-               a(href("#~a"-L), [\prevsym, \thinnbsp, "C~d"-Nr]))]).
-chunk_prev(_) --> [].
+               a(href("#~a"-L),
+                 [\prevsym, \thinnbsp, "C~d"-DB.code.nr.L]))]).
+chunk_prev(_, _DB) --> [].
 
-chunk_defs(M) -->
+chunk_defs(M, DB) -->
     {   code{defs:Ds} :< M
     }, !,
-    html(span(class(chunkdefs), \chunk_defs_(Ds))).
-chunk_defs(_) --> [].
+    html(span(class(chunkdefs), \chunk_defs_(Ds, DB))).
+chunk_defs(_, _) --> [].
 
-chunk_defs_([D|Ds]) -->
-    {   label_nr_name_fname(D, Nr, _, _)
-    },
+chunk_defs_([D|Ds], DB) -->
     html([br([]),
           "definition continued in ",
-          a(href("#~a"-D), [\contsym, \thinnbsp, "C~d"-Nr])]),
-    chunk_defs_rest(Ds).
-chunk_defs_rest([]) --> [].
-chunk_defs_rest([D|Ds]) -->
-    {   label_nr_name_fname(D, Nr, _, _)
-    },
-    html([" + ", a(href("#~a"-D), [\contmoresym, \thinnbsp, "C~d"-Nr])]),
-    chunk_defs_rest(Ds).
+          a(href("#~a"-D),
+            [\contsym, \thinnbsp, "C~d"-DB.code.nr.D])]),
+    chunk_defs_rest(Ds, DB).
+chunk_defs_rest([], _) --> [].
+chunk_defs_rest([D|Ds], DB) -->
+    html([" + ",
+          a(href("#~a"-D),
+            [\contmoresym, \thinnbsp, "C~d"-DB.code.nr.D])]),
+    chunk_defs_rest(Ds, DB).
 @
 
 # Layout
@@ -1268,6 +1449,7 @@ For HTML documentation, [[<<lir.css>>]] is used.
 <<Use names typesetting>>
 <<Highlight chunk names on hover>>
 <<List of chunks formatting>>
+<<Display item formatting>>
 @
 
 The text width is limited and a left margin is inserted to improve readability.
@@ -1275,7 +1457,12 @@ The text width is limited and a left margin is inserted to improve readability.
 p {
     max-width: 14cm;
 }
-ul, ol, dl, span.chunkdefs {
+blockquote {
+    max-width: 11cm;
+    font-size: Small;
+}
+ul, ol, dl,
+span.chunkdefs {
     max-width: 12cm;
 }
 body {
@@ -1291,6 +1478,8 @@ h1, h2, h3 {
 @
 
 <<Use names typesetting>>=
+span.listingfile a,
+span.figurefile a,
 span.chunkdefs a,
 span.chunkuses a,
 span.chunkprev a,
@@ -1300,11 +1489,12 @@ span.quoteduse a,
 span.embeddeduse a {
     text-decoration-line: None;
 }
+div.listingcontents,
 span.chunkdefs,
 span.chunkuses,
 span.chunkprev,
 span.chunknext {
-    font-size: small;
+    font-size: Small;
 }
 span.quoteduse {
     font-family: serif;
@@ -1313,7 +1503,7 @@ span.embeddeduse {
     font-family: serif;
 }
 span.chunknr {
-    font-weight: bold;
+    font-weight: Bold;
 }
 @
 
@@ -1334,6 +1524,8 @@ span.embeddedusesym {
 span.embeddeduse a:hover {
     color: DodgerBlue;
 }
+span.listingfile a,
+span.figurefile a,
 span.chunkdefs a,
 span.chunkprev a,
 span.chunknext a,
@@ -1341,6 +1533,8 @@ span.defn a,
 span.chunkuses a {
     color: DarkRed;
 }
+span.listingfile a:hover,
+span.figurefile a:hover,
 span.chunkdefs a:hover,
 span.chunkprev a:hover,
 span.chunknext a:hover,
@@ -1358,7 +1552,44 @@ span.quote {
 
 <<List of chunks formatting>>=
 ul.chunkslist {
-    list-style-type: square;
+    list-style-type: Square;
 }
 @
 
+<<Display item formatting>>=
+div.lirlisting {
+    max-width: 14cm;
+}
+span.figurename,
+span.listingname {
+    font-weight: Bold;
+}
+div.figurecontents img {
+    display: block;
+    max-width: 14cm;
+    width: auto;
+    height: auto;
+}
+div.listingcontents {
+    margin-top: 3mm;
+    margin-bottom: 3mm;
+    border-style: Solid None Solid None;
+    border-width: 0.3mm;
+}
+span.figurefile,
+span.listingfile {
+    font-style: Italic;
+}
+div.figuremeta,
+div.listingmeta {
+    max-width: 12cm;
+}
+span.figuretitle,
+span.listingtitle {
+    font-weight: Bold;
+}
+span.figurefile,
+span.listingfile {
+    color: DarkRed;
+}
+@
