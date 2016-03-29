@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-"$HOME"/lib/noweb
+/usr/lib/noweb
 @
 
 ## Making and installing
@@ -1437,7 +1437,7 @@ p {
 }
 blockquote {
     max-width: 11cm;
-    font-size: 0.9em;
+    font-size: Small;
 }
 ul, ol, dl,
 span.chunkdefs {
@@ -1466,11 +1466,12 @@ span.quoteduse a,
 span.embeddeduse a {
     text-decoration-line: None;
 }
+div.listingcontents,
 span.chunkdefs,
 span.chunkuses,
 span.chunkprev,
 span.chunknext {
-    font-size: small;
+    font-size: Small;
 }
 span.quoteduse {
     font-family: Serif;
