@@ -178,12 +178,12 @@ tangle)
     rm -r "$tmpdir"
     ;;
 make)
-    make --debug=b --jobs --directory="$LIR_DIR" \
+    make --jobs --directory="$LIR_DIR" \
         --makefile=.makeall --makefile=.makedag \
         all
     ;;
 weave)
-    make --debug=b --directory="$LIR_DIR" \
+    make --directory="$LIR_DIR" \
         --makefile=.makehtml \
         "$BASENAME".html
     cp --verbose --update ".lir/$BASENAME.html" .
@@ -261,7 +261,7 @@ do
     original=$(readlink --canonicalize "$used")
     if [ -f "$original" ]
     then
-        ln --symbolic --force "$original" "$1/$used"
+        ln --verbose --symbolic --force "$original" "$1/$used"
     else
         >&2 echo "LIR ERROR: File not found! ($original)"
         exit 1
@@ -949,26 +949,32 @@ emit_html(Out, L) :-
 
 Add to the database a table with all code chunks.
 <<>>=
-:- use_module(library(assoc)).
-
-codechunks_to_db(L, db{code:Code_chunks, display:Display_items}) :-
-    include([code_name_label_meta(_,_,_,_)]>>true, L, CNLMs),
-    maplist([code_name_label_meta(_,N,_,_), N]>>true, CNLMs, Ns),
+codechunks_to_db(L,
+                 db{code:code{name:CC_names, nr:CC_nrs},
+                    listing:listing{nr:DL_nrs},
+                    figure:figure{nr:DF_nrs}}) :-
+    include([code_name_label_meta(_,_,_,_)]>>true,
+            L, CNLMs),
+    maplist([code_name_label_meta(_,N,L,_), N,L]>>true,
+            CNLMs, Ns, Ls),
     fmt_names_fmtd(html5, Ns, FNs),
-    maplist([code_name_label_meta(_, Name, Label, _),
-             FN,
-             name_label_fmtd(Name, Label, FN)]>>true,
-             CNLMs, FNs, NLFs),
-    setof(Label-nr_name_fname(N, Name, FN),
-          NLFs^nth1(N, NLFs, name_label_fmtd(Name, Label, FN)),
-          LNNFs),
-    dict_create(Code_chunks, cc, LNNFs),
+    
+    pairs_keys_values(LFs, Ls, FNs),
+    dict_create(CC_names, name, LFs),
+    findall(Label-Nr, nth1(Nr, Ls, Label), LNrs),
+    dict_create(CC_nrs, nr, LNrs),
 
-    include([display(_,_,_,_)]>>true, L, Ds),
-    setof(Label-nr_kw_fn_dm(N, KW, FN, DM),
-          Ds^nth1(N, Ds, display(KW, FN, DM, Label)),
-          LNKFDs),
-    dict_create(Display_items, di, LNKFDs).
+    include([display(listing,_,_,_)]>>true, L, DLs),
+    findall(Label-Nr,
+            nth1(Nr, DLs, display(listing, _, _, Label)),
+            DLNrs),
+    dict_create(DL_nrs, nrs, DLNrs),
+
+    include([display(figure,_,_,_)]>>true, L, FLs),
+    findall(Label-Nr,
+            nth1(Nr, FLs, display(figure, _, _, Label)),
+            DFNrs),
+    dict_create(DF_nrs, nrs, DFNrs).
 @
 
 Use Pandoc to pre-format chunk names.
@@ -1034,7 +1040,7 @@ lir_pandoc(chunks_list(_Cs), P, DB) -->
 lir_pandoc(index(_), P, DB) --> [], lir_pandoc(P, DB).
 lir_pandoc(display(KW, FN_str, Meta, Label),
            [div([class(lirdisplay),id(Label)],
-                [\display(KW, FN_str, Meta, Label)])|P], DB) -->
+                [\display(KW, FN_str, Meta, Label, DB)])|P], DB) -->
     lir_pandoc(P, DB).
 @
 
@@ -1054,28 +1060,52 @@ defend --> html(&(0x25FC)). % Black square
 
 Display items:
 <<>>=
-display(listing, FN, Meta, Label) -->
+display(listing, FN, Meta, Label, DB) -->
     {   file_contents(FN, FC)
     },
     html(div(class(lirlisting),
-             [\listing_header(FN, Label),
+             [\listing_header(FN, Label, DB),
               \listing_contents(FC),
               \listing_caption(Meta)])).
+display(figure, FN, Meta, Label, DB) -->
+    html(div(class(lirfigure),
+             [\figure_header(FN, Label, DB),
+              \figure_contents(FN),
+              \figure_caption(Meta)])).
 
-listing_header(Filename, Label) -->
+listing_header(Filename, Label, DB) -->
     html(div(class(listingheader),
-               [span(class(listingname), "Listing"), \nbsp,
-                span(class(listingfile), 
-                     a(href("#~a"-Label), code(Filename)))])).
+             [span(class(listingname),
+                   ["L~d:"-DB.listing.nr.Label]), 
+              \nbsp,
+              span(class(listingfile), 
+                   a(href("#~a"-Label), code(Filename)))])).
+
+figure_header(Filename, Label, DB) -->
+    html(div(class(figureheader),
+             [span(class(figurename),
+                   ["L~d:"-DB.figure.nr.Label]), 
+              \nbsp,
+              span(class(figurefile), 
+                   a(href("#~a"-Label), code(Filename)))])).
 
 listing_contents(C) -->
     html([div(class(listingcontents),
               pre([\[C]]))]).
 
+figure_contents(FN) -->
+    html(div(class(figurecontents),
+             [img(src(".lir/~s"-FN))])).
+
 listing_caption(M) -->
     html(div(class(listingmeta),
              [span(class(listingtitle), [M.title]), " ",
               span(class(listingcaption), [M.caption])])).
+
+figure_caption(M) -->
+    html(div(class(figuremeta),
+             [span(class(figuretitle), [M.title]), " ",
+              span(class(figurecaption), [M.caption])])).
 
 file_contents(FN, FC) :-
     setup_call_cleanup(open(FN, read, In),
@@ -1095,13 +1125,11 @@ chunk_content_(nl, Cs, DB) -->
 chunk_content_(text(T), Cs, DB) -->
     html(T),
     chunk_content(Cs, DB).
-chunk_content_(code_use(L, R, N), Cs, DB) -->
-    {  get_dict(R, DB.code, nr_name_fname(_, N, FN))
-    },
+chunk_content_(code_use(L, R, _), Cs, DB) -->
     html(span(class(embeddeduse),
               [\openparen, \thinnbsp,
                a([id(L), href("#~a"-R)],
-                 [\[FN]]),
+                 [\[DB.code.name.R]]),
                \thinnbsp, \closeparen])),
     chunk_content(Cs, DB).
 @
@@ -1109,12 +1137,10 @@ chunk_content_(code_use(L, R, N), Cs, DB) -->
 Code chunk headers:
 <<>>=
 chunk_defn(_M, L, DB) -->
-    {   get_dict(L, DB.code, nr_name_fname(Nr, _, FName))
-    },
     html(span([class(defn),id(L)],
-              [span(class(chunknr), "C~d:"-Nr), \nbsp,
+              [span(class(chunknr), "C~d:"-DB.code.nr.L), \nbsp,
                \openparen, \thinnbsp,
-               a(href("#~a"-L), \[FName]),
+               a(href("#~a"-L), \[DB.code.name.L]),
                \thinnbsp, \closeparen, \thinnbsp, \defeq])).
 chunk_uses(M, DB) -->
     {   code{uses:Us} :< M
@@ -1126,39 +1152,35 @@ chunk_uses(_, _) --> [].
 Uses in the header:
 <<>>=
 chunk_uses_([U|Us], DB) -->
-    {   get_dict(U, DB.code, nr_name_fname(Nr, _, _))
-    }, !,
     html([br([]),
          "Appears in ",
-         a(href("#~a"-U),["C~d"-Nr])]),
+         a(href("#~a"-U),["C~d"-DB.code.nr.U])]),
     chunk_uses_rest(Us, DB).
 chunk_uses_(notused, _DB) --> html([br([]), "root chunk"]).
 chunk_uses_rest([], _DB) --> [].
 chunk_uses_rest([U|Us], DB) -->
-    {   get_dict(U, DB.code, nr_name_fname(Nr, _, _))
-    },
-    html([", ", a(href("#~a"-U), ["C~d"-Nr])]),
+    html([", ", a(href("#~a"-U), ["C~d"-DB.code.nr.U])]),
     chunk_uses_rest(Us, DB).
 @
 
 Previous and next chunks in the header:
 <<>>=
 chunk_next(M, DB) -->
-    {   code{next:L} :< M,
-        get_dict(L, DB.code, nr_name_fname(Nr, _, _))
+    {   code{next:L} :< M
     }, !,
     html(span(class(chunknext),
-         a(href("#~a"-L), [\nextsym, \thinnbsp, "C~d"-Nr]))).
+         a(href("#~a"-L),
+           [\nextsym, \thinnbsp, "C~d"-DB.code.nr.L]))).
 chunk_next(_, _DB) -->
     html(\defend).
 
 chunk_prev(M, DB) -->
-    {   code{prev:L} :< M,
-        get_dict(L, DB.code, nr_name_fname(Nr, _, _))
+    {   code{prev:L} :< M
     },
     html([br([]),
           span(class(chunkprev),
-               a(href("#~a"-L), [\prevsym, \thinnbsp, "C~d"-Nr]))]).
+               a(href("#~a"-L),
+                 [\prevsym, \thinnbsp, "C~d"-DB.code.nr.L]))]).
 chunk_prev(_, _DB) --> [].
 
 chunk_defs(M, DB) -->
@@ -1168,17 +1190,16 @@ chunk_defs(M, DB) -->
 chunk_defs(_, _) --> [].
 
 chunk_defs_([D|Ds], DB) -->
-    {   get_dict(D, DB.code, nr_name_fname(Nr, _, _))
-    },
     html([br([]),
           "definition continued in ",
-          a(href("#~a"-D), [\contsym, \thinnbsp, "C~d"-Nr])]),
+          a(href("#~a"-D),
+            [\contsym, \thinnbsp, "C~d"-DB.code.nr.D])]),
     chunk_defs_rest(Ds, DB).
 chunk_defs_rest([], _) --> [].
 chunk_defs_rest([D|Ds], DB) -->
-    {   get_dict(D, DB.code, nr_name_fname(Nr, _, _))
-    },
-    html([" + ", a(href("#~a"-D), [\contmoresym, \thinnbsp, "C~d"-Nr])]),
+    html([" + ",
+          a(href("#~a"-D),
+            [\contmoresym, \thinnbsp, "C~d"-DB.code.nr.D])]),
     chunk_defs_rest(Ds, DB).
 @
 
@@ -1457,6 +1478,7 @@ h1, h2, h3 {
 
 <<Use names formatting>>=
 span.listingfile a,
+span.figurefile a,
 span.chunkdefs a,
 span.chunkuses a,
 span.chunkprev a,
@@ -1503,6 +1525,7 @@ span.embeddeduse a:hover {
     color: DodgerBlue;
 }
 span.listingfile a,
+span.figurefile a,
 span.chunkdefs a,
 span.chunkprev a,
 span.chunknext a,
@@ -1511,6 +1534,7 @@ span.chunkuses a {
     color: DarkRed;
 }
 span.listingfile a:hover,
+span.figurefile a:hover,
 span.chunkdefs a:hover,
 span.chunkprev a:hover,
 span.chunknext a:hover,
@@ -1536,8 +1560,15 @@ ul.chunkslist {
 div.lirlisting {
     max-width: 14cm;
 }
+span.figurename,
 span.listingname {
     font-weight: Bold;
+}
+div.figurecontents img {
+    display: block;
+    max-width: 14cm;
+    width: auto;
+    height: auto;
 }
 div.listingcontents {
     margin-top: 3mm;
@@ -1545,19 +1576,20 @@ div.listingcontents {
     border-style: Solid None Solid None;
     border-width: 0.3mm;
 }
+span.figurefile,
 span.listingfile {
     font-style: Italic;
 }
+div.figuremeta,
 div.listingmeta {
     max-width: 12cm;
 }
+span.figuretitle,
 span.listingtitle {
     font-weight: Bold;
 }
+span.figurefile,
 span.listingfile {
     color: DarkRed;
-}
-div.listingfile:hover {
-    color: DarkGoldenRod;
 }
 @
