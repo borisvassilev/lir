@@ -968,13 +968,13 @@ codechunks_to_db(L,
     findall(Label-Nr,
             nth1(Nr, DLs, display(listing, _, _, Label)),
             DLNrs),
-    dict_create(DL_nrs, nrs, DLNrs),
+    dict_create(DL_nrs, nr, DLNrs),
 
     include([display(figure,_,_,_)]>>true, L, FLs),
     findall(Label-Nr,
             nth1(Nr, FLs, display(figure, _, _, Label)),
             DFNrs),
-    dict_create(DF_nrs, nrs, DFNrs).
+    dict_create(DF_nrs, nr, DFNrs).
 @
 
 Use Pandoc to pre-format chunk names.
@@ -1084,7 +1084,7 @@ listing_header(Filename, Label, DB) -->
 figure_header(Filename, Label, DB) -->
     html(div(class(figureheader),
              [span(class(figurename),
-                   ["L~d:"-DB.figure.nr.Label]), 
+                   ["F~d:"-DB.figure.nr.Label]), 
               \nbsp,
               span(class(figurefile), 
                    a(href("#~a"-Label), code(Filename)))])).
