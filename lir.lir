@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-/usr/lib/noweb
+"$HOME"/lib/noweb
 @
 
 ## Making and installing
@@ -127,6 +127,11 @@ The program is installed as a script that can be invoked with one of the three a
 <<Bash header>>
 <<Define functions used by `lir`>>
 
+if [ "$#" == "0" ]
+then
+    :
+else
+
 LIR_SOURCE="$2"
 LIR_DIR=.lir
 MORE_OPTS="${@:2}"
@@ -195,6 +200,8 @@ purge)
     echo "ERROR: unknown command $1"
     ;;
 esac
+
+fi # if [ "$#" == "0" ]
 @
 
 ## Tangling
@@ -205,8 +212,7 @@ esac
 <<lir-cmpcp>>
 @
 
-<<:use>>=
-lir.bib
+<<:source lir.bib>>=
 @
 
 A helper function [[<<lir-tangle>>]] accepts three arguments, in this order: (1) the name of a source file; (2) the name of a chunk; and (3) the name of the file that the chunk will be extracted to.
@@ -879,6 +885,7 @@ display_item(Name, KW, FN_str) :-
     sub_string(Name, Before_fn, After_sep, 0, FN_str).
 
 /* Seems this is deterministic when 1st argument is a string */
+display_item_keyword("source", source).
 display_item_keyword("figure", figure).
 display_item_keyword("listing", listing).
 display_item_keyword("table", table).
@@ -952,7 +959,8 @@ Add to the database a table with all code chunks.
 codechunks_to_db(L,
                  db{code:code{name:CC_names, nr:CC_nrs},
                     listing:listing{nr:DL_nrs},
-                    figure:figure{nr:DF_nrs}}) :-
+                    figure:figure{nr:DF_nrs},
+                    source:source{nr:S_nrs}}) :-
     include([code_name_label_meta(_,_,_,_)]>>true,
             L, CNLMs),
     maplist([code_name_label_meta(_,N,L,_), N,L]>>true,
@@ -974,7 +982,13 @@ codechunks_to_db(L,
     findall(Label-Nr,
             nth1(Nr, FLs, display(figure, _, _, Label)),
             DFNrs),
-    dict_create(DF_nrs, nr, DFNrs).
+    dict_create(DF_nrs, nr, DFNrs),
+
+    include([display(source,_,_,_)]>>true, L, SLs),
+    findall(Label-Nr,
+            nth1(Nr, SLs, display(source, _, _, Label)),
+            SNrs),
+    dict_create(S_nrs, nr, SNrs).
 @
 
 Use Pandoc to pre-format chunk names.
@@ -1060,6 +1074,13 @@ defend --> html(&(0x25FC)). % Black square
 
 Display items:
 <<>>=
+display(source, FN, _, Label, DB) -->
+    html(div(class(lirsource),
+             [span(class(sourcename),
+                   ["S~d:"-DB.source.nr.Label]),
+              \nbsp,
+              span(class(sourcefile),
+                   [a(href("#~a"-Label), code(FN))])])).
 display(listing, FN, Meta, Label, DB) -->
     {   file_contents(FN, FC)
     },
