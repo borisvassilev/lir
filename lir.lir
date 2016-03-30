@@ -958,9 +958,9 @@ Add to the database a table with all code chunks.
 <<>>=
 codechunks_to_db(L,
                  db{code:code{name:CC_names, nr:CC_nrs},
-                    listing:listing{nr:DL_nrs},
-                    figure:figure{nr:DF_nrs},
-                    source:source{nr:S_nrs}}) :-
+                    listing:listing{nr:DLNrs},
+                    figure:figure{nr:DFNrs},
+                    source:source{nr:DSNrs}}) :-
     include([code_name_label_meta(_,_,_,_)]>>true,
             L, CNLMs),
     maplist([code_name_label_meta(_,N,L,_), N,L]>>true,
@@ -972,23 +972,17 @@ codechunks_to_db(L,
     findall(Label-Nr, nth1(Nr, Ls, Label), LNrs),
     dict_create(CC_nrs, nr, LNrs),
 
-    include([display(listing,_,_,_)]>>true, L, DLs),
-    findall(Label-Nr,
-            nth1(Nr, DLs, display(listing, _, _, Label)),
-            DLNrs),
-    dict_create(DL_nrs, nr, DLNrs),
+    maplist(display_dict(L),
+            [listing, figure, source],
+            [DLNrs, DFNrs, DSNrs]).
 
-    include([display(figure,_,_,_)]>>true, L, FLs),
+display_dict(L, Item, Dict) :-
+    include([display(Item,_,_,_)]>>true, L, Ls),
     findall(Label-Nr,
-            nth1(Nr, FLs, display(figure, _, _, Label)),
-            DFNrs),
-    dict_create(DF_nrs, nr, DFNrs),
-
-    include([display(source,_,_,_)]>>true, L, SLs),
-    findall(Label-Nr,
-            nth1(Nr, SLs, display(source, _, _, Label)),
-            SNrs),
-    dict_create(S_nrs, nr, SNrs).
+            nth1(Nr, Ls, display(Item, _, _, Label)),
+            DNrs),
+    dict_create(Dict, nr, DNrs).
+    
 @
 
 Use Pandoc to pre-format chunk names.
@@ -1499,6 +1493,7 @@ h1, h2, h3 {
 @
 
 <<Use names typesetting>>=
+span.sourcefile a,
 span.listingfile a,
 span.figurefile a,
 span.chunkdefs a,
@@ -1545,6 +1540,7 @@ span.embeddedusesym {
 span.embeddeduse a:hover {
     color: DodgerBlue;
 }
+span.sourcefile a,
 span.listingfile a,
 span.figurefile a,
 span.chunkdefs a,
@@ -1554,6 +1550,7 @@ span.defn a,
 span.chunkuses a {
     color: DarkRed;
 }
+span.sourcefile a:hover,
 span.listingfile a:hover,
 span.figurefile a:hover,
 span.chunkdefs a:hover,
@@ -1581,6 +1578,7 @@ ul.chunkslist {
 div.lirlisting {
     max-width: 14cm;
 }
+span.sourcename,
 span.figurename,
 span.listingname {
     font-weight: Bold;
@@ -1597,6 +1595,7 @@ div.listingcontents {
     border-style: Solid None Solid None;
     border-width: 0.3mm;
 }
+span.sourcefile,
 span.figurefile,
 span.listingfile {
     font-style: Italic;
@@ -1608,9 +1607,5 @@ div.listingmeta {
 span.figuretitle,
 span.listingtitle {
     font-weight: Bold;
-}
-span.figurefile,
-span.listingfile {
-    color: DarkRed;
 }
 @
