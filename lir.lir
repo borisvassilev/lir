@@ -1081,12 +1081,12 @@ display(listing, FN, Meta, Label, DB) -->
     html(div(class(lirlisting),
              [\listing_header(FN, Label, DB),
               \listing_contents(FC),
-              \display_caption(listing, Meta)])).
+              \display_title_caption(listing, Meta)])).
 display(figure, FN, Meta, Label, DB) -->
     html(div(class(lirfigure),
              [\figure_header(FN, Label, DB),
               \figure_contents(FN),
-              \display_caption(figure, Meta)])).
+              \display_title_caption(figure, Meta)])).
 
 listing_header(Filename, Label, DB) -->
     html(div(class(listingheader),
@@ -1112,10 +1112,17 @@ figure_contents(FN) -->
     html(div(class(figurecontents),
              [img(src(".lir/~s"-FN))])).
 
-display_caption(Item, M) -->
+display_title_caption(Item, M) -->
     html(div(class("~ameta"-Item),
-             [span(class("~atitle"-Item), [M.title]), " ",
-              span(class("~acaption"-Item), [M.caption])])).
+             [span(class("~atitle"-Item), [M.title]),
+              \display_optional_caption(Item, M)])).
+
+display_optional_caption(Item, M) -->
+    {   yaml{caption:Caption} :< M
+    },
+    !,
+    html([" ", span(class("~acaption"-Item), [Caption])]).
+display_optional_caption(_, _) --> [].
 
 file_contents(FN, FC) :-
     setup_call_cleanup(open(FN, read, In),
