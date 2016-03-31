@@ -1081,12 +1081,12 @@ display(listing, FN, Meta, Label, DB) -->
     html(div(class(lirlisting),
              [\listing_header(FN, Label, DB),
               \listing_contents(FC),
-              \listing_caption(Meta)])).
+              \display_caption(listing, Meta)])).
 display(figure, FN, Meta, Label, DB) -->
     html(div(class(lirfigure),
              [\figure_header(FN, Label, DB),
               \figure_contents(FN),
-              \figure_caption(Meta)])).
+              \display_caption(figure, Meta)])).
 
 listing_header(Filename, Label, DB) -->
     html(div(class(listingheader),
@@ -1112,15 +1112,10 @@ figure_contents(FN) -->
     html(div(class(figurecontents),
              [img(src(".lir/~s"-FN))])).
 
-listing_caption(M) -->
-    html(div(class(listingmeta),
-             [span(class(listingtitle), [M.title]), " ",
-              span(class(listingcaption), [M.caption])])).
-
-figure_caption(M) -->
-    html(div(class(figuremeta),
-             [span(class(figuretitle), [M.title]), " ",
-              span(class(figurecaption), [M.caption])])).
+display_caption(Item, M) -->
+    html(div(class("~ameta"-Item),
+             [span(class("~atitle"-Item), [M.title]), " ",
+              span(class("~acaption"-Item), [M.caption])])).
 
 file_contents(FN, FC) :-
     setup_call_cleanup(open(FN, read, In),
