@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-"$HOME"/lib/noweb
+/usr/lib/noweb
 @
 
 ## Making and installing
@@ -1603,6 +1603,7 @@ span.listingfile {
 div.figuremeta,
 div.listingmeta {
     max-width: 12cm;
+    margin-bottom: 3mm;
 }
 span.figuretitle,
 span.listingtitle {
