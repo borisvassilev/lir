@@ -958,9 +958,9 @@ Add to the database a table with all code chunks.
 <<>>=
 codechunks_to_db(L,
                  db{code:code{name:CC_names, nr:CC_nrs},
-                    listing:listing{nr:DLNrs},
-                    figure:figure{nr:DFNrs},
-                    source:source{nr:DSNrs}}) :-
+                    listing:listing{namestr:"L", nr:DLNrs},
+                    figure:figure{namestr:"F", nr:DFNrs},
+                    source:source{namestr:"S", nr:DSNrs}}) :-
     include([code_name_label_meta(_,_,_,_)]>>true,
             L, CNLMs),
     maplist([code_name_label_meta(_,N,L,_), N,L]>>true,
@@ -1071,7 +1071,7 @@ Display items:
 display(source, FN, _, Label, DB) -->
     html(div(class(lirsource),
              [span(class(sourcename),
-                   ["S~d:"-DB.source.nr.Label]),
+                   ["~s~d:"-[DB.source.namestr, DB.source.nr.Label]]),
               \nbsp,
               span(class(sourcefile),
                    [a(href("#~a"-Label), code(FN))])])).
@@ -1079,30 +1079,22 @@ display(listing, FN, Meta, Label, DB) -->
     {   file_contents(FN, FC)
     },
     html(div(class(lirlisting),
-             [\listing_header(FN, Label, DB),
+             [\display_header(listing, FN, Label, DB),
               \listing_contents(FC),
               \display_title_caption(listing, Meta)])).
 display(figure, FN, Meta, Label, DB) -->
     html(div(class(lirfigure),
-             [\figure_header(FN, Label, DB),
+             [\display_header(figure, FN, Label, DB),
               \figure_contents(FN),
               \display_title_caption(figure, Meta)])).
 
-listing_header(Filename, Label, DB) -->
-    html(div(class(listingheader),
-             [span(class(listingname),
-                   ["L~d:"-DB.listing.nr.Label]), 
+display_header(Item, FN, Label, DB) -->
+    html(div(class("~aheader"-Item),
+             [span(class("~aname"-Item),
+                   ["~s~d:"-[DB.Item.namestr, DB.Item.nr.Label]]),
               \nbsp,
-              span(class(listingfile), 
-                   a(href("#~a"-Label), code(Filename)))])).
-
-figure_header(Filename, Label, DB) -->
-    html(div(class(figureheader),
-             [span(class(figurename),
-                   ["F~d:"-DB.figure.nr.Label]), 
-              \nbsp,
-              span(class(figurefile), 
-                   a(href("#~a"-Label), code(Filename)))])).
+              span(class("~afile"-Item),
+                   a(href("#~a"-Label), code(FN)))])).
 
 listing_contents(C) -->
     html([div(class(listingcontents),
