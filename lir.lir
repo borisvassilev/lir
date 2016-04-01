@@ -958,8 +958,8 @@ Add to the database a table with all code chunks.
 <<>>=
 codechunks_to_db(L,
                  db{code:code{name:CC_names, nr:CC_nrs},
-                    listing:listing{namestr:"L", nr:DLNrs},
-                    figure:figure{namestr:"F", nr:DFNrs},
+                    listing:listing{namestr:"Listing ", nr:DLNrs},
+                    figure:figure{namestr:"Figure ", nr:DFNrs},
                     source:source{namestr:"S", nr:DSNrs}}) :-
     include([code_name_label_meta(_,_,_,_)]>>true,
             L, CNLMs),
