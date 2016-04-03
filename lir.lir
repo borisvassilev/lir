@@ -1489,7 +1489,7 @@ p {
 }
 blockquote {
     max-width: 11cm;
-    font-size: Small;
+    font-size: small;
 }
 ul, ol, dl,
 span.chunkdefs {
@@ -1518,14 +1518,14 @@ span.chunknext a,
 span.defn a,
 span.quoteduse a,
 span.embeddeduse a {
-    text-decoration-line: None;
+    text-decoration-line: none;
 }
 div.listingcontents,
 span.chunkdefs,
 span.chunkuses,
 span.chunkprev,
 span.chunknext {
-    font-size: Small;
+    font-size: small;
 }
 span.quoteduse {
     font-family: serif;
@@ -1534,26 +1534,26 @@ span.embeddeduse {
     font-family: serif;
 }
 span.chunknr {
-    font-weight: Bold;
+    font-weight: bold;
 }
 @
 
 <<Highlight chunk names on hover>>=
 span.quoteduse a {
-    color: DarkGreen;
+    color: darkGreen;
 }
 span.quoteduse a:hover {
-    color: LimeGreen;
+    color: limeGreen;
 }
 span.embeddeduse a {
-    color: DarkBlue;
-    font-style: Italic;
+    color: darkblue;
+    font-style: italic;
 }
 span.embeddedusesym {
-    font-style: Normal;
+    font-style: normal;
 }
 span.embeddeduse a:hover {
-    color: DodgerBlue;
+    color: dodgerBlue;
 }
 span.sourcefile a,
 span.listingfile a,
@@ -1563,7 +1563,7 @@ span.chunkprev a,
 span.chunknext a,
 span.defn a,
 span.chunkuses a {
-    color: DarkRed;
+    color: darkred;
 }
 span.sourcefile a:hover,
 span.listingfile a:hover,
@@ -1573,19 +1573,19 @@ span.chunkprev a:hover,
 span.chunknext a:hover,
 span.defn a:hover,
 span.chunkuses a:hover {
-    color: DarkGoldenRod;
+    color: darkGoldenRod;
 }
 @
 
 <<Quoted code in monospace>>=
 span.quote {
-    font-family: Monospace;
+    font-family: monospace;
 }
 @
 
 <<List of chunks formatting>>=
 ul.chunkslist {
-    list-style-type: Square;
+    list-style-type: square;
 }
 @
 
@@ -1596,7 +1596,7 @@ div.lirlisting {
 span.sourcename,
 span.figurename,
 span.listingname {
-    font-weight: Bold;
+    font-weight: bold;
 }
 div.figurecontents img {
     display: block;
@@ -1607,22 +1607,22 @@ div.figurecontents img {
 div.listingcontents {
     margin-top: 3mm;
     margin-bottom: 3mm;
-    border-style: Solid None Solid None;
+    border-style: solid none solid none;
     border-width: 0.3mm;
 }
 span.sourcefile,
 span.figurefile,
 span.listingfile {
-    font-style: Italic;
+    font-style: italic;
 }
 div.figuremeta,
 div.listingmeta {
     max-width: 14cm;
-    font-size: Small;
+    font-size: small;
 }
 span.figuretitle,
 span.listingtitle {
-    font-weight: Bold;
+    font-weight: bold;
 }
 div.codechunk,
 div.lirlisting,
