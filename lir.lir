@@ -951,9 +951,11 @@ index_list(index_endindex, []) --> [].
 
 emit_html(Out, L) :-
     codechunks_to_db(L, DB),
+    time( (
     phrase(lir_pandoc(P, DB), L),
     phrase(html(P), H),
-    print_html(Out, H).
+    print_html(Out, H)
+    ) ).
 @
 
 Add to the database a table with all code chunks.
