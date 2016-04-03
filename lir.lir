@@ -952,9 +952,9 @@ index_list(index_endindex, []) --> [].
 emit_html(Out, L) :-
     codechunks_to_db(L, DB),
     time( (
-    phrase(lir_pandoc(P, DB), L),
-    phrase(html(P), H),
-    print_html(Out, H)
+        phrase(lir_pandoc(P, DB), L),
+        phrase(html(P), H),
+        print_html(Out, H)
     ) ).
 @
 
@@ -1025,18 +1025,18 @@ lir_pandoc([], _DB) --> [].
 lir_pandoc(nl, ["\n"|P], DB) --> lir_pandoc(P, DB).
 lir_pandoc(text(T), [\[T]|P], DB) -->
     lir_pandoc(P, DB).
-lir_pandoc(quote(Q), [span(class(quote), QC)|P], DB) -->
+lir_pandoc(quote(Q), [span(class("quote"), QC)|P], DB) -->
     {   phrase(lir_pandoc(QC, DB), Q)
     },
     lir_pandoc(P, DB).
 lir_pandoc(quote_use(Name, Label),
-            [span(class(quoteduse),
+            [span(class("quoteduse"),
                   [\openparen, \thinnbsp,
                    a(href("#~a"-Label), Name),
                    \thinnbsp, \closeparen])|P], DB) -->
     lir_pandoc(P, DB).
 lir_pandoc(code_name_label_meta(C, _, L, M),
-           [div(class(codechunk),
+           [div(class("codechunk"),
                 [\chunk_defn(M, L, DB),
                  \chunk_uses(M, DB),
                  \chunk_defs(M, DB),
@@ -1047,12 +1047,12 @@ lir_pandoc(code_name_label_meta(C, _, L, M),
 lir_pandoc(chunks_list(_Cs), P, DB) -->
 /*
             ["# List of Chunks\n\n",
-             div(class(listofchunks), \chunks_list(Cs))|P]) -->
+             div(class("listofchunks"), \chunks_list(Cs))|P]) -->
 */
     lir_pandoc(P, DB).
 lir_pandoc(index(_), P, DB) --> [], lir_pandoc(P, DB).
 lir_pandoc(display(KW, FN_str, Meta, Label),
-           [div([class(lirdisplay),id(Label)],
+           [div([class("lirdisplay"),id(Label)],
                 [\display(KW, FN_str, Meta, Label, DB)])|P], DB) -->
     lir_pandoc(P, DB).
 @
@@ -1074,21 +1074,21 @@ defend --> html(&(0x25FC)). % Black square
 Display items:
 <<>>=
 display(source, FN, _, Label, DB) -->
-    html(div(class(lirsource),
-             [span(class(sourcename),
+    html(div(class("lirsource"),
+             [span(class("sourcename"),
                    ["~s~d:"-[DB.source.namestr, DB.source.nr.Label]]),
               \nbsp,
-              span(class(sourcefile),
+              span(class("sourcefile"),
                    [a(href("#~a"-Label), code(FN))])])).
 display(listing, FN, Meta, Label, DB) -->
     {   file_contents(FN, FC)
     },
-    html(div(class(lirlisting),
+    html(div(class("lirlisting"),
              [\display_header(listing, FN, Label, DB),
               \listing_contents(FC),
               \display_title_caption(listing, Meta)])).
 display(figure, FN, Meta, Label, DB) -->
-    html(div(class(lirfigure),
+    html(div(class("lirfigure"),
              [\display_header(figure, FN, Label, DB),
               \figure_contents(FN),
               \display_title_caption(figure, Meta)])).
@@ -1104,7 +1104,7 @@ display_header(Item, FN, Label, DB) -->
 listing_contents(C) -->
     {   split_string(C, "\t", "", [C0|Cs])
     },
-    html(div(class(listingcontents),
+    html(div(class("listingcontents"),
              pre([\listing_contents_tabs(Cs, C0)]))).
 
 listing_contents_tabs([], C0) -->
@@ -1114,7 +1114,7 @@ listing_contents_tabs([C|Cs], C0) -->
     listing_contents_tabs(Cs, C).
 
 figure_contents(FN) -->
-    html(div(class(figurecontents),
+    html(div(class("figurecontents"),
              [img(src(".lir/~s"-FN))])).
 
 display_title_caption(Item, M) -->
@@ -1149,7 +1149,7 @@ chunk_content_(text(T), Cs, DB) -->
     },
     chunk_content_tabs(Ts, T0, Cs, DB).
 chunk_content_(code_use(L, R, _), Cs, DB) -->
-    html(span(class(embeddeduse),
+    html(span(class("embeddeduse"),
               [\openparen, \thinnbsp,
                a([id(L), href("#~a"-R)],
                  [\[DB.code.name.R]]),
@@ -1167,15 +1167,15 @@ chunk_content_tabs([T|Ts], T0, Cs, DB) -->
 Code chunk headers:
 <<>>=
 chunk_defn(_M, L, DB) -->
-    html(span([class(defn),id(L)],
-              [span(class(chunknr), "C~d:"-DB.code.nr.L), \nbsp,
+    html(span([class("defn"),id(L)],
+              [span(class("chunknr"), "C~d:"-DB.code.nr.L), \nbsp,
                \openparen, \thinnbsp,
                a(href("#~a"-L), \[DB.code.name.L]),
                \thinnbsp, \closeparen, \thinnbsp, \defeq])).
 chunk_uses(M, DB) -->
     {   code{uses:Us} :< M
     }, !,
-    html(span(class(chunkuses), \chunk_uses_(Us, DB))).
+    html(span(class("chunkuses"), \chunk_uses_(Us, DB))).
 chunk_uses(_, _) --> [].
 @
 
@@ -1198,7 +1198,7 @@ Previous and next chunks in the header:
 chunk_next(M, DB) -->
     {   code{next:L} :< M
     }, !,
-    html(span(class(chunknext),
+    html(span(class("chunknext"),
          a(href("#~a"-L),
            [\nextsym, \thinnbsp, "C~d"-DB.code.nr.L]))).
 chunk_next(_, _DB) -->
@@ -1208,7 +1208,7 @@ chunk_prev(M, DB) -->
     {   code{prev:L} :< M
     },
     html([br([]),
-          span(class(chunkprev),
+          span(class("chunkprev"),
                a(href("#~a"-L),
                  [\prevsym, \thinnbsp, "C~d"-DB.code.nr.L]))]).
 chunk_prev(_, _DB) --> [].
@@ -1216,7 +1216,7 @@ chunk_prev(_, _DB) --> [].
 chunk_defs(M, DB) -->
     {   code{defs:Ds} :< M
     }, !,
-    html(span(class(chunkdefs), \chunk_defs_(Ds, DB))).
+    html(span(class("chunkdefs"), \chunk_defs_(Ds, DB))).
 chunk_defs(_, _) --> [].
 
 chunk_defs_([D|Ds], DB) -->
