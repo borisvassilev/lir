@@ -360,9 +360,7 @@ export PANDOC_OPTS="${@:2}"
 <<Weave `lir` source to HTML>>=
 <<Source to `noweb` pipeline representation>> \
     | <<`Noweb` pipeline representation to Pandoc source>> \
-    | tee before-pandoc.debug \
-    | <<Pandoc source to HTML>> \
-    | sed 's%<literatetab></literatetab>%\t%g'
+    | <<Pandoc source to HTML>>
 @
 
 A custom `noweb` pipeline is used, as we definitely want to be able to use "anonymous" chunks as continuations of the previous chunk.
@@ -1021,9 +1019,8 @@ lir_pandoc(P, DB) -->
 lir_pandoc([], _DB) --> [].
 
 lir_pandoc(nl, ["\n"|P], DB) --> lir_pandoc(P, DB).
-lir_pandoc(text(T), [\[T]|P], DB) -->
-    lir_pandoc(P, DB).
-lir_pandoc(quote(Q), [span(class("quote"), QC)|P], DB) -->
+lir_pandoc(text(T), [\[T]|P], DB) --> lir_pandoc(P, DB).
+lir_pandoc(quote(Q), [span(class(quote), QC)|P], DB) -->
     {   phrase(lir_pandoc(QC, DB), Q)
     },
     lir_pandoc(P, DB).
@@ -1100,16 +1097,8 @@ display_header(Item, FN, Label, DB) -->
                    a(href("#~a"-Label), code(FN)))])).
 
 listing_contents(C) -->
-    {   split_string(C, "\t", "", [C0|Cs])
-    },
-    html(div(class("listingcontents"),
-             pre([\listing_contents_tabs(Cs, C0)]))).
-
-listing_contents_tabs([], C0) -->
-    html(C0).
-listing_contents_tabs([C|Cs], C0) -->
-    html([C0, literatetab([])]),
-    listing_contents_tabs(Cs, C).
+    html([div(class(listingcontents),
+              pre([\[C]]))]).
 
 figure_contents(FN) -->
     html(div(class("figurecontents"),
@@ -1143,9 +1132,8 @@ chunk_content_(nl, Cs, DB) -->
     html("\n"),
     chunk_content(Cs, DB).
 chunk_content_(text(T), Cs, DB) -->
-    {   split_string(T, "\t", "", [T0|Ts])
-    },
-    chunk_content_tabs(Ts, T0, Cs, DB).
+    html(T),
+    chunk_content(Cs, DB).
 chunk_content_(code_use(L, R, _), Cs, DB) -->
     html(span(class("embeddeduse"),
               [\openparen, \thinnbsp,
@@ -1153,13 +1141,6 @@ chunk_content_(code_use(L, R, _), Cs, DB) -->
                  [\[DB.code.name.R]]),
                \thinnbsp, \closeparen])),
     chunk_content(Cs, DB).
-
-chunk_content_tabs([], T, Cs, DB) -->
-    html(T),
-    chunk_content(Cs, DB).
-chunk_content_tabs([T|Ts], T0, Cs, DB) -->
-    html([T0, literatetab([])]),
-    chunk_content_tabs(Ts, T, Cs, DB).
 @
 
 Code chunk headers:
