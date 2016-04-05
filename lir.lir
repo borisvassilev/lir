@@ -381,6 +381,7 @@ sed -n '/^@text $/!p' \
 
 <<Pandoc source to HTML>>=
 pandoc "$@" \
+    --preserve-tabs \
     --from=markdown \
     --table-of-contents \
     --standalone \
@@ -960,7 +961,8 @@ codechunks_to_db(L,
                  db{code:code{name:CC_names, nr:CC_nrs},
                     listing:listing{namestr:"Listing ", nr:DLNrs},
                     figure:figure{namestr:"Figure ", nr:DFNrs},
-                    source:source{namestr:"S", nr:DSNrs}}) :-
+                    source:source{namestr:"S", nr:DSNrs},
+                    table:table{namestr:"Table ", nr:DTNrs}}) :-
     include([code_name_label_meta(_,_,_,_)]>>true,
             L, CNLMs),
     maplist([code_name_label_meta(_,N,L,_), N,L]>>true,
@@ -973,8 +975,8 @@ codechunks_to_db(L,
     dict_create(CC_nrs, nr, LNrs),
 
     maplist(display_dict(L),
-            [listing, figure, source],
-            [DLNrs, DFNrs, DSNrs]).
+            [listing, figure, source, table],
+            [DLNrs, DFNrs, DSNrs, DTNrs]).
 
 display_dict(L, Item, Dict) :-
     include([display(Item,_,_,_)]>>true, L, Ls),
@@ -1080,13 +1082,21 @@ display(listing, FN, Meta, Label, DB) -->
     },
     html(div(class("lirlisting"),
              [\display_header(listing, FN, Label, DB),
-              \listing_contents(FC),
+              div(class("listingcontents"), pre([FC])),
               \display_title_caption(listing, Meta)])).
+display(table, FN, Meta, Label, DB) -->
+    {   file_contents(FN, FC)
+    },
+    html(div(class("lirtable"),
+             [\display_header(table, FN, Label, DB),
+              table([\[FC]]),
+              \display_title_caption(table, Meta)])).
 display(figure, FN, Meta, Label, DB) -->
     html(div(class("lirfigure"),
              [\display_header(figure, FN, Label, DB),
               \figure_contents(FN),
               \display_title_caption(figure, Meta)])).
+
 
 display_header(Item, FN, Label, DB) -->
     html(div(class("~aheader"-Item),
@@ -1095,10 +1105,6 @@ display_header(Item, FN, Label, DB) -->
               \nbsp,
               span(class("~afile"-Item),
                    a(href("#~a"-Label), code(FN)))])).
-
-listing_contents(C) -->
-    html([div(class(listingcontents),
-              pre([\[C]]))]).
 
 figure_contents(FN) -->
     html(div(class("figurecontents"),
@@ -1499,6 +1505,7 @@ span.quoteduse a,
 span.embeddeduse a {
     text-decoration-line: none;
 }
+div.lirtable table,
 div.listingcontents,
 span.chunkdefs,
 span.chunkuses,
@@ -1569,10 +1576,29 @@ ul.chunkslist {
 @
 
 <<Display item formatting>>=
+div.lirtable th {
+    border-style: none none solid none;
+    border-width: 0 0 1px 0;
+}
+div.lirtable th,
+div.lirtable td {
+    padding-left: 3.3mm;
+    padding-right: 3.3mm;
+    padding-top: 0.7mm;
+    padding-bottom: 0.7mm;
+}
+div.lirtable table {
+    margin-top: 3mm;
+    margin-bottom: 3mm;
+    border-collapse: collapse;
+    border-style: solid none solid none;
+    border-width: 2px 0 1px 0;
+}
 div.lirlisting {
     max-width: 14cm;
 }
 span.sourcename,
+span.tablename,
 span.figurename,
 span.listingname {
     font-weight: bold;
@@ -1589,22 +1615,26 @@ div.listingcontents {
     border-style: solid none solid none;
     border-width: 0.3mm;
 }
+span.tablefile,
 span.sourcefile,
 span.figurefile,
 span.listingfile {
     font-style: italic;
 }
+div.tablemeta,
 div.figuremeta,
 div.listingmeta {
     max-width: 14cm;
     font-size: small;
 }
+span.tabletitle,
 span.figuretitle,
 span.listingtitle {
     font-weight: bold;
 }
 div.codechunk,
 div.lirlisting,
+div.lirtable,
 div.lirfigure {
     margin-bottom: 3mm;
 }
