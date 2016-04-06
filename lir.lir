@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-"$HOME"/lib/noweb
+/usr/lib/noweb
 @
 
 ## Making and installing
@@ -1584,10 +1584,11 @@ div.lirtable th,
 div.lirtable td {
     padding-left: 3.3mm;
     padding-right: 3.3mm;
-    padding-top: 0.7mm;
-    padding-bottom: 0.7mm;
+    padding-top: 0.9mm;
+    padding-bottom: 0.9mm;
 }
 div.lirtable table {
+    font-family: sans-serif;
     margin-top: 3mm;
     margin-bottom: 3mm;
     border-collapse: collapse;
