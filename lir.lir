@@ -290,7 +290,7 @@ sed -n '/^:/!p'
 <<Get source chunknames>>=
 sed -n 's/^:source \(.\+\)$/\1/p'
 <<Get sink chunknames>>=
-sed -n 's/^:\(figure\|table\|listing\) \(.\+\)/\2/p'
+sed -n 's/^:\(figure\|table\|listing\|result\) \(.\+\)/\2/p'
 @
 
 ## Source transformations
@@ -892,6 +892,7 @@ display_item(Name, KW, FN_str) :-
 
 /* Seems this is deterministic when 1st argument is a string */
 display_item_keyword("source", source).
+display_item_keyword("result", result).
 display_item_keyword("figure", figure).
 display_item_keyword("listing", listing).
 display_item_keyword("table", table).
@@ -964,9 +965,10 @@ Add to the database a table with all code chunks.
 <<>>=
 codechunks_to_db(L,
                  db{code:code{name:CC_names, nr:CC_nrs},
+                    source:source{namestr:"S", nr:DSNrs},
+                    result:result{namestr:"Result ", nr:DRNrs},
                     listing:listing{namestr:"Listing ", nr:DLNrs},
                     figure:figure{namestr:"Figure ", nr:DFNrs},
-                    source:source{namestr:"S", nr:DSNrs},
                     table:table{namestr:"Table ", nr:DTNrs}}) :-
     include([code_name_label_meta(_,_,_,_)]>>true,
             L, CNLMs),
@@ -980,8 +982,8 @@ codechunks_to_db(L,
     dict_create(CC_nrs, nr, LNrs),
 
     maplist(display_dict(L),
-            [listing, figure, source, table],
-            [DLNrs, DFNrs, DSNrs, DTNrs]).
+            [source, result, listing, figure, table],
+            [DSNrs, DRNrs, DLNrs, DFNrs, DTNrs]).
 
 display_dict(L, Item, Dict) :-
     include([display(Item,_,_,_)]>>true, L, Ls),
@@ -1075,13 +1077,23 @@ defend --> html(&(0x25FC)). % Black square
 
 Display items:
 <<>>=
+:- discontiguous
+        display//5.
+
 display(source, FN, _, Label, DB) -->
-    html(div(class("lirsource"),
-             [span(class("sourcename"),
-                   ["~s~d:"-[DB.source.namestr, DB.source.nr.Label]]),
+    display_file(source, FN, Label, DB).
+
+display(result, FN, _, Label, DB) -->
+    display_file(result, FN, Label, DB).
+
+display_file(Item, FN, Label, DB) -->
+    html(div(class("lir~a"-Item),
+             [span(class("~aname"-Item),
+                   ["~s~d:"-[DB.Item.namestr, DB.Item.nr.Label]]),
               \nbsp,
-              span(class("sourcefile"),
-                   [a(href("#~a"-Label), code(FN))])])).
+              span(class("~afile"-Item),
+                   a(href("#~a"-Label), code(FN)))])).
+
 display(listing, FN, Meta, Label, DB) -->
     {   file_contents(FN, FC)
     },
