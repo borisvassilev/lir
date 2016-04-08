@@ -1131,13 +1131,7 @@ display(table, FN, Meta, Label, DB) -->
     {   file_contents(FN, FC)
     },
     html(div(class("lirtable"),
-             [div(class("tableheader"),
-                  [span(class("tablename"),
-                        ["~s~d:"-[DB.table.namestr,
-                                  DB.table.nr.Label]]),
-                   \nbsp,
-                   span(class("tablefile"),
-                        a(href("#~a"-Label), code(FN)))]),
+             [\display_header(table, FN, Label, DB),
               table([\[FC]]),
               \display_title_caption(table, Meta)])).
 
