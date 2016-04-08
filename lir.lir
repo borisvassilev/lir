@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-/usr/lib/noweb
+"$HOME"/lib/noweb
 @
 
 ## Making and installing
@@ -267,12 +267,7 @@ do
     original=$(readlink --canonicalize "$used")
     if [ -f "$original" ]
     then
-        if [ -L "$1/$used" ]
-        then
-            :
-        else
-            ln --verbose --symbolic "$original" "$1/$used"
-        fi
+        ln --symbolic --force "$original" "$1/$used"
     else
         >&2 echo "LIR ERROR: File not found! ($original)"
         exit 1
@@ -1077,8 +1072,7 @@ defend --> html(&(0x25FC)). % Black square
 
 Display items:
 <<>>=
-:- discontiguous
-        display//5.
+:- discontiguous display//5.
 
 display(source, FN, _, Label, DB) -->
     display_file(source, FN, Label, DB).
@@ -1087,12 +1081,14 @@ display(result, FN, _, Label, DB) -->
     display_file(result, FN, Label, DB).
 
 display_file(Item, FN, Label, DB) -->
+    {   absolute_file_name(FN, Absolute_FN)
+    },
     html(div(class("lir~a"-Item),
              [span(class("~aname"-Item),
                    ["~s~d:"-[DB.Item.namestr, DB.Item.nr.Label]]),
               \nbsp,
               span(class("~afile"-Item),
-                   a(href("#~a"-Label), code(FN)))])).
+                   a(href(Absolute_FN), code(FN)))])).
 
 display(listing, FN, Meta, Label, DB) -->
     {   file_contents(FN, FC)
@@ -1101,19 +1097,11 @@ display(listing, FN, Meta, Label, DB) -->
              [\display_header(listing, FN, Label, DB),
               div(class("listingcontents"), pre([FC])),
               \display_title_caption(listing, Meta)])).
-display(table, FN, Meta, Label, DB) -->
-    {   file_contents(FN, FC)
-    },
-    html(div(class("lirtable"),
-             [\display_header(table, FN, Label, DB),
-              table([\[FC]]),
-              \display_title_caption(table, Meta)])).
-display(figure, FN, Meta, Label, DB) -->
-    html(div(class("lirfigure"),
-             [\display_header(figure, FN, Label, DB),
-              \figure_contents(FN),
-              \display_title_caption(figure, Meta)])).
 
+file_contents(FN, FC) :-
+    setup_call_cleanup(open(FN, read, In),
+                       read_string(In, _, FC),
+                       close(In)).
 
 display_header(Item, FN, Label, DB) -->
     html(div(class("~aheader"-Item),
@@ -1122,10 +1110,6 @@ display_header(Item, FN, Label, DB) -->
               \nbsp,
               span(class("~afile"-Item),
                    a(href("#~a"-Label), code(FN)))])).
-
-figure_contents(FN) -->
-    html(div(class("figurecontents"),
-             [img(src(".lir/~s"-FN))])).
 
 display_title_caption(Item, M) -->
     html(div(class("~ameta"-Item),
@@ -1139,10 +1123,23 @@ display_optional_caption(Item, M) -->
     html([" ", span(class("~acaption"-Item), [Caption])]).
 display_optional_caption(_, _) --> [].
 
-file_contents(FN, FC) :-
-    setup_call_cleanup(open(FN, read, In),
-                       read_string(In, _, FC),
-                       close(In)).
+display(table, FN, Meta, Label, DB) -->
+    {   file_contents(FN, FC)
+    },
+    html(div(class("lirtable"),
+             [\display_header(table, FN, Label, DB),
+              table([\[FC]]),
+              \display_title_caption(table, Meta)])).
+display(figure, FN, Meta, Label, DB) -->
+    html(div(class("lirfigure"),
+             [\display_header(figure, FN, Label, DB),
+              \figure_contents(FN),
+              \display_title_caption(figure, Meta)])).
+
+figure_contents(FN) -->
+    html(div(class("figurecontents"),
+             [img(src(".lir/~s"-FN))])).
+
 @
 
 Chunk contents:
@@ -1522,8 +1519,6 @@ span.quoteduse a,
 span.embeddeduse a {
     text-decoration-line: none;
 }
-div.lirtable table,
-div.listingcontents,
 span.chunkdefs,
 span.chunkuses,
 span.chunkprev,
@@ -1606,6 +1601,7 @@ div.lirtable td {
 }
 div.lirtable table {
     font-family: sans-serif;
+    font-size: small;
     margin-top: 3mm;
     margin-bottom: 3mm;
     border-collapse: collapse;
@@ -1628,6 +1624,7 @@ div.figurecontents img {
     height: auto;
 }
 div.listingcontents {
+    font-size: small;
     margin-top: 3mm;
     margin-bottom: 3mm;
     border-style: solid none solid none;
