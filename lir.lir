@@ -1104,12 +1104,14 @@ file_contents(FN, FC) :-
                        close(In)).
 
 display_header(Item, FN, Label, DB) -->
+    {   absolute_file_name(FN, Absolute_FN)
+    },
     html(div(class("~aheader"-Item),
              [span(class("~aname"-Item),
                    ["~s~d:"-[DB.Item.namestr, DB.Item.nr.Label]]),
               \nbsp,
               span(class("~afile"-Item),
-                   a(href("#~a"-Label), code(FN)))])).
+                   a(href(Absolute_FN), code(FN)))])).
 
 display_title_caption(Item, M) -->
     html(div(class("~ameta"-Item),
@@ -1127,9 +1129,17 @@ display(table, FN, Meta, Label, DB) -->
     {   file_contents(FN, FC)
     },
     html(div(class("lirtable"),
-             [\display_header(table, FN, Label, DB),
+             [%\display_header(table, FN, Label, DB),
+              div(class("tableheader"),
+                  [span(class("tablename"),
+                        ["~s~d:"-[DB.table.namestr,
+                         DB.table.nr.Label]]),
+                   \nbsp,
+                   span(class("tablefile"),
+                        a(href("#~a"-Label), code(FN)))]),
               table([\[FC]]),
               \display_title_caption(table, Meta)])).
+
 display(figure, FN, Meta, Label, DB) -->
     html(div(class("lirfigure"),
              [\display_header(figure, FN, Label, DB),
@@ -1508,6 +1518,7 @@ h1, h2, h3 {
 
 <<Use names typesetting>>=
 span.sourcefile a,
+span.resultfile a,
 span.listingfile a,
 span.figurefile a,
 span.chunkdefs a,
@@ -1554,6 +1565,7 @@ span.embeddeduse a:hover {
     color: dodgerBlue;
 }
 span.sourcefile a,
+span.resultfile a,
 span.listingfile a,
 span.figurefile a,
 span.chunkdefs a,
@@ -1564,6 +1576,7 @@ span.chunkuses a {
     color: darkred;
 }
 span.sourcefile a:hover,
+span.resultfile a:hover,
 span.listingfile a:hover,
 span.figurefile a:hover,
 span.chunkdefs a:hover,
@@ -1612,6 +1625,7 @@ div.lirlisting {
     max-width: 14cm;
 }
 span.sourcename,
+span.resultname,
 span.tablename,
 span.figurename,
 span.listingname {
@@ -1630,8 +1644,9 @@ div.listingcontents {
     border-style: solid none solid none;
     border-width: 0.3mm;
 }
-span.tablefile,
 span.sourcefile,
+span.resultfile,
+span.tablefile,
 span.figurefile,
 span.listingfile {
     font-style: italic;
