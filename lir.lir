@@ -1085,7 +1085,8 @@ display_file(Item, FN, Label, DB) -->
     },
     html(div(class("lir~a"-Item),
              [span(class("~aname"-Item),
-                   ["~s~d:"-[DB.Item.namestr, DB.Item.nr.Label]]),
+                   ["~s~d:"-[DB.Item.namestr,
+                             DB.Item.nr.Label]]),
               \nbsp,
               span(class("~afile"-Item),
                    a(href(Absolute_FN), code(FN)))])).
@@ -1108,7 +1109,8 @@ display_header(Item, FN, Label, DB) -->
     },
     html(div(class("~aheader"-Item),
              [span(class("~aname"-Item),
-                   ["~s~d:"-[DB.Item.namestr, DB.Item.nr.Label]]),
+                   ["~s~d:"-[DB.Item.namestr,
+                             DB.Item.nr.Label]]),
               \nbsp,
               span(class("~afile"-Item),
                    a(href(Absolute_FN), code(FN)))])).
@@ -1129,11 +1131,10 @@ display(table, FN, Meta, Label, DB) -->
     {   file_contents(FN, FC)
     },
     html(div(class("lirtable"),
-             [%\display_header(table, FN, Label, DB),
-              div(class("tableheader"),
+             [div(class("tableheader"),
                   [span(class("tablename"),
                         ["~s~d:"-[DB.table.namestr,
-                         DB.table.nr.Label]]),
+                                  DB.table.nr.Label]]),
                    \nbsp,
                    span(class("tablefile"),
                         a(href("#~a"-Label), code(FN)))]),
