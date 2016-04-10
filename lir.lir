@@ -950,21 +950,25 @@ index_list(index_endindex, []) --> [].
 :- use_module(library(http/html_write)).
 
 emit_html(Out, L) :-
-    codechunks_to_db(L, DB),
+    counters_db(L, DB),
     phrase(lir_pandoc(P, DB), L),
     phrase(html(P), H),
     print_html(Out, H).
+
+<<`counters_db/2`: Generate counters, add them to a database>>
+<<`lir_pandoc//2`: Lir to Pandoc HTML>>
 @
 
-Add to the database a table with all code chunks.
-<<>>=
-codechunks_to_db(L,
-                 db{code:code{name:CC_names, nr:CC_nrs},
-                    source:source{namestr:"S", nr:DSNrs},
-                    result:result{namestr:"Result ", nr:DRNrs},
-                    listing:listing{namestr:"Listing ", nr:DLNrs},
-                    figure:figure{namestr:"Figure ", nr:DFNrs},
-                    table:table{namestr:"Table ", nr:DTNrs}}) :-
+Add to a database all numbered items: code chunks, display items (`figure`, `listing`, `table`), as well as sources and sinks of the DAG representing the dataflow.
+For the code chunks, we also format the names.
+This is necessary because code chunk names are inside HTML tags by the time they make it to Pandoc, and are not considered for converting from markdown: instead, we do this here.
+<<`counters_db/2`: Generate counters, add them to a database>>=
+counters_db(L, db{code:code{name:CC_names, nr:CC_nrs},
+                  source:source{namestr:"S", nr:DSNrs},
+                  result:result{namestr:"Result ", nr:DRNrs},
+                  listing:listing{namestr:"Listing ", nr:DLNrs},
+                  figure:figure{namestr:"Figure ", nr:DFNrs},
+                  table:table{namestr:"Table ", nr:DTNrs}}) :-
     include([code_name_label_meta(_,_,_,_)]>>true,
             L, CNLMs),
     maplist([code_name_label_meta(_,N,L,_), N,L]>>true,
@@ -987,10 +991,10 @@ display_dict(L, Item, Dict) :-
             DNrs),
     dict_create(Dict, nr, DNrs).
     
+<<Use Pandoc to pre-format chunk names>>
 @
 
-Use Pandoc to pre-format chunk names.
-<<>>=
+<<Use Pandoc to pre-format chunk names>>=
 :- use_module(library(process), [process_create/3]).
 :- use_module(library(sgml), [load_structure/3]).
 
@@ -1015,13 +1019,25 @@ paragraph_fmtd(element(p, [], StrDOM), Fmtd) :-
                              [header(false), layout(false)])).
 @
 
-Everything to Pandoc HTML:
-<<>>=
+<<`lir_pandoc//2`: Lir to Pandoc HTML>>=
 lir_pandoc(P, DB) -->
     [X], !,
     lir_pandoc(X, P, DB).
 lir_pandoc([], _DB) --> [].
 
+:- discontiguous lir_pandoc//3.
+<<Lir to Pandoc: individual items>>
+<<HTML for common symbols>>
+@
+
+<<Lir to Pandoc: individual items>>=
+<<Lir documentation to Pandoc>>
+<<Lir code chunks to Pandoc>>
+<<Lir display items to Pandoc>>
+<<Ignore the list of chunks and the index>>
+@
+
+<<Lir documentation to Pandoc>>=
 lir_pandoc(nl, ["\n"|P], DB) --> lir_pandoc(P, DB).
 lir_pandoc(text(T), [\[T]|P], DB) --> lir_pandoc(P, DB).
 lir_pandoc(quote(Q), [span(class(quote), QC)|P], DB) -->
@@ -1034,6 +1050,9 @@ lir_pandoc(quote_use(Name, Label),
                    a(href("#~a"-Label), Name),
                    \thinnbsp, \closeparen])|P], DB) -->
     lir_pandoc(P, DB).
+@
+
+<<Lir code chunks to Pandoc>>=
 lir_pandoc(code_name_label_meta(C, _, L, M),
            [div(class("codechunk"),
                 [\chunk_defn(M, L, DB),
@@ -1043,21 +1062,24 @@ lir_pandoc(code_name_label_meta(C, _, L, M),
                  pre(\chunk_content(C, DB)),
                  \chunk_next(M, DB)])|P], DB) -->
     lir_pandoc(P, DB).
-lir_pandoc(chunks_list(_Cs), P, DB) -->
-/*
-            ["# List of Chunks\n\n",
-             div(class("listofchunks"), \chunks_list(Cs))|P]) -->
-*/
-    lir_pandoc(P, DB).
-lir_pandoc(index(_), P, DB) --> [], lir_pandoc(P, DB).
+@
+
+<<Lir display items to Pandoc>>=
 lir_pandoc(display(KW, FN_str, Meta, Label),
            [div([class("lirdisplay"),id(Label)],
                 [\display(KW, FN_str, Meta, Label, DB)])|P], DB) -->
     lir_pandoc(P, DB).
+
+<<Individual display items>>
 @
 
-Symbols in HTML:
-<<>>=
+<<Ignore the list of chunks and the index>>=
+lir_pandoc(chunks_list(_Cs), P, DB) -->
+    lir_pandoc(P, DB).
+lir_pandoc(index(_), P, DB) --> [], lir_pandoc(P, DB).
+@
+
+<<HTML for common symbols>>=
 nbsp --> html(&(nbsp)).
 thinnbsp --> html(span(style("white-space:nowrap"), &(0x2009))).
 openparen --> html(&('Lang')). % Lang
@@ -1070,13 +1092,11 @@ defeq --> html(&(equiv)).
 defend --> html(&(0x25FC)). % Black square
 @
 
-Display items:
-<<>>=
+<<Individual display items>>=
 :- discontiguous display//5.
 
 display(source, FN, _, Label, DB) -->
     display_file(source, FN, Label, DB).
-
 display(result, FN, _, Label, DB) -->
     display_file(result, FN, Label, DB).
 
@@ -1148,7 +1168,7 @@ figure_contents(FN) -->
 @
 
 Chunk contents:
-<<>>=
+<<lirhtml.pl>>=
 chunk_content([], _DB) --> [].
 chunk_content([C|Cs], DB) -->
     chunk_content_(C, Cs, DB).
