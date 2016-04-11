@@ -26,7 +26,7 @@ Furthermore, you need to install the following software:
 
   - [Pandoc](http://pandoc.org/), a universal document converter.
     Installing from source is a bit of a hustle, but you don't have to: just get the installer for the latest release from the [download page on GitHub](https://github.com/jgm/pandoc/releases/tag/1.15.0.6).
-    It is important that you have the latest release, as the previous releases have a non-negative number of bugs that get in the way.
+    It is important that you have the latest (patched) release, as there have been a non-negative number of bugs in major releases that get in the way.
 
 # Recommended reading
 
@@ -71,26 +71,24 @@ $ locate emptydefn
 
 If you cannot find a file called `emptydefn` on your system, you have not installed `noweb`.
 
-Now that you know where the library files are, open the script `build` provided with `lir` and edit the values of the three variables exported at the top of the file.
+Now that you know where the library files are, open the file that contains most of the code of the project, `lir.lir`. Somewhere in lines 20-26 there are three path definitions that you might need to change.
 
-`LIR_LIBPATH` will be the folder where all components are installed.
+On line 22 is the folder where all `lir` components are installed.
 
-`LIR_BINPATH` will be the folder where the main `lir` script will be installed; make sure it is on your system `PATH`.
+On line 24 is the folder where the main `lir` script will be installed; make sure it is on your system `PATH`.
 
-`NOWEB_LIBPATH` is the folder containing the `noweb` library files.
-If you installed `noweb` normally, you shouldn't need to change this.
+On line 26 is the folder containing the `noweb` library files.
+If you installed `noweb` normally (and as root), this will read `/urs/lib/noweb`.
 
-Now save and close the file, and run it:
+Now save and close the file, and run:
 
 ~~~~
-$ ./build
+$ bash bootstrap
 ~~~~
 
 You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the "Weaved document is in lir.html".
 Look for `lir.html`, and try to open it.
 If you see a properly formed HTML page with a whole bunch of code in it, you have successfully installed `lir` and used it to compile that very HTML page you are looking at.
-
-Congratulations!
 
 # Acknowledgements
 This work is done at the University of Helsinki, Finland by Boris Vassilev and Erkka Valo, under the supervision of Sampsa Hautaniemi and Elina Ikonen.
