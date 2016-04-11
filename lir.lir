@@ -36,6 +36,7 @@ export LIRPATH=<<Path to `lir`>>
 export LIRBINPATH=<<Path to `lir` binaries>>
 export NOWEBPATH=<<Path to `noweb`>>
 
+make uninstall
 make clean
 make
 make install
@@ -75,8 +76,12 @@ install :
 
 clean :
 	-rm $(tangled) nwpipe-pandoc
-	-rm -r $(LIRPATH)
 .PHONY : clean
+
+uninstall :
+	-rm -r $(LIRPATH)
+	-rm $(LIRBINPATH)/lir
+.PHONY : uninstall
 @
 
 ## Bash scripts
