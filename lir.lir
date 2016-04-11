@@ -982,13 +982,13 @@ is_code_name_label_meta(code_name_label_meta(_,_,_,_)).
 code_name_label_meta_Name_Label(code_name_label_meta(_,N,L,_), N,L).
 
 display_dict(L, Item, Dict) :-
-    include(is_display, L, Ls),
+    include(is_display_item(Item), L, Ls),
     findall(Label-Nr,
             nth1(Nr, Ls, display(Item, _, _, Label)),
             DNrs),
     dict_create(Dict, nr, DNrs).
 
-is_display(display(_,_,_,_)).
+is_display_item(Item, display(Item,_,_,_)).
     
 <<Use Pandoc to pre-format chunk names>>
 @
