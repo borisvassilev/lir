@@ -399,7 +399,6 @@ It uses the module [[<<driver.pl>>]] to do the actual work.
 <<No banner or informational messages>>
 <<Turn on error stack trace>>
 <<Expand meta-predicates at compile time>>
-<<Use lambdas>>
 <<Succeed once without choice points>>
 
 :- use_module(driver, [nwpipeline_pandoc/1]).
@@ -440,9 +439,6 @@ Meta-predicates (predicates that take other predicates as arguments) are fundame
 This can be avoided for the more commonly used meta-predicates (`maplist/1+N`, `forall/2` etc) by treating them as macros and expanding them at compile time.
 <<Expand meta-predicates at compile time>>=
 :- use_module(library(apply_macros)).
-@
-<<Use lambdas>>=
-:- use_module(library(yall)).
 @
 
 The driver uses [[<<nwpipe.pl>>]] to parse its input to native Prolog terms and [[<<lirhtml.pl>>]] to emit a valid Pandoc source document with embedded HTML fragments.
@@ -969,10 +965,8 @@ counters_db(L, db{code:code{name:CC_names, nr:CC_nrs},
                   listing:listing{namestr:"Listing ", nr:DLNrs},
                   figure:figure{namestr:"Figure ", nr:DFNrs},
                   table:table{namestr:"Table ", nr:DTNrs}}) :-
-    include([code_name_label_meta(_,_,_,_)]>>true,
-            L, CNLMs),
-    maplist([code_name_label_meta(_,N,L,_), N,L]>>true,
-            CNLMs, Ns, Ls),
+    include(is_code_name_label_meta, L, CNLMs),
+    maplist(code_name_label_meta_Name_Label, CNLMs, Ns, Ls),
     fmt_names_fmtd(html5, Ns, FNs),
     
     pairs_keys_values(LFs, Ls, FNs),
@@ -984,12 +978,17 @@ counters_db(L, db{code:code{name:CC_names, nr:CC_nrs},
             [source, result, listing, figure, table],
             [DSNrs, DRNrs, DLNrs, DFNrs, DTNrs]).
 
+is_code_name_label_meta(code_name_label_meta(_,_,_,_)).
+code_name_label_meta_Name_Label(code_name_label_meta(_,N,L,_), N,L).
+
 display_dict(L, Item, Dict) :-
-    include([display(Item,_,_,_)]>>true, L, Ls),
+    include(is_display, L, Ls),
     findall(Label-Nr,
             nth1(Nr, Ls, display(Item, _, _, Label)),
             DNrs),
     dict_create(Dict, nr, DNrs).
+
+is_display(display(_,_,_,_)).
     
 <<Use Pandoc to pre-format chunk names>>
 @
