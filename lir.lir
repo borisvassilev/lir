@@ -981,15 +981,7 @@ counters_db(L, db{code:code{name:CC_names, nr:CC_nrs},
 
     maplist(display_dict(L),
             [source, result, listing, figure, table],
-            [DSNrs, DRNrs, DLNrs, DFNrs, DTNrs]),
-
-    dict_create(DB, db,
-                [code:code{name:CC_names, nr:CC_nrs},
-                 source:source{namestr:"S", nr:DSNrs},
-                 result:result{namestr:"Result ", nr:DRNrs},
-                 listing:listing{namestr:"Listing ", nr:DLNrs},
-                 figure:figure{namestr:"Figure ", nr:DFNrs},
-                 table:table{namestr:"Table ", nr:DTNrs}]).
+            [DSNrs, DRNrs, DLNrs, DFNrs, DTNrs]).
 
 is_code_name_label_meta(code_name_label_meta(_,_,_,_)).
 code_name_label_meta_Name_Label(code_name_label_meta(_,N,L,_), N,L).
