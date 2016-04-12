@@ -402,7 +402,6 @@ It is written as a stand-alone command line program: once compiled, can be run f
 It uses the module [[<<driver.pl>>]] to do the actual work.
 <<nwpipe-pandoc.pl>>=
 <<No banner or informational messages>>
-<<Turn on error stack trace>>
 <<Expand meta-predicates at compile time>>
 <<Succeed once without choice points>>
 
@@ -410,15 +409,10 @@ It uses the module [[<<driver.pl>>]] to do the actual work.
 
 main :-
     current_prolog_flag(argv, Argv), % command line arguments
-    goal_is_det(
-        nwpipeline_pandoc(Argv)),
+    goal_is_det(nwpipeline_pandoc(Argv)),
     halt. % exit with success
 main :-
-    throw(error(evaluation_error("nwpipe-pandoc failed"),_)),
     halt(1). % otherwise, exit with failure (1)
-@
-
-<<Turn on error stack trace>>=
 @
 
 During development, it is good to know if the program has left behind any unintentional choice points -- they are certainly errors, as the program is designed to succeed deterministically.
@@ -964,12 +958,7 @@ Add to a database all numbered items: code chunks, display items (`figure`, `lis
 For the code chunks, we also format the names.
 This is necessary because code chunk names are inside HTML tags by the time they make it to Pandoc, and are not considered for converting from markdown: instead, we do this here.
 <<`counters_db/2`: Generate counters, add them to a database>>=
-counters_db(L, db{code:code{name:CC_names, nr:CC_nrs},
-                  source:source{namestr:"S", nr:DSNrs},
-                  result:result{namestr:"Result ", nr:DRNrs},
-                  listing:listing{namestr:"Listing ", nr:DLNrs},
-                  figure:figure{namestr:"Figure ", nr:DFNrs},
-                  table:table{namestr:"Table ", nr:DTNrs}}) :-
+counters_db(L, DB) :-
     include(is_code_name_label_meta, L, CNLMs),
     maplist(code_name_label_meta_Name_Label, CNLMs, Ns, Ls),
     fmt_names_fmtd(html5, Ns, FNs),
@@ -981,7 +970,15 @@ counters_db(L, db{code:code{name:CC_names, nr:CC_nrs},
 
     maplist(display_dict(L),
             [source, result, listing, figure, table],
-            [DSNrs, DRNrs, DLNrs, DFNrs, DTNrs]).
+            [DSNrs, DRNrs, DLNrs, DFNrs, DTNrs]),
+
+    dict_create(DB, db,
+                [code:code{name:CC_names, nr:CC_nrs},
+                 source:source{namestr:"S", nr:DSNrs},
+                 result:result{namestr:"Result ", nr:DRNrs},
+                 listing:listing{namestr:"Listing ", nr:DLNrs},
+                 figure:figure{namestr:"Figure ", nr:DFNrs},
+                 table:table{namestr:"Table ", nr:DTNrs}]).
 
 is_code_name_label_meta(code_name_label_meta(_,_,_,_)).
 code_name_label_meta_Name_Label(code_name_label_meta(_,N,L,_), N,L).
