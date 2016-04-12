@@ -412,6 +412,7 @@ main :-
     goal_is_det(nwpipeline_pandoc(Argv)),
     halt. % exit with success
 main :-
+    throw(error(mode_error(failure),_)),
     halt(1). % otherwise, exit with failure (1)
 @
 
@@ -834,7 +835,6 @@ code(Cs, Defn, L, M) -->
 <<Parse the code chunk header>>
 <<Parse the code chunk contents>>
 @
-
 <<Parse the code chunk header>>=
 defn(nl, []) --> [].
 defn(xref_label(L), [label(L)|M]) --> [X],
@@ -999,8 +999,11 @@ is_display_item(Item, display(Item,_,_,_)).
 :- use_module(library(process), [process_create/3]).
 :- use_module(library(sgml), [load_structure/3]).
 
+to_par(S, PS) :- atomics_to_string(["<span>", S, "</span>"], PS).
+
 fmt_names_fmtd(html5, Ns, FNs) :-
-    atomics_to_string(Ns, "\n\n", Ns_str),
+    maplist(to_par, Ns, PNs),
+    atomics_to_string(PNs, Ns_str),
     process_create(path(pandoc),
                    ["--to=html5"],
                    [stdin(pipe(Pandoc_in)),
@@ -1009,15 +1012,19 @@ fmt_names_fmtd(html5, Ns, FNs) :-
     close(Pandoc_in),
     load_structure(Pandoc_out, DOM, [dialect(xml)]),
     close(Pandoc_out),
-    maplist(paragraph_fmtd, DOM, FNs).
+    DOM = [element(p, [], Names)],
+    maplist(names_fmtd, Names, FNs).
 
 :- use_module(library(sgml_write), [xml_write/3]).
 
-paragraph_fmtd(element(p, [], StrDOM), Fmtd) :-
+names_fmtd(element(span, [], StrDOM), Fmtd) :-
     with_output_to(string(Fmtd),
                    xml_write(current_output,
                              StrDOM,
                              [header(false), layout(false)])).
+@
+<<: foo>>=
+This is a test. There was a problem with chunks that start with a colon followed by a space, as they were interpreted as definitions by Pandoc.
 @
 
 <<`lir_pandoc//2`: Lir to Pandoc HTML>>=
