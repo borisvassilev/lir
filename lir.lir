@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-"$HOME"/lib/noweb
+/usr/lib/noweb
 @
 
 ## Making and installing
@@ -1034,7 +1034,8 @@ names_fmtd(element(span, [], StrDOM), Fmtd) :-
                              [header(false), layout(false)])).
 @
 <<: foo>>=
-This is a test. There was a problem with chunks that start with a colon followed by a space, as they were interpreted as definitions by Pandoc.
+This is a test. There was a problem with chunks that start with a colon
+followed by a space, as they were interpreted as definitions by Pandoc.
 @
 
 <<`lir_pandoc//2`: Lir to Pandoc HTML>>=
