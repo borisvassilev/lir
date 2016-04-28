@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-"$HOME"/lib/noweb
+/usr/lib/noweb
 @
 
 ## Making and installing
@@ -215,44 +215,17 @@ fi # if [ "$#" == "0" ]
 ## Tangling
 <<Define functions used by `lir`>>=
 <<lir-use>>
-<<lir-tangle>>
 <<lir-mtangle>>
-<<lir-cmpcp>>
 @
 
 <<:source lir.bib>>=
 @
 
-A helper function [[<<lir-tangle>>]] accepts three arguments, in this order: (1) the name of a source file; (2) the name of a chunk; and (3) the name of the file that the chunk will be extracted to.
-It uses `noweb`'s `notangle` to extract from (1) the chunk (2) to a temporary file, compares it to (3) and only writes (2) to (3) if (3) does not exist, or is different from the temporary file.
-<<lir-tangle>>=
-lir-tangle () {
-    tmpfile=$(mktemp)
-    notangle -t8 -R"$2" "$1" > "$tmpfile"
-    lir-cmpcp "$tmpfile" "$3"
-    rm "$tmpfile"
-}
-@
-
-The function used, [[<<lir-cmpcp>>]], overwrites a file with a newer version of a file after comparing their contents.
-It takes two arguments: (1) the new file, and (2) the old file.
-The standard command line tool `cmp` used for the comparison will exit with status 0 (success) if the two files have identical contents; with status 1 if they are different, and with status 2 if there is some trouble: for example, if one of the files does not exist.
-<<lir-cmpcp>>=
-lir-cmpcp () {
-if ! cmp --silent "$1" "$2"
-then
-    cp --verbose "$1" "$2"
-fi
-}
-@
-
-With the help of [[<<lir-tangle>>]] we implement [[<<lir-mtangle>>]] ("multiple" tangle).
-It reads from standard input a list of chunk names, one per line, and tangles each chunk from the literate source file in (1) to a file of the same name as the chunk in the directory in (2).
 <<lir-mtangle>>=
 lir-mtangle () {
 while IFS='' read -r chunk
 do
-    lir-tangle "$1" "$chunk" "$2/$chunk"
+    notangle -t8 -R"$chunk" "$1" | cpif "$2/$chunk"
 done
 }
 @
