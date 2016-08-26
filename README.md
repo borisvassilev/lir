@@ -69,7 +69,7 @@ If you see the Lir User Guide, followed by a whole bunch of code, you have succe
 # Quick start
 This is a minimal example of applying Lir to obtain a result and display it in your final document.
 
-This is the complete Lir source file, named `show-size.lir`:
+This is the complete Lir source file, named `show-size.lir`, and [available here](show-size/show-size.lir):
 
 ~~~~
 This is a minimal example of how to use Lir.  Here, we will use
@@ -127,6 +127,8 @@ source file, but it will show up in the final document.)
 An HTML document named `show-size.html` will be generated in the
 same directory.  Open it with your web browser!
 ~~~~
+
+(In this README, the tab character in this file will probably become 4 spaces. Just take the original file from the link above.)
 
 Yes, go ahead and open it in your web browser.
 Look around.
