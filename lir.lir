@@ -44,9 +44,7 @@ echo "*** Done!"
 
 rm -rf .lir
 echo "*** Using lir to tangle and weave lir..."
-lir tangle lir.lir \
-    && lir make lir.lir \
-    && lir weave lir.lir
+lir tangle lir.lir && lir make lir.lir && lir tangle lir.lir
 echo "*** Weaved document is in lir.html!"
 @
 
@@ -132,29 +130,34 @@ The program is installed as a script that can be invoked with one of the three a
 <<Bash header>>
 <<Define functions used by `lir`>>
 
-if [ "$#" == "0" ]
+if [ "$#" -eq 0 ]
 then
     :
 else
+
+if [ $# -eq 1 ]
+then
+    lir tangle "$1" && lir make "$1" && lir weave "$1" && exit
+fi
 
 LIR_SOURCE="$2"
 LIR_DIR=.lir
 MORE_OPTS="${@:2}"
 BASENAME=$(basename "$LIR_SOURCE" .lir)
+STATE_SOURCE="__LIR_SOURCE_$LIR_SOURCE"
 
 case "$1" in
 tangle)
     mkdir --verbose --parents "$LIR_DIR"
-    tmpdir=$(mktemp --directory -p "$LIR_DIR")
+    tmpdir=$(mktemp --directory --tmpdir="$LIR_DIR")
 
-    STATE_SOURCE="$LIR_DIR"/"$LIR_SOURCE"
     awk '<<Nameless code chunks as continuations .awk>>' "$LIR_SOURCE" \
         | awk '<<Close all codechunks with `@` .awk>>' \
         | awk -v evalcmd="bash -o errexit -o pipefail -o nounset" \
               '<<Evaluate code chunk contents .awk>>' \
-        > "$STATE_SOURCE"
+        > "$LIR_DIR"/"$STATE_SOURCE"
 
-    noroots "$STATE_SOURCE" \
+    noroots "$LIR_DIR"/"$STATE_SOURCE" \
         | <<Drop double angle brackets>> \
         | <<Remove empty lines>> \
         > "$tmpdir"/rootchunks
@@ -165,15 +168,15 @@ tangle)
     <<Get sink chunknames>> "$tmpdir"/rootchunks \
         > "$tmpdir"/sinkchunks
     
-    < "$tmpdir"/filechunks lir-mtangle "$STATE_SOURCE" "$LIR_DIR"
+    < "$tmpdir"/filechunks lir-mtangle "$LIR_DIR"/"$STATE_SOURCE" "$LIR_DIR"
     < "$tmpdir"/sourcechunks lir-use "$LIR_DIR"
 
     if grep --quiet --line-regexp ':make.*' "$tmpdir"/rootchunks
     then
-        noroots "$STATE_SOURCE" \
+        noroots "$LIR_DIR"/"$STATE_SOURCE" \
             | sed -n 's/^@<<\(:make.*\)>>$/-R\1/p' \
             | tr '\n' '\0' \
-            | xargs --null notangle -t8 "$STATE_SOURCE" \
+            | xargs --null notangle -t8 "$LIR_DIR"/"$STATE_SOURCE" \
             > "$LIR_DIR"/.makedag
     else
         echo '' > "$LIR_DIR"/.makedag
@@ -183,7 +186,7 @@ tangle)
     < "$tmpdir"/sinkchunks tr '\n' ' ' >> "$LIR_DIR"/.makeall
     echo ";" >> "$LIR_DIR"/.makeall
 
-    echo -n "$BASENAME.html: $BASENAME.lir " > "$LIR_DIR"/.makehtml
+    echo -n "$BASENAME.html: $STATE_SOURCE " > "$LIR_DIR"/.makehtml
     < "$tmpdir"/sinkchunks tr '\n' ' ' >> "$LIR_DIR"/.makehtml
     echo ";" >> "$LIR_DIR"/.makehtml
     echo -e "\t<<Path to `lir`>>"'/lir-weave < $< > $@' >> "$LIR_DIR"/.makehtml
@@ -209,7 +212,8 @@ purge)
     ;;
 esac
 
-fi # if [ "$#" == "0" ]
+fi
+# if [ "$#" == "0" ]
 @
 
 ## Tangling
@@ -366,6 +370,7 @@ pandoc "$@" \
     --from=markdown \
     --table-of-contents \
     --standalone \
+    --self-contained \
     --smart \
     --to=html5 \
     --css="<<Path to `lir`>>"/lir.css \
@@ -745,6 +750,7 @@ indented_lines([0'\n|Block]) --> [0'\n], !,
     yaml_indented_block(Block).
 @
 
+<<:source lir.lir>>=
 <<:make>>=
 test-display: lir.lir
 	ls -l -h lir.lir > test-display
