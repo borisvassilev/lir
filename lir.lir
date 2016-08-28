@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-/usr/lib/noweb
+"$HOME"/lib/noweb
 @
 
 ## Making and installing
@@ -202,7 +202,7 @@ weave)
     make --directory="$LIR_DIR" \
         --makefile=.makehtml \
         "$BASENAME".html
-    cp --verbose --update ".lir/$BASENAME.html" .
+    cp --verbose --update ".lir/$BASENAME.html" "$BASENAME.html"
     ;;
 purge)
     rm --recursive --one-file-system "$LIR_DIR"
@@ -943,7 +943,7 @@ This is necessary because code chunk names are inside HTML tags by the time they
 counters_db(L, DB) :-
     include(is_code_name_label_meta, L, CNLMs),
     maplist(code_name_label_meta_Name_Label, CNLMs, Ns, Ls),
-    fmt_names_fmtd(html5, Ns, FNs),
+    names_fmt_fmtd(Ns, html5, FNs),
     
     pairs_keys_values(LFs, Ls, FNs),
     dict_create(CC_names, name, LFs),
@@ -993,8 +993,9 @@ is_display_item(Item, display(Item,_,_,_)).
 
 to_par(S, PS) :- atomics_to_string(["<span>", S, "</span>"], PS).
 
-fmt_names_fmtd(html5, Ns, FNs) :-
-    maplist(to_par, Ns, PNs),
+names_fmt_fmtd([], html5, []).
+names_fmt_fmtd([N|Ns], html5, FNs) :-
+    maplist(to_par, [N|Ns], PNs),
     atomics_to_string(PNs, Ns_str),
     process_create(path(pandoc),
                    ["--to=html5"],
@@ -1004,8 +1005,10 @@ fmt_names_fmtd(html5, Ns, FNs) :-
     close(Pandoc_in),
     load_structure(Pandoc_out, DOM, [dialect(xml)]),
     close(Pandoc_out),
-    DOM = [element(p, [], Names)],
-    maplist(names_fmtd, Names, FNs).
+    (   DOM = [element(p, [], Names)]
+    ->  maplist(names_fmtd, Names, FNs)
+    ;   FNs = []
+    ).
 
 :- use_module(library(sgml_write), [xml_write/3]).
 
