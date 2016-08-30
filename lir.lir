@@ -18,13 +18,50 @@ These are a few paths that would probably be different for each computer.
 Those have to be redefined before compiling this document.
 
 ## Library paths
+Figure out where you have installed the `noweb` library files.
+If you installed from the official Ubuntu directories, this should be `/usr/lib/noweb`.
+
+If you cannot find this directory, the directory where the files were installed is mentioned towards the bottom of the `nowebfilters` man page, under the `FILES` section.
+So try this:
+
+~~~~
+$ man nowebfilters
+~~~~
+
+If for some reason you this doesn't work either, you can try looking for one of the files in the library, for example:
+
+~~~~
+$ locate emptydefn
+~~~~
+
+If you cannot find a file called `emptydefn` on your system, you have not installed `noweb`.
+
+Now that you know where the library files are, add the paths to this file.
+
+This is the folder where all `lir` components are installed:
 <<Path to `lir`>>=
 "$HOME"/lib/lir
+@
+This is the folder where the main `lir` script will be installed; make sure it is on your system `PATH`.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
+@
+
+This is the folder containing the `noweb` library files.
+If you installed `noweb` normally (and as root), this will read `/urs/lib/noweb`.
 <<Path to `noweb`>>=
 /usr/lib/noweb
 @
+
+
+Now save and close the file, and run:
+
+~~~~
+$ bash bootstrap
+~~~~
+
+You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the "Weaved document is in lir.html".
+
 
 ## Making and installing
 <<build.sh>>=
@@ -48,20 +85,20 @@ lir lir.lir
 echo "*** Weaved document is in lir.html!"
 cp -v lir.html docs/lir.html
 echo -n "*** Generating index.."
-pandoc -s -S -o docs/index.html README.md
+title=$(mktemp)
+echo -ne "---\ntitle: Lir\nauthor: Boris Vassilev\n...\n" > "$title"
+sed "s/^@/@@/" README.md \
+        | sed "s/^<</@<</" \
+        | cat "$title" - \
+        > docs/index.lir
+(cd docs ; lir index.lir)
+rm "$title"
 echo ". done"
 @
-To use this script, issue the following command to extract if and make it executable first:
-
-~~~~
-$ notangle -Rbuild.sh lir.lir > build
-$ chmod u+x build
-~~~~
-
-From now on, you can call the script to build Lir.
-You only need to extract the build script again if you change its definition here, or if you change one of the paths.
+This script is used when the bash script file [`bootstrap`](https://github.com/borisvassilev/lir/blob/master/bootstrap) is evaluated.
 
 ## Makefile
+This makefile is used by the build script above.
 <<Makefile>>=
 nwpipemodules = driver.pl nwpipe.pl lirhtml.pl yaml.pl
 

@@ -1,13 +1,35 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html>
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta http-equiv="Content-Style-Type" content="text/css" />
-  <meta name="generator" content="pandoc" />
-  <title></title>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Boris Vassilev">
+  <title>Lir</title>
   <style type="text/css">code{white-space: pre;}</style>
+  <link href="data:text/css;charset=utf-8,p%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0A%7D%0Ablockquote%20%7B%0Amax%2Dwidth%3A%2011cm%3B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aul%2C%20ol%2C%20dl%2C%0Aspan%2Echunkdefs%20%7B%0Amax%2Dwidth%3A%2012cm%3B%0A%7D%0Abody%20%7B%0Apadding%2Dleft%3A%201cm%3B%0A%7D%0Ah1%2C%20h2%2C%20h3%20%7B%0Afont%2Dfamily%3A%20sans%2Dserif%3B%0Amax%2Dwidth%3A%2012cm%3B%0A%7D%0Aspan%2Equote%20%7B%0Afont%2Dfamily%3A%20monospace%3B%0A%7D%0Aspan%2Esourcefile%20a%2C%0Aspan%2Eresultfile%20a%2C%0Aspan%2Elistingfile%20a%2C%0Aspan%2Efigurefile%20a%2C%0Aspan%2Echunkdefs%20a%2C%0Aspan%2Echunkuses%20a%2C%0Aspan%2Echunkprev%20a%2C%0Aspan%2Echunknext%20a%2C%0Aspan%2Edefn%20a%2C%0Aspan%2Equoteduse%20a%2C%0Aspan%2Eembeddeduse%20a%20%7B%0Atext%2Ddecoration%2Dline%3A%20none%3B%0A%7D%0Aspan%2Echunkdefs%2C%0Aspan%2Echunkuses%2C%0Aspan%2Echunkprev%2C%0Aspan%2Echunknext%20%7B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aspan%2Equoteduse%20%7B%0Afont%2Dfamily%3A%20serif%3B%0A%7D%0Aspan%2Eembeddeduse%20%7B%0Afont%2Dfamily%3A%20serif%3B%0A%7D%0Aspan%2Echunknr%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aspan%2Equoteduse%20a%20%7B%0Acolor%3A%20darkGreen%3B%0A%7D%0Aspan%2Equoteduse%20a%3Ahover%20%7B%0Acolor%3A%20limeGreen%3B%0A%7D%0Aspan%2Eembeddeduse%20a%20%7B%0Acolor%3A%20darkblue%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Aspan%2Eembeddedusesym%20%7B%0Afont%2Dstyle%3A%20normal%3B%0A%7D%0Aspan%2Eembeddeduse%20a%3Ahover%20%7B%0Acolor%3A%20dodgerBlue%3B%0A%7D%0Aspan%2Esourcefile%20a%2C%0Aspan%2Eresultfile%20a%2C%0Aspan%2Elistingfile%20a%2C%0Aspan%2Efigurefile%20a%2C%0Aspan%2Echunkdefs%20a%2C%0Aspan%2Echunkprev%20a%2C%0Aspan%2Echunknext%20a%2C%0Aspan%2Edefn%20a%2C%0Aspan%2Echunkuses%20a%20%7B%0Acolor%3A%20darkred%3B%0A%7D%0Aspan%2Esourcefile%20a%3Ahover%2C%0Aspan%2Eresultfile%20a%3Ahover%2C%0Aspan%2Elistingfile%20a%3Ahover%2C%0Aspan%2Efigurefile%20a%3Ahover%2C%0Aspan%2Echunkdefs%20a%3Ahover%2C%0Aspan%2Echunkprev%20a%3Ahover%2C%0Aspan%2Echunknext%20a%3Ahover%2C%0Aspan%2Edefn%20a%3Ahover%2C%0Aspan%2Echunkuses%20a%3Ahover%20%7B%0Acolor%3A%20darkGoldenRod%3B%0A%7D%0Aul%2Echunkslist%20%7B%0Alist%2Dstyle%2Dtype%3A%20square%3B%0A%7D%0Adiv%2Elirtable%20th%20%7B%0Aborder%2Dstyle%3A%20none%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%200%200%201px%200%3B%0A%7D%0Adiv%2Elirtable%20th%2C%0Adiv%2Elirtable%20td%20%7B%0Apadding%2Dleft%3A%203%2E3mm%3B%0Apadding%2Dright%3A%203%2E3mm%3B%0Apadding%2Dtop%3A%200%2E9mm%3B%0Apadding%2Dbottom%3A%200%2E9mm%3B%0A%7D%0Adiv%2Elirtable%20table%20%7B%0Afont%2Dfamily%3A%20sans%2Dserif%3B%0Afont%2Dsize%3A%20small%3B%0Amargin%2Dtop%3A%203mm%3B%0Amargin%2Dbottom%3A%203mm%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0Aborder%2Dstyle%3A%20solid%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%202px%200%201px%200%3B%0A%7D%0Adiv%2Elirlisting%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0A%7D%0Aspan%2Esourcename%2C%0Aspan%2Eresultname%2C%0Aspan%2Etablename%2C%0Aspan%2Efigurename%2C%0Aspan%2Elistingname%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Adiv%2Efigurecontents%20img%20%7B%0Adisplay%3A%20block%3B%0Amax%2Dwidth%3A%2014cm%3B%0Awidth%3A%20auto%3B%0Aheight%3A%20auto%3B%0A%7D%0Adiv%2Elistingcontents%20%7B%0Afont%2Dsize%3A%20small%3B%0Amargin%2Dtop%3A%203mm%3B%0Amargin%2Dbottom%3A%203mm%3B%0Aborder%2Dstyle%3A%20solid%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%200%2E3mm%3B%0A%7D%0Aspan%2Esourcefile%2C%0Aspan%2Eresultfile%2C%0Aspan%2Etablefile%2C%0Aspan%2Efigurefile%2C%0Aspan%2Elistingfile%20%7B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Adiv%2Etablemeta%2C%0Adiv%2Efiguremeta%2C%0Adiv%2Elistingmeta%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aspan%2Etabletitle%2C%0Aspan%2Efiguretitle%2C%0Aspan%2Elistingtitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Adiv%2Ecodechunk%2C%0Adiv%2Elirlisting%2C%0Adiv%2Elirtable%2C%0Adiv%2Elirfigure%20%7B%0Amargin%2Dbottom%3A%203mm%3B%0A%7D%0A" rel="stylesheet">
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
 </head>
 <body>
+<header>
+<h1 class="title">Lir</h1>
+<h2 class="author">Boris Vassilev</h2>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#recommended-reading">Recommended reading</a><ul>
+<li><a href="#makefiles">Makefiles</a></li>
+<li><a href="#markdown">Markdown</a></li>
+<li><a href="#literate-programming-with-noweb">Literate Programming with <code>noweb</code></a></li>
+</ul></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#quick-start">Quick start</a></li>
+<li><a href="#acknowledgements">Acknowledgements</a></li>
+</ul>
+</nav>
 <p><a href="http://borisvassilev.github.io/lir/">Lir is a reproducible computing tool</a>. The name Lir stands for <strong>li</strong>terate, <strong>r</strong>eproducible computing. It is available as <a href="https://github.com/borisvassilev/lir">free software</a>. It comes with a <a href="http://borisvassilev.github.io/lir/lir.html">User’s Guide</a>.</p>
 <h1 id="prerequisites">Prerequisites</h1>
 <p>You need a reasonably modern Linux/BSD operating system. Any of the major GNU/Linux and BSD distributions, and OS X fulfil that requirement. It should be possible to use it on Microsoft Windows 10, but at the moment this is not officially supported: however, if you are interested in trying to install Lir on a Windows 10, share your experience.</p>
@@ -62,7 +84,7 @@ The file will be generated by running the command `wc` on this
 source file (`show-size.lir`), and saving the output to `size`:
 &lt;&lt;:make Generate the file `size`&gt;&gt;=
 size: show-size.lir
-    wc show-size.lir &gt; size
+	wc show-size.lir &gt; size
 
 @
 The name of this code chunk has the prefix &quot;`:make `&quot;.  This
@@ -94,24 +116,9 @@ source file, but it will show up in the final document.)
 
 An HTML document named `show-size.html` will be generated in the
 same directory.  Open it with your web browser!</code></pre>
-<p>(In this README, the tab character in this file will probably become 4 spaces. Just take the original file from the link above.)</p>
 <p>Generate the final document and open it in your web browser (<a href="http://borisvassilev.github.io/lir/show-size.html">here is what I get</a>). Look around. If you like what you see, you should go on by reading the Tutorial for a somewhat longer introduction.</p>
 <h1 id="acknowledgements">Acknowledgements</h1>
 <p>This work is done at the University of Helsinki, Finland by Boris Vassilev and Erkka Valo, under the supervision of Sampsa Hautaniemi and Elina Ikonen. It is licenced under the terms of the GPL (see COPYING).</p>
 <p>Copyright 2015 Boris Vassilev</p>
-<h1 id="unnecessary-stuff">UNNECESSARY STUFF</h1>
-<p>Then, figure out where you have installed the <code>noweb</code> library files. If you installed from the official Ubuntu directories, this should be <code>/usr/lib/noweb</code>.</p>
-<p>If you cannot find this directory, the directory where the files were installed is mentioned towards the bottom of the <code>nowebfilters</code> man page, under the <code>FILES</code> section. So try this:</p>
-<pre><code>$ man nowebfilters</code></pre>
-<p>If for some reason you this doesn’t work either, you can try looking for one of the files in the library, for example:</p>
-<pre><code>$ locate emptydefn</code></pre>
-<p>If you cannot find a file called <code>emptydefn</code> on your system, you have not installed <code>noweb</code>.</p>
-<p>Now that you know where the library files are, open the file that contains most of the code of the project, <code>lir.lir</code>. Somewhere in lines 20-26 there are three path definitions that you might need to change.</p>
-<p>On line 22 is the folder where all <code>lir</code> components are installed.</p>
-<p>On line 24 is the folder where the main <code>lir</code> script will be installed; make sure it is on your system <code>PATH</code>.</p>
-<p>On line 26 is the folder containing the <code>noweb</code> library files. If you installed <code>noweb</code> normally (and as root), this will read <code>/urs/lib/noweb</code>.</p>
-<p>Now save and close the file, and run:</p>
-<pre><code>$ bash bootstrap</code></pre>
-<p>You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the “Weaved document is in lir.html”.</p>
 </body>
 </html>

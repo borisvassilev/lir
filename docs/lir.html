@@ -49,6 +49,14 @@
 <h1 id="installation">Installation</h1>
 <p>These are a few paths that would probably be different for each computer. Those have to be redefined before compiling this document.</p>
 <h2 id="library-paths">Library paths</h2>
+<p>Figure out where you have installed the <code>noweb</code> library files. If you installed from the official Ubuntu directories, this should be <code>/usr/lib/noweb</code>.</p>
+<p>If you cannot find this directory, the directory where the files were installed is mentioned towards the bottom of the <code>nowebfilters</code> man page, under the <code>FILES</code> section. So try this:</p>
+<pre><code>$ man nowebfilters</code></pre>
+<p>If for some reason you this doesn’t work either, you can try looking for one of the files in the library, for example:</p>
+<pre><code>$ locate emptydefn</code></pre>
+<p>If you cannot find a file called <code>emptydefn</code> on your system, you have not installed <code>noweb</code>.</p>
+<p>Now that you know where the library files are, add the paths to this file.</p>
+<p>This is the folder where all <code>lir</code> components are installed:</p>
 <div class="codechunk">
 <p><span id="NW0-le3mf-1" class="defn"><span class="chunknr">C1:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1rI3Ge-1">C4</a>, <a href="#NW0-4UExSf-1">C9</a>, <a href="#NW0-knN2l-1">C29</a>, <a href="#NW0-14TQfc-1">C30</a></span></p>
 <pre>
@@ -56,6 +64,7 @@
 </pre>
 ◼
 </div>
+<p>This is the folder where the main <code>lir</code> script will be installed; make sure it is on your system <code>PATH</code>.</p>
 <div class="codechunk">
 <p><span id="NW0-AfPqe-1" class="defn"><span class="chunknr">C2:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-AfPqe-1">Path to <code>lir</code> binaries</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1rI3Ge-1">C4</a></span></p>
 <pre>
@@ -63,6 +72,7 @@
 </pre>
 ◼
 </div>
+<p>This is the folder containing the <code>noweb</code> library files. If you installed <code>noweb</code> normally (and as root), this will read <code>/urs/lib/noweb</code>.</p>
 <div class="codechunk">
 <p><span id="NW0-411qse-1" class="defn"><span class="chunknr">C3:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-411qse-1">Path to <code>noweb</code></a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1rI3Ge-1">C4</a>, <a href="#NW0-sh3ht-1">C28</a></span></p>
 <pre>
@@ -70,6 +80,9 @@
 </pre>
 ◼
 </div>
+<p>Now save and close the file, and run:</p>
+<pre><code>$ bash bootstrap</code></pre>
+<p>You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the “Weaved document is in lir.html”.</p>
 <h2 id="making-and-installing">Making and installing</h2>
 <div class="codechunk">
 <p><span id="NW0-1rI3Ge-1" class="defn"><span class="chunknr">C4:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1rI3Ge-1">build.sh</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
@@ -94,16 +107,21 @@ lir lir.lir
 echo &quot;*** Weaved document is in lir.html!&quot;
 cp -v lir.html docs/lir.html
 echo -n &quot;*** Generating index..&quot;
-pandoc -s -S -o docs/index.html README.md
+title=$(mktemp)
+echo -ne &quot;---\ntitle: Lir\nauthor: Boris Vassilev\n...\n&quot; &gt; &quot;$title&quot;
+sed &quot;s/^@/@@/&quot; README.md \
+        | sed &quot;s/^&lt;&lt;/@&lt;&lt;/&quot; \
+        | cat &quot;$title&quot; - \
+        &gt; docs/index.lir
+(cd docs ; lir index.lir)
+rm &quot;$title&quot;
 echo &quot;. done&quot;
 </pre>
 ◼
 </div>
-<p>To use this script, issue the following command to extract if and make it executable first:</p>
-<pre><code>$ notangle -Rbuild.sh lir.lir &gt; build
-$ chmod u+x build</code></pre>
-<p>From now on, you can call the script to build Lir. You only need to extract the build script again if you change its definition here, or if you change one of the paths.</p>
+<p>This script is used when the bash script file <a href="https://github.com/borisvassilev/lir/blob/master/bootstrap"><code>bootstrap</code></a> is evaluated.</p>
 <h2 id="makefile">Makefile</h2>
+<p>This makefile is used by the build script above.</p>
 <div class="codechunk">
 <p><span id="NW0-2CgwVs-1" class="defn"><span class="chunknr">C5:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2CgwVs-1">Makefile</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
 <pre>
@@ -1000,7 +1018,7 @@ test-display: lir.lir
 </div>
 <div class="listingcontents">
 <pre>
-lrwxrwxrwx 1 bvassile hyad-all 41 Aug 30 13:20 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
+lrwxrwxrwx 1 bvassile hyad-all 41 Aug 30 14:31 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
 </pre>
 </div>
 <div class="listingmeta">

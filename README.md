@@ -130,8 +130,6 @@ An HTML document named `show-size.html` will be generated in the
 same directory.  Open it with your web browser!
 ~~~~
 
-(In this README, the tab character in this file will probably become 4 spaces. Just take the original file from the link above.)
-
 Generate the final document and open it in your web browser ([here is what I get](http://borisvassilev.github.io/lir/show-size.html)).
 Look around.
 If you like what you see, you should go on by reading the Tutorial for a somewhat longer introduction.
@@ -141,41 +139,3 @@ This work is done at the University of Helsinki, Finland by Boris Vassilev and E
 It is licenced under the terms of the GPL (see COPYING).
 
 Copyright 2015 Boris Vassilev
-
-# UNNECESSARY STUFF
-
-Then, figure out where you have installed the `noweb` library files.
-If you installed from the official Ubuntu directories, this should be `/usr/lib/noweb`.
-
-If you cannot find this directory, the directory where the files were installed is mentioned towards the bottom of the `nowebfilters` man page, under the `FILES` section.
-So try this:
-
-~~~~
-$ man nowebfilters
-~~~~
-
-If for some reason you this doesn't work either, you can try looking for one of the files in the library, for example:
-
-~~~~
-$ locate emptydefn
-~~~~
-
-If you cannot find a file called `emptydefn` on your system, you have not installed `noweb`.
-
-Now that you know where the library files are, open the file that contains most of the code of the project, `lir.lir`. Somewhere in lines 20-26 there are three path definitions that you might need to change.
-
-On line 22 is the folder where all `lir` components are installed.
-
-On line 24 is the folder where the main `lir` script will be installed; make sure it is on your system `PATH`.
-
-On line 26 is the folder containing the `noweb` library files.
-If you installed `noweb` normally (and as root), this will read `/urs/lib/noweb`.
-
-Now save and close the file, and run:
-
-~~~~
-$ bash bootstrap
-~~~~
-
-You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the "Weaved document is in lir.html".
-
