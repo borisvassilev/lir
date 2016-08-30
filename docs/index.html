@@ -1,12 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+</head>
+<body>
 <p>Lir is a reproducible computing tool. The name Lir stands for <strong>li</strong>terate, <strong>r</strong>eproducible computing.</p>
 <h1 id="prerequisites">Prerequisites</h1>
 <p>You need a reasonably modern Linux/BSD operating system. Any of the major GNU/Linux and BSD distributions, and OS X fulfil that requirement. It should be possible to use it on Microsoft Windows 10, but at the moment this is not officially supported: however, if you are interested in trying to install Lir on a Windows 10, share your experience.</p>
 <p>In particular, you will need an up-to-date version of the GNU Toolchain (<code>autoconf</code>, <code>make</code>, <code>gcc</code>, <code>binutils</code>, <code>glibc</code>), as well as Bash along with the standard command line tools like <code>grep</code>, <code>sed</code>, and <code>awk</code> (to name a few).</p>
 <p>Furthermore, you need to install the following software:</p>
 <ul>
-<li><p><a href="https://www.cs.tufts.edu/~nr/noweb/">Noweb</a>, &quot;A Simple, Extensible Tool for Literate Programming.&quot; Available in the Ubuntu official repositories. You can also <a href="http://packages.debian.org/noweb">look at the Debian package</a> or even attempt to <a href="ftp://www.eecs.harvard.edu/pub/nr">compile it from source</a> (if you do that, make sure you get version 2.11b).</p></li>
+<li><p><a href="https://www.cs.tufts.edu/~nr/noweb/">Noweb</a>, “A Simple, Extensible Tool for Literate Programming.” Available in the Ubuntu official repositories. You can also <a href="http://packages.debian.org/noweb">look at the Debian package</a> or even attempt to <a href="ftp://www.eecs.harvard.edu/pub/nr">compile it from source</a> (if you do that, make sure you get version 2.11b).</p></li>
 <li><p><a href="http://www.swi-prolog.org/">SWI-Prolog</a>, a comprehensive free Prolog environment. It is easy to <a href="http://www.swi-prolog.org/git.html">install from source</a>, and for Ubuntu, the maintainer <a href="http://www.swi-prolog.org/build/Debian.txt">provides a PPA</a>. Just make sure you have the <strong>latest development or stable release</strong>, and not one of the very outdated releases available in the official repositories of most distributions.</p></li>
-<li><p><a href="http://pandoc.org/">Pandoc</a>, a universal document converter. Installing from source is a bit of a hustle, but you don't have to: just get the <a href="http://pandoc.org/installing.html">installer for the latest release</a>. It is important that you have the latest (patched) release, as there have been a non-negative number of bugs in major releases that get in the way.</p></li>
+<li><p><a href="http://pandoc.org/">Pandoc</a>, a universal document converter. Installing from source is a bit of a hustle, but you don’t have to: just get the <a href="http://pandoc.org/installing.html">installer for the latest release</a>. It is important that you have the latest (patched) release, as there have been a non-negative number of bugs in major releases that get in the way.</p></li>
 </ul>
 <h1 id="recommended-reading">Recommended reading</h1>
 <p>Lir makes use of existing tools for literate programming, making, and markup. A working knowledge of these tools is not required, but it is beneficial, at least at the beginning.</p>
@@ -85,7 +95,7 @@ source file, but it will show up in the final document.)
 An HTML document named `show-size.html` will be generated in the
 same directory.  Open it with your web browser!</code></pre>
 <p>(In this README, the tab character in this file will probably become 4 spaces. Just take the original file from the link above.)</p>
-<p>Generate the final document and open it in your web browser (<a href="https://github.com/borisvassilev/lir/blob/master/show-size/show-size.html">here is what I get</a>). Look around. If you like what you see, you should go on by reading the Tutorial for a somewhat longer introduction.</p>
+<p>Generate the final document and open it in your web browser (<a href="http://borisvassilev.github.io/lir/show-size.html">here is what I get</a>). Look around. If you like what you see, you should go on by reading the Tutorial for a somewhat longer introduction.</p>
 <h1 id="acknowledgements">Acknowledgements</h1>
 <p>This work is done at the University of Helsinki, Finland by Boris Vassilev and Erkka Valo, under the supervision of Sampsa Hautaniemi and Elina Ikonen. It is licenced under the terms of the GPL (see COPYING).</p>
 <p>Copyright 2015 Boris Vassilev</p>
@@ -93,7 +103,7 @@ same directory.  Open it with your web browser!</code></pre>
 <p>Then, figure out where you have installed the <code>noweb</code> library files. If you installed from the official Ubuntu directories, this should be <code>/usr/lib/noweb</code>.</p>
 <p>If you cannot find this directory, the directory where the files were installed is mentioned towards the bottom of the <code>nowebfilters</code> man page, under the <code>FILES</code> section. So try this:</p>
 <pre><code>$ man nowebfilters</code></pre>
-<p>If for some reason you this doesn't work either, you can try looking for one of the files in the library, for example:</p>
+<p>If for some reason you this doesn’t work either, you can try looking for one of the files in the library, for example:</p>
 <pre><code>$ locate emptydefn</code></pre>
 <p>If you cannot find a file called <code>emptydefn</code> on your system, you have not installed <code>noweb</code>.</p>
 <p>Now that you know where the library files are, open the file that contains most of the code of the project, <code>lir.lir</code>. Somewhere in lines 20-26 there are three path definitions that you might need to change.</p>
@@ -102,4 +112,6 @@ same directory.  Open it with your web browser!</code></pre>
 <p>On line 26 is the folder containing the <code>noweb</code> library files. If you installed <code>noweb</code> normally (and as root), this will read <code>/urs/lib/noweb</code>.</p>
 <p>Now save and close the file, and run:</p>
 <pre><code>$ bash bootstrap</code></pre>
-<p>You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the &quot;Weaved document is in lir.html&quot;.</p>
+<p>You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the “Weaved document is in lir.html”.</p>
+</body>
+</html>
