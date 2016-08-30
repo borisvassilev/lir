@@ -111,25 +111,25 @@ The tools provided by `lir` support two goals:
 
 This is usually done in three independent steps: _tangling_, _making_, and _weaving_.
 
-  * **Tangling**: Extract all source code from the `lir` source file and bring in external dependencies.
+* **Tangling**: Extract all source code from the `lir` source file and bring in external dependencies.
 
-    This might be scripts that are immediately executable, or code that needs to be compiled.
+  This might be scripts that are immediately executable, or code that needs to be compiled.
 
-    For externally maintained files to be managed by `lir`, they need to be explicitly declared in the `lir` source file.
-    Example use cases would be input data files, or a bibliography file maintained by a reference manager.
+  For externally maintained files to be managed by `lir`, they need to be explicitly declared in the `lir` source file.
+  Example use cases would be input data files, or a bibliography file maintained by a reference manager.
 
-  * **Making**: Generate all results.
+* **Making**: Generate all results.
 
-    This is a step that usually will include resolving dependencies.
-    In the case of intermediate analysis steps, a final result will depend on an intermediate result.
-    For example, a figure might be generated from the results of an analysis of the input data.
+  This is a step that usually will include resolving dependencies.
+  In the case of intermediate analysis steps, a final result will depend on an intermediate result.
+  For example, a figure might be generated from the results of an analysis of the input data.
 
-    In the case of programs that need to be compiled, a compilation step will have to occur before actually running the program.
+  In the case of programs that need to be compiled, a compilation step will have to occur before actually running the program.
 
-  * **Weaving**: Compile the final documentation.
+* **Weaving**: Compile the final documentation.
 
-    Once all results and figures have been generated, the original `lir` source file is processed to obtain a valid Pandoc markdown source file.
-    At that point, Pandoc is used to compile this to a final human readable file with any results and figures generated in the previous step.
+  Once all results and figures have been generated, the original `lir` source file is processed to obtain a valid Pandoc markdown source file.
+  At that point, Pandoc is used to compile this to a final human readable file with any results and figures generated in the previous step.
 
 ## The wrapper script
 The program is installed as a script that can be invoked with one of the three actions, `tangle`, `make`, or `weave`, as the first argument.
