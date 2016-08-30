@@ -52,7 +52,7 @@ $ cd lir
 
 Now open the source file, `lir.lir`, and start reading it. At the very top, there are instructions on how to set the paths for your installation and install Lir.
 Follow those instructions.
-The file is also [available on the web](http://borisvassilev.github.io/lir/lir.html).
+The final version of file is [available on the web](http://borisvassilev.github.io/lir/lir.html).
 
 To validate the installation, try to compile the `lir.lir` source file, using Lir:
 
