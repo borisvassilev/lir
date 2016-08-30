@@ -1,5 +1,7 @@
-Lir is a reproducible computing tool.
+[Lir is a reproducible computing tool](http://borisvassilev.github.io/lir/).
 The name Lir stands for **li**terate, **r**eproducible computing.
+It is available as [free software](https://github.com/borisvassilev/lir).
+It comes with a [User's Guide](http://borisvassilev.github.io/lir/lir.html).
 
 # Prerequisites
 You need a reasonably modern Linux/BSD operating system.
@@ -32,7 +34,7 @@ Reading the [official documentation](https://www.gnu.org/software/make/manual/ht
 
 ## Markdown
 You need to have a basic idea of the concept of [markdown](https://en.wikipedia.org/wiki/Markdown).
-Armed with this knowledge, open the [excellent README provided by Pandoc](http://pandoc.org/README.html) and use it as a reference.
+Armed with this knowledge, open the [excellent manual provided by Pandoc](http://pandoc.org/README.html) and use it as a reference.
 
 ## Literate Programming with `noweb`
 Understanding the concept of literate programming is, sadly, a must.
@@ -48,15 +50,10 @@ $ git clone https://github.com/borisvassilev/lir.git
 $ cd lir
 ~~~~
 
-And just follow the usual installation process:
+Now open the source file, `lir.lir`, and start reading it. At the very top, there are instructions on how to set the paths for your installation and install Lir.
+Follow those instructions.
+The final version of file is [available on the web](http://borisvassilev.github.io/lir/lir.html).
 
-~~~~
-$ ./configure
-$ make
-$ make install
-~~~~
-
-This should work, as long as you have installed everything in with the default settings.
 To validate the installation, try to compile the `lir.lir` source file, using Lir:
 
 ~~~~
@@ -69,7 +66,7 @@ If you see the Lir User Guide, followed by a whole bunch of code, you have succe
 # Quick start
 This is a minimal example of applying Lir to obtain a result and display it in your final document.
 
-This is the complete Lir source file, named `show-size.lir`, and [available here](show-size/show-size.lir):
+This is the complete Lir source file, named `show-size.lir`, and [available here](https://raw.githubusercontent.com/borisvassilev/lir/master/show-size/show-size.lir):
 
 ~~~~
 This is a minimal example of how to use Lir.  Here, we will use
@@ -128,52 +125,12 @@ An HTML document named `show-size.html` will be generated in the
 same directory.  Open it with your web browser!
 ~~~~
 
-(In this README, the tab character in this file will probably become 4 spaces. Just take the original file from the link above.)
-
-Yes, go ahead and open it in your web browser.
+Generate the final document and open it in your web browser ([here is what I get](http://borisvassilev.github.io/lir/show-size.html)).
 Look around.
-If you like what you see, you should go on by reading the Tutorial for a somewhat longer introduction.
+If you like what you see, you should go on by reading the [Tutorial](https://github.com/borisvassilev/lir-tutorial) for a somewhat longer introduction.
 
 # Acknowledgements
 This work is done at the University of Helsinki, Finland by Boris Vassilev and Erkka Valo, under the supervision of Sampsa Hautaniemi and Elina Ikonen.
 It is licenced under the terms of the GPL (see COPYING).
 
 Copyright 2015 Boris Vassilev
-
-# UNNECESSARY STUFF
-
-Then, figure out where you have installed the `noweb` library files.
-If you installed from the official Ubuntu directories, this should be `/usr/lib/noweb`.
-
-If you cannot find this directory, the directory where the files were installed is mentioned towards the bottom of the `nowebfilters` man page, under the `FILES` section.
-So try this:
-
-~~~~
-$ man nowebfilters
-~~~~
-
-If for some reason you this doesn't work either, you can try looking for one of the files in the library, for example:
-
-~~~~
-$ locate emptydefn
-~~~~
-
-If you cannot find a file called `emptydefn` on your system, you have not installed `noweb`.
-
-Now that you know where the library files are, open the file that contains most of the code of the project, `lir.lir`. Somewhere in lines 20-26 there are three path definitions that you might need to change.
-
-On line 22 is the folder where all `lir` components are installed.
-
-On line 24 is the folder where the main `lir` script will be installed; make sure it is on your system `PATH`.
-
-On line 26 is the folder containing the `noweb` library files.
-If you installed `noweb` normally (and as root), this will read `/urs/lib/noweb`.
-
-Now save and close the file, and run:
-
-~~~~
-$ bash bootstrap
-~~~~
-
-You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the "Weaved document is in lir.html".
-

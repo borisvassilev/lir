@@ -1,0 +1,2111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Boris Vassilev">
+  <meta name="dcterms.date" content="2016-08-30">
+  <title>Reproducible computing with lir</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link href="data:text/css;charset=utf-8,p%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0A%7D%0Ablockquote%20%7B%0Amax%2Dwidth%3A%2011cm%3B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aul%2C%20ol%2C%20dl%2C%0Aspan%2Echunkdefs%20%7B%0Amax%2Dwidth%3A%2012cm%3B%0A%7D%0Abody%20%7B%0Apadding%2Dleft%3A%201cm%3B%0A%7D%0Ah1%2C%20h2%2C%20h3%20%7B%0Afont%2Dfamily%3A%20sans%2Dserif%3B%0Amax%2Dwidth%3A%2012cm%3B%0A%7D%0Aspan%2Equote%20%7B%0Afont%2Dfamily%3A%20monospace%3B%0A%7D%0Aspan%2Esourcefile%20a%2C%0Aspan%2Eresultfile%20a%2C%0Aspan%2Elistingfile%20a%2C%0Aspan%2Efigurefile%20a%2C%0Aspan%2Echunkdefs%20a%2C%0Aspan%2Echunkuses%20a%2C%0Aspan%2Echunkprev%20a%2C%0Aspan%2Echunknext%20a%2C%0Aspan%2Edefn%20a%2C%0Aspan%2Equoteduse%20a%2C%0Aspan%2Eembeddeduse%20a%20%7B%0Atext%2Ddecoration%2Dline%3A%20none%3B%0A%7D%0Aspan%2Echunkdefs%2C%0Aspan%2Echunkuses%2C%0Aspan%2Echunkprev%2C%0Aspan%2Echunknext%20%7B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aspan%2Equoteduse%20%7B%0Afont%2Dfamily%3A%20serif%3B%0A%7D%0Aspan%2Eembeddeduse%20%7B%0Afont%2Dfamily%3A%20serif%3B%0A%7D%0Aspan%2Echunknr%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aspan%2Equoteduse%20a%20%7B%0Acolor%3A%20darkGreen%3B%0A%7D%0Aspan%2Equoteduse%20a%3Ahover%20%7B%0Acolor%3A%20limeGreen%3B%0A%7D%0Aspan%2Eembeddeduse%20a%20%7B%0Acolor%3A%20darkblue%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Aspan%2Eembeddedusesym%20%7B%0Afont%2Dstyle%3A%20normal%3B%0A%7D%0Aspan%2Eembeddeduse%20a%3Ahover%20%7B%0Acolor%3A%20dodgerBlue%3B%0A%7D%0Aspan%2Esourcefile%20a%2C%0Aspan%2Eresultfile%20a%2C%0Aspan%2Elistingfile%20a%2C%0Aspan%2Efigurefile%20a%2C%0Aspan%2Echunkdefs%20a%2C%0Aspan%2Echunkprev%20a%2C%0Aspan%2Echunknext%20a%2C%0Aspan%2Edefn%20a%2C%0Aspan%2Echunkuses%20a%20%7B%0Acolor%3A%20darkred%3B%0A%7D%0Aspan%2Esourcefile%20a%3Ahover%2C%0Aspan%2Eresultfile%20a%3Ahover%2C%0Aspan%2Elistingfile%20a%3Ahover%2C%0Aspan%2Efigurefile%20a%3Ahover%2C%0Aspan%2Echunkdefs%20a%3Ahover%2C%0Aspan%2Echunkprev%20a%3Ahover%2C%0Aspan%2Echunknext%20a%3Ahover%2C%0Aspan%2Edefn%20a%3Ahover%2C%0Aspan%2Echunkuses%20a%3Ahover%20%7B%0Acolor%3A%20darkGoldenRod%3B%0A%7D%0Aul%2Echunkslist%20%7B%0Alist%2Dstyle%2Dtype%3A%20square%3B%0A%7D%0Adiv%2Elirtable%20th%20%7B%0Aborder%2Dstyle%3A%20none%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%200%200%201px%200%3B%0A%7D%0Adiv%2Elirtable%20th%2C%0Adiv%2Elirtable%20td%20%7B%0Apadding%2Dleft%3A%203%2E3mm%3B%0Apadding%2Dright%3A%203%2E3mm%3B%0Apadding%2Dtop%3A%200%2E9mm%3B%0Apadding%2Dbottom%3A%200%2E9mm%3B%0A%7D%0Adiv%2Elirtable%20table%20%7B%0Afont%2Dfamily%3A%20sans%2Dserif%3B%0Afont%2Dsize%3A%20small%3B%0Amargin%2Dtop%3A%203mm%3B%0Amargin%2Dbottom%3A%203mm%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0Aborder%2Dstyle%3A%20solid%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%202px%200%201px%200%3B%0A%7D%0Adiv%2Elirlisting%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0A%7D%0Aspan%2Esourcename%2C%0Aspan%2Eresultname%2C%0Aspan%2Etablename%2C%0Aspan%2Efigurename%2C%0Aspan%2Elistingname%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Adiv%2Efigurecontents%20img%20%7B%0Adisplay%3A%20block%3B%0Amax%2Dwidth%3A%2014cm%3B%0Awidth%3A%20auto%3B%0Aheight%3A%20auto%3B%0A%7D%0Adiv%2Elistingcontents%20%7B%0Afont%2Dsize%3A%20small%3B%0Amargin%2Dtop%3A%203mm%3B%0Amargin%2Dbottom%3A%203mm%3B%0Aborder%2Dstyle%3A%20solid%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%200%2E3mm%3B%0A%7D%0Aspan%2Esourcefile%2C%0Aspan%2Eresultfile%2C%0Aspan%2Etablefile%2C%0Aspan%2Efigurefile%2C%0Aspan%2Elistingfile%20%7B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Adiv%2Etablemeta%2C%0Adiv%2Efiguremeta%2C%0Adiv%2Elistingmeta%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aspan%2Etabletitle%2C%0Aspan%2Efiguretitle%2C%0Aspan%2Elistingtitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Adiv%2Ecodechunk%2C%0Adiv%2Elirlisting%2C%0Adiv%2Elirtable%2C%0Adiv%2Elirfigure%20%7B%0Amargin%2Dbottom%3A%203mm%3B%0A%7D%0A" rel="stylesheet">
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header>
+<h1 class="title">Reproducible computing with <code>lir</code></h1>
+<h2 class="author">Boris Vassilev</h2>
+<h3 class="date">2016-08-30</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#installation">Installation</a><ul>
+<li><a href="#library-paths">Library paths</a></li>
+<li><a href="#making-and-installing">Making and installing</a></li>
+<li><a href="#makefile">Makefile</a></li>
+<li><a href="#bash-scripts">Bash scripts</a></li>
+</ul></li>
+<li><a href="#overview">Overview</a><ul>
+<li><a href="#the-wrapper-script">The wrapper script</a></li>
+<li><a href="#tangling">Tangling</a></li>
+<li><a href="#source-transformations">Source transformations</a></li>
+<li><a href="#weaving">Weaving</a></li>
+</ul></li>
+<li><a href="#lir-to-pandoc"><code>Lir</code> to Pandoc</a><ul>
+<li><a href="#parse-the-noweb-pipeline">Parse the <code>noweb</code> pipeline</a></li>
+<li><a href="#convert-the-pipeline-to-a-term">Convert the pipeline to a term</a></li>
+<li><a href="#emit-pandoc-html">Emit Pandoc HTML</a></li>
+</ul></li>
+<li><a href="#layout">Layout</a><ul>
+<li><a href="#code-chunk-language">Code chunk language</a></li>
+<li><a href="#html">HTML</a></li>
+</ul></li>
+</ul>
+</nav>
+<p>This is a collection of tools that support programming language-agnostic reproducible computing.</p>
+<p>This document is self-hosting: the implementation presented here can be used to produce the final human-readable version of itself. This makes informal validation trivial (“does the final document look right?”), but it also means that the only guarantee is that it implements enough to be able to compile itself.</p>
+<h1 id="installation">Installation</h1>
+<p>These are a few paths that would probably be different for each computer. Those have to be redefined before compiling this document.</p>
+<h2 id="library-paths">Library paths</h2>
+<p>Figure out where you have installed the <code>noweb</code> library files. If you installed from the official Ubuntu directories, this should be <code>/usr/lib/noweb</code>.</p>
+<p>If you cannot find this directory, the directory where the files were installed is mentioned towards the bottom of the <code>nowebfilters</code> man page, under the <code>FILES</code> section. So try this:</p>
+<pre><code>$ man nowebfilters</code></pre>
+<p>If for some reason you this doesn’t work either, you can try looking for one of the files in the library, for example:</p>
+<pre><code>$ locate emptydefn</code></pre>
+<p>If you cannot find a file called <code>emptydefn</code> on your system, you have not installed <code>noweb</code>.</p>
+<p>Now that you know where the library files are, add the paths to this file.</p>
+<p>This is the folder where all <code>lir</code> components are installed:</p>
+<div class="codechunk">
+<p><span id="NW0-le3mf-1" class="defn"><span class="chunknr">C1:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1rI3Ge-1">C4</a>, <a href="#NW0-4UExSf-1">C9</a>, <a href="#NW0-knN2l-1">C29</a>, <a href="#NW0-14TQfc-1">C30</a></span></p>
+<pre>
+&quot;$HOME&quot;/lib/lir
+</pre>
+◼
+</div>
+<p>This is the folder where the main <code>lir</code> script will be installed; make sure it is on your system <code>PATH</code>.</p>
+<div class="codechunk">
+<p><span id="NW0-AfPqe-1" class="defn"><span class="chunknr">C2:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-AfPqe-1">Path to <code>lir</code> binaries</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1rI3Ge-1">C4</a></span></p>
+<pre>
+&quot;$HOME&quot;/bin
+</pre>
+◼
+</div>
+<p>This is the folder containing the <code>noweb</code> library files. If you installed <code>noweb</code> normally (and as root), this will read <code>/urs/lib/noweb</code>.</p>
+<div class="codechunk">
+<p><span id="NW0-411qse-1" class="defn"><span class="chunknr">C3:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-411qse-1">Path to <code>noweb</code></a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1rI3Ge-1">C4</a>, <a href="#NW0-sh3ht-1">C28</a></span></p>
+<pre>
+/usr/lib/noweb
+</pre>
+◼
+</div>
+<p>Now save and close the file, and run:</p>
+<pre><code>$ bash bootstrap</code></pre>
+<p>You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the “Weaved document is in lir.html”.</p>
+<h2 id="making-and-installing">Making and installing</h2>
+<div class="codechunk">
+<p><span id="NW0-1rI3Ge-1" class="defn"><span class="chunknr">C4:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1rI3Ge-1">build.sh</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1rI3Ge-1-u1" href="#NW0-4Yl1AK-1">Bash header</a><span style="white-space:nowrap"> </span>⟫</span>
+
+echo &quot;*** Making and Installing...&quot;
+notangle -t8 -filter emptydefn -RMakefile lir.lir &gt; Makefile
+export LIRPATH=<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1rI3Ge-1-u2" href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫</span>
+export LIRBINPATH=<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1rI3Ge-1-u3" href="#NW0-AfPqe-1">Path to <code>lir</code> binaries</a><span style="white-space:nowrap"> </span>⟫</span>
+export NOWEBPATH=<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1rI3Ge-1-u4" href="#NW0-411qse-1">Path to <code>noweb</code></a><span style="white-space:nowrap"> </span>⟫</span>
+
+make uninstall
+make clean
+make
+make install
+echo &quot;*** Done!&quot;
+
+rm -rf .lir
+echo &quot;*** Using lir to tangle and weave lir...&quot;
+lir lir.lir
+echo &quot;*** Weaved document is in lir.html!&quot;
+cp -v lir.html docs/lir.html
+echo &quot;*** Generating index...&quot;
+title=$(mktemp)
+echo -ne &quot;---\ntitle: Lir\nauthor: Boris Vassilev\n...\n&quot; &gt; &quot;$title&quot;
+sed &quot;s/^@/@@/&quot; README.md \
+        | sed &quot;s/^&lt;&lt;/@&lt;&lt;/&quot; \
+        | cat &quot;$title&quot; - \
+        &gt; docs/index.lir
+(cd docs ; lir index.lir)
+rm &quot;$title&quot;
+echo &quot;*** Generating index done!&quot;
+</pre>
+◼
+</div>
+<p>This script is used when the bash script file <a href="https://github.com/borisvassilev/lir/blob/master/bootstrap"><code>bootstrap</code></a> is evaluated.</p>
+<h2 id="makefile">Makefile</h2>
+<p>This makefile is used by the build script above.</p>
+<div class="codechunk">
+<p><span id="NW0-2CgwVs-1" class="defn"><span class="chunknr">C5:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2CgwVs-1">Makefile</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
+<pre>
+nwpipemodules = driver.pl nwpipe.pl lirhtml.pl yaml.pl
+
+nwpipesources = nwpipe-pandoc.pl $(nwpipemodules)
+
+tangled = lir lir-weave $(nwpipesources) lir.css
+
+all : lir.lir
+	$(NOWEBPATH)/markup -t lir.lir \
+                | $(NOWEBPATH)/emptydefn \
+                | $(NOWEBPATH)/mnt -t $(tangled)
+	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
+	chmod u+x lir lir-weave
+
+install :
+	mkdir --parents $(LIRPATH)
+	cp --verbose --preserve \
+                lir.css nwpipe-pandoc lir-weave $(LIRPATH)
+	mkdir --parents $(LIRBINPATH)
+	cp --verbose --preserve \
+                lir $(LIRBINPATH)
+.PHONY : install
+
+clean :
+	-rm $(tangled) nwpipe-pandoc
+.PHONY : clean
+
+uninstall :
+	-rm -r $(LIRPATH)
+	-rm $(LIRBINPATH)/lir
+.PHONY : uninstall
+</pre>
+◼
+</div>
+<h2 id="bash-scripts">Bash scripts</h2>
+<p>The portable <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-4Yl1AK-1">Bash header</a><span style="white-space:nowrap"> </span>⟫</span></span> is, according to <a href="http://stackoverflow.com/questions/10376206/preferred-bash-shebang">Stack Overflow</a>:</p>
+<div class="codechunk">
+<p><span id="NW0-4Yl1AK-1" class="defn"><span class="chunknr">C6:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4Yl1AK-1">Bash header</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1rI3Ge-1">C4</a>, <a href="#NW0-4UExSf-1">C9</a>, <a href="#NW0-3933RI-1">C26</a></span><span class="chunkdefs"><br> definition continued in <a href="#NW0-4Yl1AK-2">↓<span style="white-space:nowrap"> </span>C7</a></span></p>
+<pre>
+#! /usr/bin/env bash
+</pre>
+<span class="chunknext"><a href="#NW0-4Yl1AK-2">⇩<span style="white-space:nowrap"> </span>C7</a></span>
+</div>
+<p>Furthermore, we set the scripts to immediately exit with error on failure, consider failure in a pipe a failure, and to consider “empty” (unset) variables an error:</p>
+<div class="codechunk">
+<p><span id="NW0-4Yl1AK-2" class="defn"><span class="chunknr">C7:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4Yl1AK-2">Bash header</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><br> <span class="chunkprev"><a href="#NW0-4Yl1AK-1">⇧<span style="white-space:nowrap"> </span>C6</a></span></p>
+<pre>
+set -o errexit
+set -o pipefail
+set -o nounset
+</pre>
+◼
+</div>
+<h1 id="overview">Overview</h1>
+<p>The tools provided by <code>lir</code> support two goals:</p>
+<ol type="1">
+<li>Generating results by running the code in a <code>lir</code> source file.</li>
+<li>Presenting all code and possibly results in a human-readable form.</li>
+</ol>
+<p>This is usually done in three independent steps: <em>tangling</em>, <em>making</em>, and <em>weaving</em>.</p>
+<ul>
+<li><strong>Tangling</strong>: Extract all source code from the <code>lir</code> source file and bring in external dependencies.</li>
+</ul>
+<p>This might be scripts that are immediately executable, or code that needs to be compiled.</p>
+<p>For externally maintained files to be managed by <code>lir</code>, they need to be explicitly declared in the <code>lir</code> source file. Example use cases would be input data files, or a bibliography file maintained by a reference manager.</p>
+<ul>
+<li><strong>Making</strong>: Generate all results.</li>
+</ul>
+<p>This is a step that usually will include resolving dependencies. In the case of intermediate analysis steps, a final result will depend on an intermediate result. For example, a figure might be generated from the results of an analysis of the input data.</p>
+<p>In the case of programs that need to be compiled, a compilation step will have to occur before actually running the program.</p>
+<ul>
+<li><strong>Weaving</strong>: Compile the final documentation.</li>
+</ul>
+<p>Once all results and figures have been generated, the original <code>lir</code> source file is processed to obtain a valid Pandoc markdown source file. At that point, Pandoc is used to compile this to a final human readable file with any results and figures generated in the previous step.</p>
+<h2 id="the-wrapper-script">The wrapper script</h2>
+<p>The program is installed as a script that can be invoked with one of the three actions, <code>tangle</code>, <code>make</code>, or <code>weave</code>, as the first argument.</p>
+<div class="codechunk">
+<p><span id="NW0-24bNpE-1" class="defn"><span class="chunknr">C8:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-24bNpE-1">lir</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-24bNpE-1-u1" href="#NW0-4UExSf-1">lir.bash</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-4UExSf-1" class="defn"><span class="chunknr">C9:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4UExSf-1">lir.bash</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-24bNpE-1">C8</a></span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u1" href="#NW0-4Yl1AK-1">Bash header</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u2" href="#NW0-fgUnR-1">Define functions used by <code>lir</code></a><span style="white-space:nowrap"> </span>⟫</span>
+
+if [ &quot;$#&quot; -eq 0 ]
+then
+        :
+else
+
+if [ $# -eq 1 ]
+then
+        lir tangle &quot;$1&quot; &amp;&amp; lir make &quot;$1&quot; &amp;&amp; lir weave &quot;$1&quot; &amp;&amp; exit
+fi
+
+LIR_SOURCE=&quot;$2&quot;
+LIR_DIR=.lir
+MORE_OPTS=&quot;${@:2}&quot;
+BASENAME=$(basename &quot;$LIR_SOURCE&quot; .lir)
+STATE_SOURCE=&quot;__LIR_SOURCE_$LIR_SOURCE&quot;
+
+case &quot;$1&quot; in
+tangle)
+        mkdir --verbose --parents &quot;$LIR_DIR&quot;
+        tmpdir=$(mktemp --directory --tmpdir=&quot;$LIR_DIR&quot;)
+
+        awk '<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u3" href="#NW0-4ed7IT-1">Nameless code chunks as continuations .awk</a><span style="white-space:nowrap"> </span>⟫</span>' \
+                        &quot;$LIR_SOURCE&quot; \
+                | awk '<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u4" href="#NW0-sQgzG-1">Close all codechunks with <code>@</code> .awk</a><span style="white-space:nowrap"> </span>⟫</span>' \
+                | awk -v \
+                        evalcmd=&quot;bash -o errexit -o pipefail -o nounset&quot; \
+                        '<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u5" href="#NW0-4Nh71J-1">Evaluate code chunk contents .awk</a><span style="white-space:nowrap"> </span>⟫</span>' \
+                &gt; &quot;$LIR_DIR&quot;/&quot;$STATE_SOURCE&quot;
+
+        noroots &quot;$LIR_DIR&quot;/&quot;$STATE_SOURCE&quot; \
+                | <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u6" href="#NW0-2JPvxO-1">Drop double angle brackets</a><span style="white-space:nowrap"> </span>⟫</span> \
+                | <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u7" href="#NW0-3W4YmB-1">Remove empty lines</a><span style="white-space:nowrap"> </span>⟫</span> \
+                &gt; &quot;$tmpdir&quot;/rootchunks
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u8" href="#NW0-3uKVkp-1">Remove special chunknames</a><span style="white-space:nowrap"> </span>⟫</span> &quot;$tmpdir&quot;/rootchunks \
+                &gt; &quot;$tmpdir&quot;/filechunks
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u9" href="#NW0-2zk9Yi-1">Get source chunknames</a><span style="white-space:nowrap"> </span>⟫</span> &quot;$tmpdir&quot;/rootchunks \
+                &gt; &quot;$tmpdir&quot;/sourcechunks
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u10" href="#NW0-2aAPv9-1">Get sink chunknames</a><span style="white-space:nowrap"> </span>⟫</span> &quot;$tmpdir&quot;/rootchunks \
+                &gt; &quot;$tmpdir&quot;/sinkchunks
+    
+        &lt; &quot;$tmpdir&quot;/filechunks lir-mtangle &quot;$LIR_DIR&quot;/&quot;$STATE_SOURCE&quot; &quot;$LIR_DIR&quot;
+        &lt; &quot;$tmpdir&quot;/sourcechunks lir-use &quot;$LIR_DIR&quot;
+
+        if grep --quiet --line-regexp ':make.*' &quot;$tmpdir&quot;/rootchunks
+        then
+                noroots &quot;$LIR_DIR&quot;/&quot;$STATE_SOURCE&quot; \
+                        | sed -n 's/^&lt;&lt;\(:make.*\)&gt;&gt;$/-R\1/p' \
+                        | tr '\n' '\0' \
+                        | xargs --null notangle -t8 \
+                                &quot;$LIR_DIR&quot;/&quot;$STATE_SOURCE&quot; \
+                        &gt; &quot;$LIR_DIR&quot;/.makedag
+        else
+                echo '' &gt; &quot;$LIR_DIR&quot;/.makedag
+        fi
+
+        echo -n 'all: ' &gt; &quot;$LIR_DIR&quot;/.makeall
+        &lt; &quot;$tmpdir&quot;/sinkchunks tr '\n' ' ' &gt;&gt; &quot;$LIR_DIR&quot;/.makeall
+        echo &quot;;&quot; &gt;&gt; &quot;$LIR_DIR&quot;/.makeall
+
+        echo -n &quot;$BASENAME.html: $STATE_SOURCE &quot; &gt; &quot;$LIR_DIR&quot;/.makehtml
+        &lt; &quot;$tmpdir&quot;/sinkchunks tr '\n' ' ' &gt;&gt; &quot;$LIR_DIR&quot;/.makehtml
+        echo &quot;;&quot; &gt;&gt; &quot;$LIR_DIR&quot;/.makehtml
+        echo -e &quot;\t<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u11" href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫</span>&quot;'/lir-weave &lt; $&lt; &gt; $@' \
+                &gt;&gt; &quot;$LIR_DIR&quot;/.makehtml
+
+        rm -r &quot;$tmpdir&quot;
+        ;;
+make)
+        make --jobs --directory=&quot;$LIR_DIR&quot; \
+                --makefile=.makeall --makefile=.makedag \
+                all
+        ;;
+weave)
+        make --directory=&quot;$LIR_DIR&quot; \
+                --makefile=.makehtml \
+                &quot;$BASENAME&quot;.html
+        cp --verbose --update &quot;.lir/$BASENAME.html&quot; &quot;$BASENAME.html&quot;
+        ;;
+purge)
+        rm --recursive --one-file-system &quot;$LIR_DIR&quot;
+        ;;
+*)
+        echo &quot;ERROR: unknown command $1&quot;
+        ;;
+esac
+
+fi
+# if [ &quot;$#&quot; == &quot;0&quot; ]
+</pre>
+◼
+</div>
+<h2 id="tangling">Tangling</h2>
+<div class="codechunk">
+<p><span id="NW0-fgUnR-1" class="defn"><span class="chunknr">C10:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-fgUnR-1">Define functions used by <code>lir</code></a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UExSf-1">C9</a></span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-fgUnR-1-u1" href="#NW0-1JVFPK-1">lir-use</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-fgUnR-1-u2" href="#NW0-4KFltr-1">lir-mtangle</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<div id="NW0-1yFF7D-1" class="lirdisplay">
+<div class="lirsource">
+<span class="sourcename">S1:</span> <span class="sourcefile"><a href="/home/bvassile/Documents/code/lir/.lir/lir.bib"><code>lir.bib</code></a></span>
+</div>
+</div>
+<div class="codechunk">
+<p><span id="NW0-4KFltr-1" class="defn"><span class="chunknr">C11:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4KFltr-1">lir-mtangle</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-fgUnR-1">C10</a></span></p>
+<pre>
+lir-mtangle () {
+while IFS='' read -r chunk
+do
+        notangle -t8 -R&quot;$chunk&quot; &quot;$1&quot; | cpif &quot;$2/$chunk&quot;
+done
+}
+</pre>
+◼
+</div>
+<p>Not all data in an analysis naturally fits into the <code>lir</code> source file. Examples already mentioned above are the input data, or an externally maintained file like a bibliography.</p>
+<p>Taking in use such a file means simply making a symbolic link to the file in the working direcory. <em>However</em>, keep in mind that the externally maintained file still needs to be in the project directory, and its name should on a path relative to the project directory. The <code>make</code> utility will check the timestamp on the <em>target of the link</em>, so when a “used” file changes, this will be taken into consideration.</p>
+<p>The argument to the function is the directory in which the symbolic links will be made. The file names are read from standard input, one per line.</p>
+<div class="codechunk">
+<p><span id="NW0-1JVFPK-1" class="defn"><span class="chunknr">C12:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1JVFPK-1">lir-use</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-fgUnR-1">C10</a></span></p>
+<pre>
+lir-use () {
+while IFS='' read -r used
+do
+        useddir=$(dirname &quot;$used&quot;)
+        mkdir  --verbose --parents &quot;$1/$useddir&quot;
+        original=$(readlink --canonicalize &quot;$used&quot;)
+        if [ -f &quot;$original&quot; ]
+        then
+                ln --symbolic --force &quot;$original&quot; &quot;$1/$used&quot;
+        else
+                &gt;&amp;2 echo &quot;LIR ERROR: File not found! ($original)&quot;
+                exit 1
+        fi
+done
+}
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-2JPvxO-1" class="defn"><span class="chunknr">C13:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2JPvxO-1">Drop double angle brackets</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UExSf-1">C9</a></span></p>
+<pre>
+sed -n 's/^&lt;&lt;\(.*\)&gt;&gt;$/\1/p'
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-3W4YmB-1" class="defn"><span class="chunknr">C14:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3W4YmB-1">Remove empty lines</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UExSf-1">C9</a></span></p>
+<pre>
+sed -n '/^\s*$/!p'
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-3uKVkp-1" class="defn"><span class="chunknr">C15:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3uKVkp-1">Remove special chunknames</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UExSf-1">C9</a></span></p>
+<pre>
+sed -n '/^:/!p'
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-2zk9Yi-1" class="defn"><span class="chunknr">C16:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2zk9Yi-1">Get source chunknames</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UExSf-1">C9</a></span></p>
+<pre>
+sed -n 's/^:source \(.\+\)$/\1/p'
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-2aAPv9-1" class="defn"><span class="chunknr">C17:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2aAPv9-1">Get sink chunknames</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UExSf-1">C9</a></span></p>
+<pre>
+sed -n 's/^:\(figure\|table\|listing\|result\) \(.\+\)/\2/p'
+</pre>
+◼
+</div>
+<h2 id="source-transformations">Source transformations</h2>
+<div class="codechunk">
+<p><span id="NW0-4ed7IT-1" class="defn"><span class="chunknr">C18:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4ed7IT-1">Nameless code chunks as continuations .awk</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UExSf-1">C9</a></span></p>
+<pre>
+BEGIN {
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4ed7IT-1-u1" href="#NW0-4S1k0K-1">Setup <code>awk</code> to treat lines as single-field records</a><span style="white-space:nowrap"> </span>⟫</span>
+        last_name = &quot;&lt;&lt;&gt;&gt;=&quot;
+}
+/^&lt;&lt;&gt;&gt;=$/ { $0 = last_name }
+/^&lt;&lt;.+&gt;&gt;=$/ { last_name = $0 }
+{ print $0 }
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-sQgzG-1" class="defn"><span class="chunknr">C19:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-sQgzG-1">Close all codechunks with <code>@</code> .awk</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UExSf-1">C9</a></span></p>
+<pre>
+BEGIN {
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-sQgzG-1-u1" href="#NW0-4S1k0K-1">Setup <code>awk</code> to treat lines as single-field records</a><span style="white-space:nowrap"> </span>⟫</span>
+        in_chunk = 0
+}
+/<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-sQgzG-1-u2" href="#NW0-1cAWZ4-1">Begin code <code>awk</code> regex</a><span style="white-space:nowrap"> </span>⟫</span>/ {
+        if (in_chunk) print &quot;@&quot;
+        in_chunk = 1
+}
+/<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-sQgzG-1-u3" href="#NW0-nYU7j-1">End code <code>awk</code> regex</a><span style="white-space:nowrap"> </span>⟫</span>/ { in_chunk = 0 }
+{ print $0 }
+</pre>
+◼
+</div>
+<p>The contents of each code chunk named <code>:eval</code> will be evaluated by an invocation of <code>bash</code>. Whatever is written to standard output will be <strong>pasted as it is</strong> in place of the code chunk before anything else is done with the source file.</p>
+<div class="codechunk">
+<p><span id="NW0-4Nh71J-1" class="defn"><span class="chunknr">C20:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4Nh71J-1">Evaluate code chunk contents .awk</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UExSf-1">C9</a></span></p>
+<pre>
+BEGIN {
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4Nh71J-1-u1" href="#NW0-4S1k0K-1">Setup <code>awk</code> to treat lines as single-field records</a><span style="white-space:nowrap"> </span>⟫</span>
+}
+/^&lt;&lt;:eval&gt;&gt;=$/ {
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4Nh71J-1-u2" href="#NW0-1mORx5-1">Execute contents as standard input of [[evalcmd]]</a><span style="white-space:nowrap"> </span>⟫</span>
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4Nh71J-1-u3" href="#NW0-yfvDu-1">Write output of [[evalcmd]] to awk's output</a><span style="white-space:nowrap"> </span>⟫</span>
+        next
+}
+{ print $0 }    
+</pre>
+◼
+</div>
+<p>To make <code>awk</code> treat lines of input as records with one field each, set both the record and the field separator to the newline character. With these settings, an empty line (nothing but a new line) will have 0 fields (<code>NF == 0</code>) and a length of 0 (<code>length($0) == 0</code>).</p>
+<div class="codechunk">
+<p><span id="NW0-4S1k0K-1" class="defn"><span class="chunknr">C21:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4S1k0K-1">Setup <code>awk</code> to treat lines as single-field records</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4ed7IT-1">C18</a>, <a href="#NW0-sQgzG-1">C19</a>, <a href="#NW0-4Nh71J-1">C20</a></span></p>
+<pre>
+RS=&quot;\n&quot;
+FS=&quot;\n&quot;
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-1mORx5-1" class="defn"><span class="chunknr">C22:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1mORx5-1">Execute contents as standard input of [[evalcmd]]</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4Nh71J-1">C20</a></span></p>
+<pre>
+while (getline &gt; 0 &amp;&amp; $0 !~ /<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1mORx5-1-u1" href="#NW0-nYU7j-1">End code <code>awk</code> regex</a><span style="white-space:nowrap"> </span>⟫</span>/)
+        print $0 |&amp; evalcmd
+close(evalcmd, &quot;to&quot;)
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-yfvDu-1" class="defn"><span class="chunknr">C23:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-yfvDu-1">Write output of [[evalcmd]] to awk’s output</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4Nh71J-1">C20</a></span></p>
+<pre>
+save_rs = RS
+RS = &quot;^$&quot;
+evalcmd |&amp; getline x
+close(evalcmd)
+printf &quot;%s&quot;, x
+RS = save_rs
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-1cAWZ4-1" class="defn"><span class="chunknr">C24:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1cAWZ4-1">Begin code <code>awk</code> regex</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-sQgzG-1">C19</a></span></p>
+<pre>
+^&lt;&lt;.*&gt;&gt;=$
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-nYU7j-1" class="defn"><span class="chunknr">C25:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-nYU7j-1">End code <code>awk</code> regex</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-sQgzG-1">C19</a>, <a href="#NW0-1mORx5-1">C22</a></span></p>
+<pre>
+^@
+</pre>
+◼
+</div>
+<h2 id="weaving">Weaving</h2>
+<p>Weaving means generating the final human readable documentation from the <code>lir</code> source file. The original source is transformed by several filters before passed to Pandoc for generating an HTML document that can be viewed in a browser. Everything is wrapped as a bash script that will be installed, along with <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-24bNpE-1">lir</a><span style="white-space:nowrap"> </span>⟫</span></span>, in <code>LIR_BINPATH</code>. It reads the <code>lir</code> source from standard input and writes the HTML to standard output.</p>
+<div class="codechunk">
+<p><span id="NW0-3933RI-1" class="defn"><span class="chunknr">C26:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3933RI-1">lir-weave</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3933RI-1-u1" href="#NW0-4Yl1AK-1">Bash header</a><span style="white-space:nowrap"> </span>⟫</span>
+export PANDOC_OPTS=&quot;${@:2}&quot;
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3933RI-1-u2" href="#NW0-jqFfG-1">Weave <code>lir</code> source to HTML</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-jqFfG-1" class="defn"><span class="chunknr">C27:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-jqFfG-1">Weave <code>lir</code> source to HTML</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3933RI-1">C26</a></span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-jqFfG-1-u1" href="#NW0-sh3ht-1">Source to <code>noweb</code> pipeline representation</a><span style="white-space:nowrap"> </span>⟫</span> \
+        | <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-jqFfG-1-u2" href="#NW0-knN2l-1"><code>Noweb</code> pipeline representation to Pandoc source</a><span style="white-space:nowrap"> </span>⟫</span> \
+        | <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-jqFfG-1-u3" href="#NW0-14TQfc-1">Pandoc source to HTML</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<p>A custom <code>noweb</code> pipeline is used, as we definitely want to be able to use “anonymous” chunks as continuations of the previous chunk. Since tabs can be significant, for example in Makefiles, those are preserved (the <code>-t</code> option to <code>markup</code>). The <code>-delay</code> option to <code>noidx</code> makes sure that the index of code chunks is emitted before the last document chunk. This is necessary to be able to generate a bibliography with Pandoc.</p>
+<div class="codechunk">
+<p><span id="NW0-sh3ht-1" class="defn"><span class="chunknr">C28:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-sh3ht-1">Source to <code>noweb</code> pipeline representation</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-jqFfG-1">C27</a></span></p>
+<pre>
+&quot;<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-sh3ht-1-u1" href="#NW0-411qse-1">Path to <code>noweb</code></a><span style="white-space:nowrap"> </span>⟫</span>&quot;/markup -t \
+        | &quot;<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-sh3ht-1-u2" href="#NW0-411qse-1">Path to <code>noweb</code></a><span style="white-space:nowrap"> </span>⟫</span>&quot;/noidx -delay
+</pre>
+◼
+</div>
+<p>To make it marginally easier to deal with the pipeline representation, we completely remove any empty text tokens from it before tranforming it to Pandoc source. We then use <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-4NjBUt-1">nwpipe-pandoc.pl</a><span style="white-space:nowrap"> </span>⟫</span></span> to transform the <code>noweb</code> pipeline representation of the <code>lir</code> source file to a valid Pandoc source file.</p>
+<div class="codechunk">
+<p><span id="NW0-knN2l-1" class="defn"><span class="chunknr">C29:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-knN2l-1"><code>Noweb</code> pipeline representation to Pandoc source</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-jqFfG-1">C27</a></span></p>
+<pre>
+sed -n '/^@text $/!p' \
+        | &quot;<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-knN2l-1-u1" href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫</span>&quot;/nwpipe-pandoc
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-14TQfc-1" class="defn"><span class="chunknr">C30:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-14TQfc-1">Pandoc source to HTML</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-jqFfG-1">C27</a></span></p>
+<pre>
+pandoc &quot;$@&quot; \
+        --preserve-tabs \
+        --from=markdown \
+        --table-of-contents \
+        --standalone \
+        --self-contained \
+        --smart \
+        --to=html5 \
+        --css=&quot;<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-14TQfc-1-u1" href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫</span>&quot;/lir.css \
+        --output=-
+</pre>
+◼
+</div>
+<h1 id="lir-to-pandoc"><code>Lir</code> to Pandoc</h1>
+<p>The program <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-4NjBUt-1">nwpipe-pandoc.pl</a><span style="white-space:nowrap"> </span>⟫</span></span> is written in Prolog, using the SWI-Prolog implementation <span class="citation" data-cites="Wielemaker2012">[@Wielemaker2012]</span>. It is written as a stand-alone command line program: once compiled, can be run from the command line as a part of a pipe. It uses the module <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-TgMsj-1">driver.pl</a><span style="white-space:nowrap"> </span>⟫</span></span> to do the actual work.</p>
+<div class="codechunk">
+<p><span id="NW0-4NjBUt-1" class="defn"><span class="chunknr">C31:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4NjBUt-1">nwpipe-pandoc.pl</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4NjBUt-1-u1" href="#NW0-AISsN-1">No banner or informational messages</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4NjBUt-1-u2" href="#NW0-x8kdX-1">Expand meta-predicates at compile time</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4NjBUt-1-u3" href="#NW0-3cvW3l-1">Succeed once without choice points</a><span style="white-space:nowrap"> </span>⟫</span>
+
+:- use_module(driver, [nwpipeline_pandoc/1]).
+
+main :-
+        current_prolog_flag(argv, Argv), % command line arguments
+        goal_is_det(nwpipeline_pandoc(Argv)),
+        halt. % exit with success
+main :-
+        throw(error(mode_error(failure),_)),
+        halt(1). % otherwise, exit with failure (1)
+</pre>
+◼
+</div>
+<p>During development, it is good to know if the program has left behind any unintentional choice points – they are certainly errors, as the program is designed to succeed deterministically. They would be “hidden” by the <code>halt/0</code> used at the end of the main program.</p>
+<div class="codechunk">
+<p><span id="NW0-3cvW3l-1" class="defn"><span class="chunknr">C32:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3cvW3l-1">Succeed once without choice points</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4NjBUt-1">C31</a></span></p>
+<pre>
+goal_is_det(Goal) :-
+        setup_call_cleanup(true, Goal, Det = true),
+        (       Det == true
+        -&gt;      true
+        ;       !,
+                throw(error(mode_error(notdet),_))
+        ).
+</pre>
+◼
+</div>
+<p>Prolog programs are usually used from the “top level” (the Prolog REPL), not as command-line tools. We need to explicitly turn off the REPL banner and informational messages written to standard output.</p>
+<div class="codechunk">
+<p><span id="NW0-AISsN-1" class="defn"><span class="chunknr">C33:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-AISsN-1">No banner or informational messages</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4NjBUt-1">C31</a></span></p>
+<pre>
+:- set_prolog_flag(verbose, silent).
+</pre>
+◼
+</div>
+<p>Meta-predicates (predicates that take other predicates as arguments) are fundamentally slow: they need to evaluate the passed predicate dynamically. This can be avoided for the more commonly used meta-predicates (<code>maplist/1+N</code>, <code>forall/2</code> etc) by treating them as macros and expanding them at compile time.</p>
+<div class="codechunk">
+<p><span id="NW0-x8kdX-1" class="defn"><span class="chunknr">C34:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-x8kdX-1">Expand meta-predicates at compile time</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4NjBUt-1">C31</a></span></p>
+<pre>
+:- use_module(library(apply_macros)).
+</pre>
+◼
+</div>
+<p>The driver uses <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-40JgGE-1">nwpipe.pl</a><span style="white-space:nowrap"> </span>⟫</span></span> to parse its input to native Prolog terms and <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-RPozl-1">lirhtml.pl</a><span style="white-space:nowrap"> </span>⟫</span></span> to emit a valid Pandoc source document with embedded HTML fragments.</p>
+<div class="codechunk">
+<p><span id="NW0-TgMsj-1" class="defn"><span class="chunknr">C35:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-TgMsj-1">driver.pl</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
+<pre>
+:- module(driver, [nwpipeline_pandoc/1]).
+
+:- use_module(nwpipe, [nwpipe_term/2]).
+:- use_module(lirhtml, [emit_html/2]).
+
+nwpipeline_pandoc(_) :-
+        I = user_input,
+        read_string(I, _, S),
+        split_string(S, &quot;\r\n&quot;, &quot;\r\n&quot;, Str_Ls),
+        maplist(string_codes, Str_Ls, Ls),
+        nwpipe_term(Ls, T),
+        emit_html(user_output, T).
+</pre>
+◼
+</div>
+<h2 id="parse-the-noweb-pipeline">Parse the <code>noweb</code> pipeline</h2>
+<p>This module is used by the <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-TgMsj-1">driver.pl</a><span style="white-space:nowrap"> </span>⟫</span></span> to convert the list of lines representing the line-oriented <code>noweb</code> pipeline to a Prolog term. This is done in two steps.</p>
+<ol>
+<li>Each line in the list is converted to a term;</li>
+<li>The flat list of terms is parsed to obtain a term that represents the structure of the document.</li>
+</ol>
+<div class="codechunk">
+<p><span id="NW0-40JgGE-1" class="defn"><span class="chunknr">C36:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-40JgGE-1">nwpipe.pl</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
+<pre>
+:- module(nwpipe, [nwpipe_term/2]).
+
+nwpipe_term(Pipe, Doc) :-
+        maplist(nwtoken_term, Pipe, Terms),
+        phrase(lir_doc(Doc), Terms).
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-40JgGE-1-u1" href="#NW0-2KXCJM-1"><code>Noweb</code> token <span class="math inline">→</span> Prolog term</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-40JgGE-1-u2" href="#NW0-1QJK2Q-1">Flat list of terms <span class="math inline">→</span> structured term</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<p>A <code>noweb</code> token in the <code>noweb</code> pipeline representation <span class="citation" data-cites="Ramsey1992">[@Ramsey1992]</span> is parsed to become a Prolog term. Here, we use an approach to parsing them described in “The Craft of Prolog” <span class="citation" data-cites="OKeefe1990">[@OKeefe1990]</span>. We use the keyword at the beginning of each token to look up (deterministically) in a table the list of items that this token contains. Then, each item is converted to a Prolog term using a mini-interpreter for the “language” of <code>noweb</code> tokens.</p>
+<div class="codechunk">
+<p><span id="NW0-2KXCJM-1" class="defn"><span class="chunknr">C37:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2KXCJM-1"><code>Noweb</code> token <span class="math inline">→</span> Prolog term</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-40JgGE-1">C36</a></span></p>
+<pre>
+:- use_module(library(dcg/basics), [nonblanks//1, integer//1]).
+
+nwtoken_term([0'@|Token], Term) :-
+        phrase(token(Back, Term), Token, Back).
+
+token(Back, Term) --&gt;
+        nonblanks(NB),
+        {       atom_codes(Key, NB),
+                keyword(Key, Items, Back, Term)
+        },
+        items(Items).
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-2KXCJM-1-u1" href="#NW0-ScLZ9-1">Keyword table</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-2KXCJM-1-u2" href="#NW0-G37pK-1">Mini-interpreter for items</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-ScLZ9-1" class="defn"><span class="chunknr">C38:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-ScLZ9-1">Keyword table</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-2KXCJM-1">C37</a></span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-ScLZ9-1-u1" href="#NW0-3ycZq0-1">Structural keywords</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-ScLZ9-1-u2" href="#NW0-2xhUSI-1">Tagging keywords</a><span style="white-space:nowrap"> </span>⟫</span>
+
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-3ycZq0-1" class="defn"><span class="chunknr">C39:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3ycZq0-1">Structural keywords</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-ScLZ9-1">C38</a></span></p>
+<pre>
+keyword(begin, [space, chunk_kind(K)], _, K).
+keyword(end, [], _, end).
+keyword(text, [space, string_rest(S, Rest)], Rest, text(S)).
+keyword(nl, [], [], nl).
+keyword(defn, [space, string_rest(S, Rest)], Rest, defn(S)).
+keyword(use, [space, string_rest(S, Rest)], Rest, use(S)).
+keyword(quote, [], [], quote).
+keyword(endquote, [], [], endquote).
+
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-2xhUSI-1" class="defn"><span class="chunknr">C40:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2xhUSI-1">Tagging keywords</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-ScLZ9-1">C38</a></span></p>
+<pre>
+keyword(file, [space, atom_rest(File, Rest)], Rest, file(File)).
+keyword(xref, [space, xref(XRef, Rest)], Rest, XRef).
+keyword(index, [space, index(Index, Rest)], Rest, Index).
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-2xhUSI-1-u1" href="#NW0-4Mx0Mq-1">Cross-referencing keyword table</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-2xhUSI-1-u2" href="#NW0-1JL6Mj-1">Index table</a><span style="white-space:nowrap"> </span>⟫</span>
+
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-4Mx0Mq-1" class="defn"><span class="chunknr">C41:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4Mx0Mq-1">Cross-referencing keyword table</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-2xhUSI-1">C40</a></span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4Mx0Mq-1-u1" href="#NW0-3dcwEm-1">Basic cross-referencing</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4Mx0Mq-1-u2" href="#NW0-79pWA-1">Linking previous and next definitions of a code chunk</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4Mx0Mq-1-u3" href="#NW0-4WmtEd-1">Continued definitions of the current chunk</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4Mx0Mq-1-u4" href="#NW0-KuxSg-1">The list of all code chunks</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4Mx0Mq-1-u5" href="#NW0-2qDTmg-1">Chunks where the code is used</a><span style="white-space:nowrap"> </span>⟫</span>
+
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-1JL6Mj-1" class="defn"><span class="chunknr">C42:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1JL6Mj-1">Index table</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-2xhUSI-1">C40</a></span></p>
+<pre>
+index(beginindex, [], [], index_beginindex).
+index(endindex, [], [], index_endindex).
+
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-3dcwEm-1" class="defn"><span class="chunknr">C43:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3dcwEm-1">Basic cross-referencing</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4Mx0Mq-1">C41</a></span></p>
+<pre>
+xref(label, [space, atom_rest(L, Rest)], Rest, xref_label(L)).
+xref(ref, [space, atom_rest(L, Rest)], Rest, xref_ref(L)).
+
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-79pWA-1" class="defn"><span class="chunknr">C44:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-79pWA-1">Linking previous and next definitions of a code chunk</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4Mx0Mq-1">C41</a></span></p>
+<pre>
+xref(prevdef, [space, atom_rest(L, Rest)], Rest, xref_prevdef(L)).
+xref(nextdef, [space, atom_rest(L, Rest)], Rest, xref_nextdef(L)).
+
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-4WmtEd-1" class="defn"><span class="chunknr">C45:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4WmtEd-1">Continued definitions of the current chunk</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4Mx0Mq-1">C41</a></span></p>
+<pre>
+xref(begindefs, [], [], xref_begindefs).
+xref(defitem, [space, atom_rest(L, Rest)], Rest, xref_defitem(L)).
+xref(enddefs, [], [], xref_enddefs).
+
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-2qDTmg-1" class="defn"><span class="chunknr">C46:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2qDTmg-1">Chunks where the code is used</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4Mx0Mq-1">C41</a></span></p>
+<pre>
+xref(beginuses, [], [], xref_beginuses).
+xref(useitem, [space, atom_rest(L, Rest)], Rest, xref_useitem(L)).
+xref(enduses, [], [], xref_enduses).
+xref(notused, [space, string_rest(Name, Rest)], Rest, xref_notused(Name)).
+
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-KuxSg-1" class="defn"><span class="chunknr">C47:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-KuxSg-1">The list of all code chunks</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4Mx0Mq-1">C41</a></span></p>
+<pre>
+xref(beginchunks, [], [], xref_beginchunks).
+xref(chunkbegin,
+        [space, atom(L), space, string_rest(Name, Rest)],
+        Rest,
+        xref_chunkbegin(L, Name)).
+xref(chunkuse, [space, atom_rest(L, Rest)], Rest, xref_chunkuse(L)).
+xref(chunkdefn, [space, atom_rest(L, Rest)], Rest, xref_chunkdefn(L)).
+xref(chunkend, [], [], xref_chunkend).
+xref(endchunks, [], [], xref_endchunks).
+</pre>
+◼
+</div>
+<p>Using the tables above, we have looked up the exact items that we expect in a <code>noweb</code> token. This is a small interpreter that takes the list of items and converts each item to the corresponding Prolog term.</p>
+<div class="codechunk">
+<p><span id="NW0-G37pK-1" class="defn"><span class="chunknr">C48:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-G37pK-1">Mini-interpreter for items</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-2KXCJM-1">C37</a></span></p>
+<pre>
+items([]) --&gt; [].
+items([I|Is]) --&gt;
+        item(I),
+        items(Is).
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-G37pK-1-u1" href="#NW0-4UojFl-1">Individual items</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-4UojFl-1" class="defn"><span class="chunknr">C49:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4UojFl-1">Individual items</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-G37pK-1">C48</a></span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UojFl-1-u1" href="#NW0-3LpX2Q-1">Atoms and text</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UojFl-1-u2" href="#NW0-3zWtLs-1">&quot;Space&quot;</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UojFl-1-u3" href="#NW0-3RvixR-1">Chunk number</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UojFl-1-u4" href="#NW0-2cOHaf-1">Chunk kind</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UojFl-1-u5" href="#NW0-j4GS8-1">Cross-reference</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<p>Identifiers are converted to atoms, while “text” (text and names) are converted to strings:</p>
+<div class="codechunk">
+<p><span id="NW0-3LpX2Q-1" class="defn"><span class="chunknr">C50:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3LpX2Q-1">Atoms and text</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UojFl-1">C49</a></span></p>
+<pre>
+item(atom(A)) --&gt;
+        nonblanks(Codes),
+        {   atom_codes(A, Codes)
+        }.
+
+% Using when/2 here is probably an ugly hack.
+% Could not figure out a better way to deal with
+% &quot;rest of line&quot; situations.
+item(atom_rest(A, Rest)) --&gt;
+        {   when(ground(Rest), atom_codes(A, Rest))
+        }.
+
+item(string_rest(Str, Rest)) --&gt;
+        {   when(ground(Rest), string_codes(Str, Rest))
+        }.
+</pre>
+◼
+</div>
+<p>We assume that <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-3zWtLs-1">“Space”</a><span style="white-space:nowrap"> </span>⟫</span></span> is represented by a single “space” character; the “Hacker’s Guide” is not explicit about this, but so far it has always worked.</p>
+<div class="codechunk">
+<p><span id="NW0-3zWtLs-1" class="defn"><span class="chunknr">C51:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3zWtLs-1">“Space”</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UojFl-1">C49</a></span></p>
+<pre>
+item(space) --&gt; [0'\s]. % could it be another &quot;white&quot;?...
+</pre>
+◼
+</div>
+<p>Integers are used to enumerate the code and documentation:</p>
+<div class="codechunk">
+<p><span id="NW0-3RvixR-1" class="defn"><span class="chunknr">C52:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3RvixR-1">Chunk number</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UojFl-1">C49</a></span></p>
+<pre>
+item(chunk_number(N)) --&gt; integer(N).
+</pre>
+◼
+</div>
+<p>Code and documentation chunks are delimited by the same keywords; the <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-2cOHaf-1">Chunk kind</a><span style="white-space:nowrap"> </span>⟫</span></span> is encoded in a secondary keyword:</p>
+<div class="codechunk">
+<p><span id="NW0-2cOHaf-1" class="defn"><span class="chunknr">C53:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2cOHaf-1">Chunk kind</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UojFl-1">C49</a></span></p>
+<pre>
+item(chunk_kind(CK)) --&gt;
+        nonblanks(Codes),
+        {   atom_codes(CK, Codes)
+        }.
+</pre>
+◼
+</div>
+<p>Finally, <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-j4GS8-1">Cross-reference</a><span style="white-space:nowrap"> </span>⟫</span></span>. Note that it employs quite a few secondary keywords collected in their own look up tables, <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-4Mx0Mq-1">Cross-referencing keyword table</a><span style="white-space:nowrap"> </span>⟫</span></span> and <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-1JL6Mj-1">Index table</a><span style="white-space:nowrap"> </span>⟫</span></span>.</p>
+<div class="codechunk">
+<p><span id="NW0-j4GS8-1" class="defn"><span class="chunknr">C54:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-j4GS8-1">Cross-reference</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4UojFl-1">C49</a></span></p>
+<pre>
+item(xref(XRef, Rest)) --&gt;
+        nonblanks(Codes),
+        {   atom_codes(X, Codes),
+                xref(X, Items, Rest, XRef)
+        },
+        items(Items).
+item(index(Index, Rest)) --&gt;
+        nonblanks(Codes),
+        {   atom_codes(X, Codes),
+                index(X, Items, Rest, Index)
+        },
+        items(Items).
+</pre>
+◼
+</div>
+<h2 id="convert-the-pipeline-to-a-term">Convert the pipeline to a term</h2>
+<p>The structure of the document is implicitly present in the <code>noweb</code> pipeline representation: documentation and code chunks are delimited by a start and an end token, new lines and other formatting are contained in text tokens, and so on. The pipeline representation also contains cross-referencing information, using labels and references to them. It is however a bit inconvenient to use this representation for generating markup. This is because the order of tokens in the pipeline representation exactly mirrors the layout of the final human-readable documentation, as generated by <code>noweb</code>, and <code>lir</code> uses a slightly different layout.</p>
+<p>At that point, we have a list of Prolog terms. Those are easier to deal with in the context of Prolog, as it is much easier to make the rules deterministic. The general approach is to consume the next input and use it as the first argument to a rule, thus taking advantage of Prolog’s first-argument indexing. Then, the rules defined below describe a state machine where each rule is a state and each rule clause is a transition that depends on the last input.</p>
+<p>On the highest level, the <code>noweb</code> pipeline is made of a sequence of files. Note, however, that since in <code>lir</code> the input is standard input (and not a list of files), there will be only one, unnamed file in the pipeline.</p>
+<div class="codechunk">
+<p><span id="NW0-1QJK2Q-1" class="defn"><span class="chunknr">C55:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1QJK2Q-1">Flat list of terms <span class="math inline">→</span> structured term</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-40JgGE-1">C36</a></span></p>
+<pre>
+lir_doc(L) --&gt; [file('')],
+        lir_rest(L).
+
+lir_rest(L) --&gt; [X], !,
+        lir_file(X, L).
+lir_rest([]) --&gt; [].
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1QJK2Q-1-u1" href="#NW0-1CzAQE-1">Parse a file</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<p>A file is a sequence of documentation and code chunks. It will contain a list of chunks and an index. To parse the contents of display item meta-data, we use the <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-TJZFn-1">yaml.pl</a><span style="white-space:nowrap"> </span>⟫</span></span> module.</p>
+<div class="codechunk">
+<p><span id="NW0-1CzAQE-1" class="defn"><span class="chunknr">C56:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1CzAQE-1">Parse a file</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1QJK2Q-1">C55</a></span></p>
+<pre>
+:- use_module(yaml, [yaml_to_dict/2]).
+
+lir_file(docs, L) --&gt; [X],
+        docs(X, L).
+lir_file(code, [Code|L]) --&gt;
+        code(C, Name, Label, M),
+        {   (   Name = name(N)
+                -&gt;  Code = code_name_label_meta(C, N, Label, M)
+                ;   Name = display(KW, FN_str)
+                -&gt;  code_codelist(C, Codes),
+                        yaml_to_dict(Codes, Display_meta),
+                        Code = display(KW, FN_str, Display_meta, Label)
+                )
+        },
+        lir_rest(L).
+lir_file(nl, [nl|L]) --&gt;
+        lir_rest(L).
+lir_file(xref_beginchunks, [chunks_list(Cs)|L]) --&gt; [X],
+        xref_chunks(X, Cs),
+        lir_rest(L).
+lir_file(index_beginindex, [index(I)|L]) --&gt; [X],
+        index_list(X, I),
+        lir_rest(L).
+
+code_codelist(C, L) :-
+        maplist(code_atomic, C, L0),
+        atomics_to_string(L0, S0),
+        string_codes(S0, L).
+
+code_atomic(text(Text), Text).
+code_atomic(nl, &quot;\n&quot;).
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1CzAQE-1-u1" href="#NW0-g1DtD-1">Parse a documentation chunk</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1CzAQE-1-u2" href="#NW0-3YhO1r-1">Parse a code chunk</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1CzAQE-1-u3" href="#NW0-4KPf7T-1">Parse the list of chunks</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1CzAQE-1-u4" href="#NW0-3FMFUj-1">Parse the index</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<p>A module that allows the user to parse a codelist containing YAML data to a Prolog dictionary containing a native representation of the YAML data. This module makes use of SWI-Prolog’s library <a href="http://eu.swi-prolog.org/pldoc/doc/swi/library/dcg/basics.pl"><code>dcg/basics</code></a>.</p>
+<div class="codechunk">
+<p><span id="NW0-TJZFn-1" class="defn"><span class="chunknr">C57:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-TJZFn-1">yaml.pl</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
+<pre>
+:- module(yaml, [yaml_to_dict/2]).
+
+:- use_module(library(dcg/basics), [white//0,
+                                                                        whites//0,
+                                                                        string_without//2]).
+
+yaml_to_dict(Codes, Dict) :-
+        phrase(yaml_es(Es), Codes),
+        dict_create(Dict, yaml, Es).
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-TJZFn-1-u1" href="#NW0-48QfOj-1">Make a list of YAML key-value pairs</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-48QfOj-1" class="defn"><span class="chunknr">C58:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-48QfOj-1">Make a list of YAML key-value pairs</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-TJZFn-1">C57</a></span></p>
+<pre>
+yaml_es([K-V|Es]) --&gt; yaml_key_val(K, V), !, yaml_es(Es).
+yaml_es([]) --&gt; [].
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-48QfOj-1-u1" href="#NW0-lMU9U-1">Parse one YAML key-value pair</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<p>The keyword starts at the very beginning of the line, does not contain any blank characters (space, tab, newline…), and is ended by a colon followed by a single space. The character that follows that space, here called <code>C</code>, determines if this is a block scalar or not.</p>
+<div class="codechunk">
+<p><span id="NW0-lMU9U-1" class="defn"><span class="chunknr">C59:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-lMU9U-1">Parse one YAML key-value pair</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-48QfOj-1">C58</a></span></p>
+<pre>
+yaml_key_val(K, V) --&gt; yaml_key_codes(KCs), &quot;: &quot;, !,
+        {   atom_codes(K, KCs)
+        },
+        [C],
+        yaml_val(C, V).
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-lMU9U-1-u1" href="#NW0-3rwO90-1">Get YAML key</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-lMU9U-1-u2" href="#NW0-4bCGic-1">Get YAML value</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<p>Any graph character will do, but no blanks of any kind allowed.</p>
+<div class="codechunk">
+<p><span id="NW0-3rwO90-1" class="defn"><span class="chunknr">C60:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3rwO90-1">Get YAML key</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-lMU9U-1">C59</a></span></p>
+<pre>
+yaml_key_codes([C|Cs]) --&gt; [C],
+        {   code_type(C, graph)
+        },
+        yaml_key_codes(Cs).
+yaml_key_codes([]) --&gt; [].
+</pre>
+◼
+</div>
+<p>The only recognized block notation is literal style, indicated by a “<code>|</code>”.</p>
+<div class="codechunk">
+<p><span id="NW0-4bCGic-1" class="defn"><span class="chunknr">C61:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4bCGic-1">Get YAML value</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-lMU9U-1">C59</a></span></p>
+<pre>
+yaml_val(0'|, V) --&gt; &quot;\n&quot;, !,
+        yaml_indented_block(V_codes),
+        {   string_codes(V, V_codes)
+        }.
+yaml_val(C, V_str) --&gt; string_without(&quot;\n&quot;, Cs), &quot;\n&quot;,
+        {   string_codes(V_str, [C|Cs])
+        }.
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4bCGic-1-u1" href="#NW0-4MjTYe-1">Read YAML indented block</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<p>All indenting is removed, but all newlines are preserved.</p>
+<div class="codechunk">
+<p><span id="NW0-4MjTYe-1" class="defn"><span class="chunknr">C62:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4MjTYe-1">Read YAML indented block</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4bCGic-1">C61</a></span></p>
+<pre>
+yaml_indented_block(Block) --&gt; white, whites, !,
+        indented_lines(Block).
+yaml_indented_block([]) --&gt; [].
+
+indented_lines([C|Cs]) --&gt; [C],
+        {   C \== 0'\n
+        },
+        !,
+        indented_lines(Cs).
+indented_lines([0'\n|Block]) --&gt; [0'\n], !,
+        yaml_indented_block(Block).
+</pre>
+◼
+</div>
+<div id="NW0-1qeZBj-1" class="lirdisplay">
+<div class="lirsource">
+<span class="sourcename">S2:</span> <span class="sourcefile"><a href="/home/bvassile/Documents/code/lir/.lir/lir.lir"><code>lir.lir</code></a></span>
+</div>
+</div>
+<div class="codechunk">
+<p><span id="NW0-3dMVig-1" class="defn"><span class="chunknr">C63:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3dMVig-1">:make</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
+<pre>
+test-display: lir.lir
+	ls -l -h lir.lir &gt; test-display
+
+</pre>
+◼
+</div>
+<div id="NW0-4Wu0D7-1" class="lirdisplay">
+<div class="lirlisting">
+<div class="listingheader">
+<span class="listingname">Listing 1:</span> <span class="listingfile"><a href="/home/bvassile/Documents/code/lir/.lir/test-display"><code>test-display</code></a></span>
+</div>
+<div class="listingcontents">
+<pre>
+lrwxrwxrwx 1 bvassile hyad-all 41 Aug 30 17:39 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
+</pre>
+</div>
+<div class="listingmeta">
+<span class="listingtitle">A test for display environments</span> <span class="listingcaption">This is just a small example, nothing more. </span>
+</div>
+</div>
+</div>
+<p>A documentation chunk can contain text, new lines, and quoted code.</p>
+<div class="codechunk">
+<p><span id="NW0-g1DtD-1" class="defn"><span class="chunknr">C64:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-g1DtD-1">Parse a documentation chunk</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1CzAQE-1">C56</a></span><span class="chunkdefs"><br> definition continued in <a href="#NW0-g1DtD-2">↓<span style="white-space:nowrap"> </span>C65</a></span></p>
+<pre>
+docs(end, L) --&gt;
+        lir_rest(L).
+docs(text(T), [text(Text)|L]) --&gt;
+        docs_text(Ts),
+        {   atomics_to_string([T|Ts], Text)
+        },
+        [X],
+        docs(X, L).
+docs(nl, [nl|L]) --&gt; [X],
+        docs(X, L).
+docs(quote, [quote(Q)|L]) --&gt; [X],
+        quote(X, Q),
+        [Y],
+        docs(Y, L).
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-g1DtD-1-u1" href="#NW0-3LHZbC-1">Parse quoted code</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+<span class="chunknext"><a href="#NW0-g1DtD-2">⇩<span style="white-space:nowrap"> </span>C65</a></span>
+</div>
+<p>Consequitive text tokens that are not interrupted by any other structural contents are collected and concatenated.</p>
+<div class="codechunk">
+<p><span id="NW0-g1DtD-2" class="defn"><span class="chunknr">C65:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-g1DtD-2">Parse a documentation chunk</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><br> <span class="chunkprev"><a href="#NW0-g1DtD-1">⇧<span style="white-space:nowrap"> </span>C64</a></span></p>
+<pre>
+docs_text([T|Ts]) --&gt; [text(T)], !,
+        docs_text(Ts).
+docs_text([&quot;\n&quot;|Ts]) --&gt; [nl], !,
+        eol(Ts).
+docs_text([]) --&gt; [].
+
+eol([T|Ts]) --&gt; [text(T)], !,
+        docs_text(Ts).
+eol([]) --&gt; [].
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-3LHZbC-1" class="defn"><span class="chunknr">C66:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3LHZbC-1">Parse quoted code</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-g1DtD-1">C64</a></span></p>
+<pre>
+quote(text(T), [text(T)|Q]) --&gt; [X],
+        quote(X, Q).
+quote(xref_ref(L), [quote_use(N, L)|Q]) --&gt; [use(N), X],
+        quote(X, Q).
+quote(endquote, []) --&gt; [].
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-3YhO1r-1" class="defn"><span class="chunknr">C67:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3YhO1r-1">Parse a code chunk</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1CzAQE-1">C56</a></span></p>
+<pre>
+code(Cs, Defn, L, M) --&gt;
+        [X],
+        defn(X, M_pairs0),
+        {   selectchk(label(L), M_pairs0, M_pairs1),
+                selectchk(defn(Defn), M_pairs1, M_pairs),
+                dict_create(M, code, M_pairs)
+        },
+        code_content(Cs).
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3YhO1r-1-u1" href="#NW0-1RKmSp-1">Parse the code chunk header</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3YhO1r-1-u2" href="#NW0-4Acvqs-1">Parse the code chunk contents</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-1RKmSp-1" class="defn"><span class="chunknr">C68:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1RKmSp-1">Parse the code chunk header</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3YhO1r-1">C67</a></span></p>
+<pre>
+defn(nl, []) --&gt; [].
+defn(xref_label(L), [label(L)|M]) --&gt; [X],
+        defn(X, M).
+defn(xref_ref(L), [ref(L)|M]) --&gt; [X],
+        defn(X, M).
+defn(defn(N), [defn(Name)|M]) --&gt;
+        {   (   display_item(N, KW, FN_str)
+                -&gt;  Name = display(KW, FN_str)
+                ;   Name = name(N)
+                )
+        },
+        [X],
+        defn(X, M).
+defn(xref_notused(_N), [uses(notused)|M]) --&gt; [X],
+        defn(X, M).
+defn(xref_beginuses, [uses(Us)|M]) --&gt; [X],
+        uses(X, Us, Us),
+        [Y],
+        defn(Y, M).
+defn(xref_prevdef(L), [prev(L)|M]) --&gt; [X],
+        defn(X, M).
+defn(xref_nextdef(L), [next(L)|M]) --&gt; [X],
+        defn(X, M).
+defn(language(L), [language(L)|M]) --&gt; [X],
+        defn(X, M).
+defn(xref_begindefs, [defs(Ds)|M]) --&gt; [X],
+        defs(X, Ds, Ds),
+        [Y],
+        defn(Y, M).
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1RKmSp-1-u1" href="#NW0-1yCYxW-1">Treat display items differently</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1RKmSp-1-u2" href="#NW0-MqzGu-1">Parse defs and uses</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-1yCYxW-1" class="defn"><span class="chunknr">C69:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1yCYxW-1">Treat display items differently</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1RKmSp-1">C68</a></span></p>
+<pre>
+display_item(Name, KW, FN_str) :-
+        sub_string(Name, 0, 1, _, &quot;:&quot;),
+        once( sub_string(Name, Before_sep, 1, After_sep, &quot; &quot;) ),
+        Length_kw is Before_sep - 1,
+        sub_string(Name, 1, Length_kw, _After_kw, KW_str),
+        display_item_keyword(KW_str, KW),
+        Before_fn is Before_sep + 1,
+        sub_string(Name, Before_fn, After_sep, 0, FN_str).
+
+/* Seems this is deterministic when 1st argument is a string */
+display_item_keyword(&quot;source&quot;, source).
+display_item_keyword(&quot;result&quot;, result).
+display_item_keyword(&quot;figure&quot;, figure).
+display_item_keyword(&quot;listing&quot;, listing).
+display_item_keyword(&quot;table&quot;, table).
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-4Acvqs-1" class="defn"><span class="chunknr">C70:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4Acvqs-1">Parse the code chunk contents</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3YhO1r-1">C67</a></span></p>
+<pre>
+code_content([text(Text)|Cs]) --&gt;
+        text_token(T), !,
+        code_text(Ts),
+        {   atomics_to_string([T|Ts], Text)
+        },
+        code_content(Cs).
+code_content([code_use(L, R, N)|Cs]) --&gt;
+        [xref_label(L), xref_ref(R), use(N)], !,
+        code_content(Cs).
+code_content([]) --&gt; [end].
+
+text_token(&quot;\n&quot;) --&gt; [nl].
+text_token(T) --&gt; [text(T)].
+    
+code_text([T|Ts]) --&gt;
+        text_token(T), !,
+        code_text(Ts).
+code_text([]) --&gt; [].
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-MqzGu-1" class="defn"><span class="chunknr">C71:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-MqzGu-1">Parse defs and uses</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1RKmSp-1">C68</a></span></p>
+<pre>
+uses(xref_enduses, _, []) --&gt; [].
+uses(xref_useitem(L), Us, [L|Us0]) --&gt; [X],
+        uses(X, Us, Us0).
+
+defs(xref_enddefs, _, []) --&gt; [].
+defs(xref_defitem(L), Ds, [L|Ds0]) --&gt; [X],
+        defs(X, Ds, Ds0).
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-4KPf7T-1" class="defn"><span class="chunknr">C72:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4KPf7T-1">Parse the list of chunks</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1CzAQE-1">C56</a></span></p>
+<pre>
+xref_chunks(xref_endchunks, []) --&gt; [].
+xref_chunks(xref_chunkbegin(L, N), [chunk(L, N, Us, Ds)|Cs]) --&gt; [X],
+        xref_chunk(X, Us, Ds),
+        [Y],
+        xref_chunks(Y, Cs).
+
+xref_chunk(xref_chunkend, [], []) --&gt; [].
+xref_chunk(xref_chunkuse(U), [chunkuse(U)|Us], Ds) --&gt; [X],
+        xref_chunk(X, Us, Ds).
+xref_chunk(xref_chunkdefn(D), Us, [chunkdefn(D)|Ds]) --&gt; [X],
+        xref_chunk(X, Us, Ds).
+</pre>
+◼
+</div>
+<p>We don’t have an index for now.</p>
+<div class="codechunk">
+<p><span id="NW0-3FMFUj-1" class="defn"><span class="chunknr">C73:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3FMFUj-1">Parse the index</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1CzAQE-1">C56</a></span></p>
+<pre>
+index_list(index_endindex, []) --&gt; [].
+</pre>
+◼
+</div>
+<h2 id="emit-pandoc-html">Emit Pandoc HTML</h2>
+<div class="codechunk">
+<p><span id="NW0-RPozl-1" class="defn"><span class="chunknr">C74:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-RPozl-1">lirhtml.pl</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span><span class="chunkdefs"><br> definition continued in <a href="#NW0-RPozl-2">↓<span style="white-space:nowrap"> </span>C86</a> + <a href="#NW0-RPozl-3">⇣<span style="white-space:nowrap"> </span>C87</a> + <a href="#NW0-RPozl-4">⇣<span style="white-space:nowrap"> </span>C88</a> + <a href="#NW0-RPozl-5">⇣<span style="white-space:nowrap"> </span>C89</a></span></p>
+<pre>
+:- module(lirhtml, [emit_html/2]).
+
+:- use_module(library(http/html_write)).
+
+emit_html(Out, L) :-
+        counters_db(L, DB),
+        phrase(lir_pandoc(P, DB), L),
+        phrase(html(P), H),
+        print_html(Out, H).
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-RPozl-1-u1" href="#NW0-4SUmMa-1"><code>counters_db/2</code>: Generate counters, add them to a database</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-RPozl-1-u2" href="#NW0-1V9kIu-1"><code>lir_pandoc//2</code>: Lir to Pandoc HTML</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+<span class="chunknext"><a href="#NW0-RPozl-2">⇩<span style="white-space:nowrap"> </span>C86</a></span>
+</div>
+<p>Add to a database all numbered items: code chunks, display items (<code>figure</code>, <code>listing</code>, <code>table</code>), as well as sources and sinks of the DAG representing the dataflow. For the code chunks, we also format the names. This is necessary because code chunk names are inside HTML tags by the time they make it to Pandoc, and are not considered for converting from markdown: instead, we do this here.</p>
+<div class="codechunk">
+<p><span id="NW0-4SUmMa-1" class="defn"><span class="chunknr">C75:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4SUmMa-1"><code>counters_db/2</code>: Generate counters, add them to a database</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-RPozl-1">C74</a></span></p>
+<pre>
+counters_db(L, DB) :-
+        include(is_code_name_label_meta, L, CNLMs),
+        maplist(code_name_label_meta_Name_Label, CNLMs, Ns, Ls),
+        names_fmt_fmtd(Ns, html5, FNs),
+    
+        pairs_keys_values(LFs, Ls, FNs),
+        dict_create(CC_names, name, LFs),
+        findall(Label-Nr, nth1(Nr, Ls, Label), LNrs),
+        dict_create(CC_nrs, nr, LNrs),
+
+        maplist(display_dict(L),
+                        [source, result, listing, figure, table],
+                        [DSNrs, DRNrs, DLNrs, DFNrs, DTNrs]),
+
+        maplist(dict_create,
+                        [CodeD, SourceD, ResultD, ListingD, FigureD, TableD],
+                        [code,  source,  result,  listing,  figure,  table],
+                        [[name:CC_names, nr:CC_nrs],
+                          [namestr:&quot;S&quot;, nr:DSNrs],
+                          [namestr:&quot;Result &quot;, nr:DRNrs],
+                          [namestr:&quot;Listing &quot;, nr:DLNrs],
+                          [namestr:&quot;Figure &quot;, nr:DFNrs],
+                          [namestr:&quot;Table &quot;, nr:DTNrs]]),
+
+        dict_create(DB, db,
+                                [code:CodeD,
+                                  source:SourceD,
+                                  result:ResultD,
+                                  listing:ListingD,
+                                  figure:FigureD,
+                                  table:TableD]).
+
+is_code_name_label_meta(code_name_label_meta(_,_,_,_)).
+code_name_label_meta_Name_Label(code_name_label_meta(_,N,L,_), N,L).
+
+display_dict(L, Item, Dict) :-
+        include(is_display_item(Item), L, Ls),
+        findall(Label-Nr,
+                        nth1(Nr, Ls, display(Item, _, _, Label)),
+                        DNrs),
+        dict_create(Dict, nr, DNrs).
+
+is_display_item(Item, display(Item,_,_,_)).
+    
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4SUmMa-1-u1" href="#NW0-2TYVuz-1">Use Pandoc to pre-format chunk names</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-2TYVuz-1" class="defn"><span class="chunknr">C76:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2TYVuz-1">Use Pandoc to pre-format chunk names</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4SUmMa-1">C75</a></span></p>
+<pre>
+:- use_module(library(process), [process_create/3]).
+:- use_module(library(sgml), [load_structure/3]).
+
+to_par(S, PS) :- atomics_to_string([&quot;&lt;span&gt;&quot;, S, &quot;&lt;/span&gt;&quot;], PS).
+
+names_fmt_fmtd([], html5, []).
+names_fmt_fmtd([N|Ns], html5, FNs) :-
+        maplist(to_par, [N|Ns], PNs),
+        atomics_to_string(PNs, Ns_str),
+        process_create(path(pandoc),
+                                      [&quot;--to=html5&quot;],
+                                      [stdin(pipe(Pandoc_in)),
+                                        stdout(pipe(Pandoc_out))]),
+        format(Pandoc_in, &quot;~s&quot;, [Ns_str]),
+        close(Pandoc_in),
+        load_structure(Pandoc_out, DOM, [dialect(xml)]),
+        close(Pandoc_out),
+        (   DOM = [element(p, [], Names)]
+        -&gt;  maplist(names_fmtd, Names, FNs)
+        ;   FNs = []
+        ).
+
+:- use_module(library(sgml_write), [xml_write/3]).
+
+names_fmtd(element(span, [], StrDOM), Fmtd) :-
+        with_output_to(string(Fmtd),
+                                      xml_write(current_output,
+                                                          StrDOM,
+                                                          [header(false), layout(false)])).
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-2mPXsh-1" class="defn"><span class="chunknr">C77:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2mPXsh-1">: foo</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
+<pre>
+This is a test. There was a problem with chunks that start with a colon
+followed by a space, as they were interpreted as definitions by Pandoc.
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-1V9kIu-1" class="defn"><span class="chunknr">C78:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1V9kIu-1"><code>lir_pandoc//2</code>: Lir to Pandoc HTML</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-RPozl-1">C74</a></span></p>
+<pre>
+lir_pandoc(P, DB) --&gt;
+        [X], !,
+        lir_pandoc(X, P, DB).
+lir_pandoc([], _DB) --&gt; [].
+
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1V9kIu-1-u1" href="#NW0-4Nswwl-1">Lir to Pandoc: individual items</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1V9kIu-1-u2" href="#NW0-2TmwdQ-1">HTML for common symbols</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-4Nswwl-1" class="defn"><span class="chunknr">C79:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4Nswwl-1">Lir to Pandoc: individual items</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1V9kIu-1">C78</a></span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4Nswwl-1-u1" href="#NW0-2aCQo-1">Lir documentation to Pandoc</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4Nswwl-1-u2" href="#NW0-4d5cNV-1">Lir code chunks to Pandoc</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4Nswwl-1-u3" href="#NW0-2yRftI-1">Lir display items to Pandoc</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4Nswwl-1-u4" href="#NW0-alqER-1">Ignore the list of chunks and the index</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4Nswwl-1-u5" href="#NW0-RsTqr-1">Individual display items</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-2aCQo-1" class="defn"><span class="chunknr">C80:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2aCQo-1">Lir documentation to Pandoc</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4Nswwl-1">C79</a></span></p>
+<pre>
+lir_pandoc(nl, [&quot;\n&quot;|P], DB) --&gt; lir_pandoc(P, DB).
+lir_pandoc(text(T), [\[T]|P], DB) --&gt; lir_pandoc(P, DB).
+lir_pandoc(quote(Q), [span(class(quote), QC)|P], DB) --&gt;
+        {   phrase(lir_pandoc(QC, DB), Q)
+        },
+        lir_pandoc(P, DB).
+lir_pandoc(quote_use(Name, Label),
+                        [span(class(&quot;quoteduse&quot;),
+                                    [\openparen, \thinnbsp,
+                                      a(href(&quot;#~a&quot;-Label), Name),
+                                      \thinnbsp, \closeparen])|P], DB) --&gt;
+        lir_pandoc(P, DB).
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-4d5cNV-1" class="defn"><span class="chunknr">C81:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4d5cNV-1">Lir code chunks to Pandoc</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4Nswwl-1">C79</a></span></p>
+<pre>
+lir_pandoc(code_name_label_meta(C, _, L, M),
+                      [div(class(&quot;codechunk&quot;),
+                                [\chunk_defn(M, L, DB),
+                                  \chunk_uses(M, DB),
+                                  \chunk_defs(M, DB),
+                                  \chunk_prev(M, DB),
+                                  pre(\chunk_content(C, DB)),
+                                  \chunk_next(M, DB)])|P], DB) --&gt;
+        lir_pandoc(P, DB).
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-2yRftI-1" class="defn"><span class="chunknr">C82:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2yRftI-1">Lir display items to Pandoc</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4Nswwl-1">C79</a></span></p>
+<pre>
+lir_pandoc(display(KW, FN_str, Meta, Label),
+                      [div([class(&quot;lirdisplay&quot;),id(Label)],
+                                [\display(KW, FN_str, Meta, Label, DB)])|P], DB) --&gt;
+        lir_pandoc(P, DB).
+
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-alqER-1" class="defn"><span class="chunknr">C83:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-alqER-1">Ignore the list of chunks and the index</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4Nswwl-1">C79</a></span></p>
+<pre>
+lir_pandoc(chunks_list(_Cs), P, DB) --&gt;
+        lir_pandoc(P, DB).
+lir_pandoc(index(_), P, DB) --&gt; [], lir_pandoc(P, DB).
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-2TmwdQ-1" class="defn"><span class="chunknr">C84:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2TmwdQ-1">HTML for common symbols</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1V9kIu-1">C78</a></span></p>
+<pre>
+nbsp --&gt; html(&amp;(nbsp)).
+thinnbsp --&gt; html(span(style(&quot;white-space:nowrap&quot;), &amp;(0x2009))).
+openparen --&gt; html(&amp;('Lang')). % Lang
+closeparen --&gt; html(&amp;('Rang')). % Rang
+prevsym --&gt; html(&amp;(0x21E7)). % UPWARDS WHITE ARROW
+nextsym --&gt; html(&amp;(0x21E9)). % DOWNWARDS WHITE ARROW
+contsym --&gt; html(&amp;(darr)).
+contmoresym --&gt; html(&amp;(0x21E3)). % DOWNWARDS DASHED ARROW
+defeq --&gt; html(&amp;(equiv)).
+defend --&gt; html(&amp;(0x25FC)). % Black square
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-RsTqr-1" class="defn"><span class="chunknr">C85:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-RsTqr-1">Individual display items</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-4Nswwl-1">C79</a></span></p>
+<pre>
+:- discontiguous display//5.
+
+display(source, FN, _, Label, DB) --&gt;
+        display_file(source, FN, Label, DB).
+display(result, FN, _, Label, DB) --&gt;
+        display_file(result, FN, Label, DB).
+
+display_file(Item, FN, Label, DB) --&gt;
+        {   absolute_file_name(FN, Absolute_FN)
+        },
+        html(div(class(&quot;lir~a&quot;-Item),
+                          [span(class(&quot;~aname&quot;-Item),
+                                      [&quot;~s~d:&quot;-[DB.Item.namestr,
+                                                          DB.Item.nr.Label]]),
+                            \nbsp,
+                            span(class(&quot;~afile&quot;-Item),
+                                      a(href(Absolute_FN), code(FN)))])).
+
+display(listing, FN, Meta, Label, DB) --&gt;
+        {   file_contents(FN, FC)
+        },
+        html(div(class(&quot;lirlisting&quot;),
+                          [\display_header(listing, FN, Label, DB),
+                            div(class(&quot;listingcontents&quot;), pre([FC])),
+                            \display_title_caption(listing, Meta)])).
+
+file_contents(FN, FC) :-
+        setup_call_cleanup(open(FN, read, In),
+                                              read_string(In, _, FC),
+                                              close(In)).
+
+display_header(Item, FN, Label, DB) --&gt;
+        {   absolute_file_name(FN, Absolute_FN)
+        },
+        html(div(class(&quot;~aheader&quot;-Item),
+                          [span(class(&quot;~aname&quot;-Item),
+                                      [&quot;~s~d:&quot;-[DB.Item.namestr,
+                                                          DB.Item.nr.Label]]),
+                            \nbsp,
+                            span(class(&quot;~afile&quot;-Item),
+                                      a(href(Absolute_FN), code(FN)))])).
+
+display_title_caption(Item, M) --&gt;
+        html(div(class(&quot;~ameta&quot;-Item),
+                          [span(class(&quot;~atitle&quot;-Item), [M.title]),
+                            \display_optional_caption(Item, M)])).
+
+display_optional_caption(Item, M) --&gt;
+        {   yaml{caption:Caption} :&lt; M
+        },
+        !,
+        html([&quot; &quot;, span(class(&quot;~acaption&quot;-Item), [Caption])]).
+display_optional_caption(_, _) --&gt; [].
+
+display(table, FN, Meta, Label, DB) --&gt;
+        {   file_contents(FN, FC)
+        },
+        html(div(class(&quot;lirtable&quot;),
+                          [\display_header(table, FN, Label, DB),
+                            table([\[FC]]),
+                            \display_title_caption(table, Meta)])).
+
+display(figure, FN, Meta, Label, DB) --&gt;
+        html(div(class(&quot;lirfigure&quot;),
+                          [\display_header(figure, FN, Label, DB),
+                            \figure_contents(FN),
+                            \display_title_caption(figure, Meta)])).
+
+figure_contents(FN) --&gt;
+        html(div(class(&quot;figurecontents&quot;),
+                          [img(src(&quot;.lir/~s&quot;-FN))])).
+
+</pre>
+◼
+</div>
+<p>Chunk contents:</p>
+<div class="codechunk">
+<p><span id="NW0-RPozl-2" class="defn"><span class="chunknr">C86:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-RPozl-2">lirhtml.pl</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><br> <span class="chunkprev"><a href="#NW0-RPozl-1">⇧<span style="white-space:nowrap"> </span>C74</a></span></p>
+<pre>
+chunk_content([], _DB) --&gt; [].
+chunk_content([C|Cs], DB) --&gt;
+        chunk_content_(C, Cs, DB).
+
+chunk_content_(nl, Cs, DB) --&gt;
+        html(&quot;\n&quot;),
+        chunk_content(Cs, DB).
+chunk_content_(text(T), Cs, DB) --&gt;
+        html(T),
+        chunk_content(Cs, DB).
+chunk_content_(code_use(L, R, _), Cs, DB) --&gt;
+        html(span(class(&quot;embeddeduse&quot;),
+                            [\openparen, \thinnbsp,
+                              a([id(L), href(&quot;#~a&quot;-R)],
+                                  [\[DB.code.name.R]]),
+                              \thinnbsp, \closeparen])),
+        chunk_content(Cs, DB).
+</pre>
+<span class="chunknext"><a href="#NW0-RPozl-3">⇩<span style="white-space:nowrap"> </span>C87</a></span>
+</div>
+<p>Code chunk headers:</p>
+<div class="codechunk">
+<p><span id="NW0-RPozl-3" class="defn"><span class="chunknr">C87:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-RPozl-3">lirhtml.pl</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><br> <span class="chunkprev"><a href="#NW0-RPozl-2">⇧<span style="white-space:nowrap"> </span>C86</a></span></p>
+<pre>
+chunk_defn(_M, L, DB) --&gt;
+        html(span([class(&quot;defn&quot;),id(L)],
+                            [span(class(&quot;chunknr&quot;), &quot;C~d:&quot;-DB.code.nr.L), \nbsp,
+                              \openparen, \thinnbsp,
+                              a(href(&quot;#~a&quot;-L), \[DB.code.name.L]),
+                              \thinnbsp, \closeparen, \thinnbsp, \defeq])).
+chunk_uses(M, DB) --&gt;
+        {   code{uses:Us} :&lt; M
+        }, !,
+        html(span(class(&quot;chunkuses&quot;), \chunk_uses_(Us, DB))).
+chunk_uses(_, _) --&gt; [].
+</pre>
+<span class="chunknext"><a href="#NW0-RPozl-4">⇩<span style="white-space:nowrap"> </span>C88</a></span>
+</div>
+<p>Uses in the header:</p>
+<div class="codechunk">
+<p><span id="NW0-RPozl-4" class="defn"><span class="chunknr">C88:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-RPozl-4">lirhtml.pl</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><br> <span class="chunkprev"><a href="#NW0-RPozl-3">⇧<span style="white-space:nowrap"> </span>C87</a></span></p>
+<pre>
+chunk_uses_([U|Us], DB) --&gt;
+        html([br([]),
+                  &quot;Appears in &quot;,
+                  a(href(&quot;#~a&quot;-U),[&quot;C~d&quot;-DB.code.nr.U])]),
+        chunk_uses_rest(Us, DB).
+chunk_uses_(notused, _DB) --&gt; html([br([]), &quot;root chunk&quot;]).
+chunk_uses_rest([], _DB) --&gt; [].
+chunk_uses_rest([U|Us], DB) --&gt;
+        html([&quot;, &quot;, a(href(&quot;#~a&quot;-U), [&quot;C~d&quot;-DB.code.nr.U])]),
+        chunk_uses_rest(Us, DB).
+</pre>
+<span class="chunknext"><a href="#NW0-RPozl-5">⇩<span style="white-space:nowrap"> </span>C89</a></span>
+</div>
+<p>Previous and next chunks in the header:</p>
+<div class="codechunk">
+<p><span id="NW0-RPozl-5" class="defn"><span class="chunknr">C89:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-RPozl-5">lirhtml.pl</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><br> <span class="chunkprev"><a href="#NW0-RPozl-4">⇧<span style="white-space:nowrap"> </span>C88</a></span></p>
+<pre>
+chunk_next(M, DB) --&gt;
+        {   code{next:L} :&lt; M
+        }, !,
+        html(span(class(&quot;chunknext&quot;),
+                  a(href(&quot;#~a&quot;-L),
+                      [\nextsym, \thinnbsp, &quot;C~d&quot;-DB.code.nr.L]))).
+chunk_next(_, _DB) --&gt;
+        html(\defend).
+
+chunk_prev(M, DB) --&gt;
+        {   code{prev:L} :&lt; M
+        },
+        html([br([]),
+                    span(class(&quot;chunkprev&quot;),
+                              a(href(&quot;#~a&quot;-L),
+                                  [\prevsym, \thinnbsp, &quot;C~d&quot;-DB.code.nr.L]))]).
+chunk_prev(_, _DB) --&gt; [].
+
+chunk_defs(M, DB) --&gt;
+        {   code{defs:Ds} :&lt; M
+        }, !,
+        html(span(class(&quot;chunkdefs&quot;), \chunk_defs_(Ds, DB))).
+chunk_defs(_, _) --&gt; [].
+
+chunk_defs_([D|Ds], DB) --&gt;
+        html([br([]),
+                    &quot;definition continued in &quot;,
+                    a(href(&quot;#~a&quot;-D),
+                        [\contsym, \thinnbsp, &quot;C~d&quot;-DB.code.nr.D])]),
+        chunk_defs_rest(Ds, DB).
+chunk_defs_rest([], _) --&gt; [].
+chunk_defs_rest([D|Ds], DB) --&gt;
+        html([&quot; + &quot;,
+                    a(href(&quot;#~a&quot;-D),
+                        [\contmoresym, \thinnbsp, &quot;C~d&quot;-DB.code.nr.D])]),
+        chunk_defs_rest(Ds, DB).
+</pre>
+◼
+</div>
+<h1 id="layout">Layout</h1>
+<p>The system tries to separate content and layout as much as possible. It also aims to provide a sensible default layout for the human-readable documentation.</p>
+<h2 id="code-chunk-language">Code chunk language</h2>
+<p>The program in <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-3V1RUB-1">langs.cpp</a><span style="white-space:nowrap"> </span>⟫</span></span> can be used as a filter to <code>noweb</code>. It deduces the programming language of code chunks based on the names of the chunks. This is a table that maps known extensions to programming language names.</p>
+<div class="codechunk">
+<p><span id="NW0-3mKsAT-1" class="defn"><span class="chunknr">C90:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3mKsAT-1">Ext-Lang</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-2TK9DP-1">C105</a></span></p>
+<pre>
+{&quot;pl&quot;, &quot;prolog&quot;},
+{&quot;sh&quot;, &quot;bash&quot;},
+{&quot;bash&quot;, &quot;bash&quot;},
+{&quot;cpp&quot;, &quot;cpp&quot;},
+{&quot;R&quot;, &quot;R&quot;},
+{&quot;awk&quot;, &quot;awk&quot;},
+{&quot;sed&quot;, &quot;sed&quot;},
+{&quot;css&quot;, &quot;css&quot;}
+</pre>
+◼
+</div>
+<p>The program implements a state machine with the states necessary to extract code chunk names and the uses within a code chunk. The start state is <code>out</code>; when a code chunk starts, it transitions to <code>code</code>, where it expects a code chunk name, and transitions to <code>content</code>; while in <code>content</code>, it collects uses, and goes back to <code>out</code> at the end of the code chunk. Throughout, each line from input is saved to a list of all lines.</p>
+<div class="codechunk">
+<p><span id="NW0-3V1RUB-1" class="defn"><span class="chunknr">C91:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3V1RUB-1">langs.cpp</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3V1RUB-1-u1" href="#NW0-qc6vF-1">Includes (<code>langs</code>)</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3V1RUB-1-u2" href="#NW0-AkHXu-1">Function definitions (<code>langs</code>)</a><span style="white-space:nowrap"> </span>⟫</span>
+
+int main()
+{
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3V1RUB-1-u3" href="#NW0-3ZYWBN-1">Variable definitions (<code>langs</code>)</a><span style="white-space:nowrap"> </span>⟫</span>
+
+out:
+{   
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3V1RUB-1-u4" href="#NW0-jgyI8-1"><code>Out</code> transitions</a><span style="white-space:nowrap"> </span>⟫</span>
+        goto out;
+}
+
+code:
+{
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3V1RUB-1-u5" href="#NW0-1LSAEd-1"><code>Code</code> transitions</a><span style="white-space:nowrap"> </span>⟫</span>
+        goto code;
+}
+
+content:
+{
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3V1RUB-1-u6" href="#NW0-XBXer-1"><code>Content</code> transitions</a><span style="white-space:nowrap"> </span>⟫</span>
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3V1RUB-1-u7" href="#NW0-17dZub-1"><code>Content</code>: collect uses</a><span style="white-space:nowrap"> </span>⟫</span>
+        goto content;
+}
+
+end:
+{
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3V1RUB-1-u8" href="#NW0-KeFMG-1">Propagate language to uses</a><span style="white-space:nowrap"> </span>⟫</span>
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3V1RUB-1-u9" href="#NW0-3yNLgf-1">Output all lines, with <code>@language</code> after each <code>@defn</code></a><span style="white-space:nowrap"> </span>⟫</span>
+        return 0;
+}
+
+error:
+        return 1;
+}
+</pre>
+◼
+</div>
+<p>When in <code>out</code>, end of input signals transition to the <code>end</code> state. A <code>@begin code</code> token signals a transition to <code>code</code>.</p>
+<div class="codechunk">
+<p><span id="NW0-jgyI8-1" class="defn"><span class="chunknr">C92:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-jgyI8-1"><code>Out</code> transitions</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span></p>
+<pre>
+if (!std::getline(std::cin, line)) goto end;
+lines.push_back(line);
+
+if (string_prefix(line, {&quot;@begin code&quot;})) goto code;
+</pre>
+◼
+</div>
+<p>When in <code>code</code>, end of input is an error. A <code>@defn</code> token contains the code chunk name. The name is processed and the state machine transitions to <code>content</code>.</p>
+<div class="codechunk">
+<p><span id="NW0-1LSAEd-1" class="defn"><span class="chunknr">C93:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1LSAEd-1"><code>Code</code> transitions</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span></p>
+<pre>
+if (!std::getline(std::cin, line)) goto error;
+lines.push_back(line);
+
+if (string_prefix_rest(line, {&quot;@defn &quot;}, name)) {
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-1LSAEd-1-u1" href="#NW0-t9vUx-1">Process code chunk name</a><span style="white-space:nowrap"> </span>⟫</span>
+        goto content;
+}
+</pre>
+◼
+</div>
+<p>A code chunk name is inserted to the DAG of code chunks. Initially the set of neighbours is empty. Note that <code>std::map::insert</code> will only insert if the key does not yet exist, so it is safe to do this.</p>
+<div class="codechunk">
+<p><span id="NW0-t9vUx-1" class="defn"><span class="chunknr">C94:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-t9vUx-1">Process code chunk name</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1LSAEd-1">C93</a></span></p>
+<pre>
+uses.insert({name, {}}); 
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-t9vUx-1-u1" href="#NW0-1X8ZfJ-1">Try to set code chunk language</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<p>If the language of the chunk can be guessed from the name, the chunk name and its language are recorded. The code chunk name is also added to the queue later used for the breadth-first traversal of the DAG of code chunks.</p>
+<div class="codechunk">
+<p><span id="NW0-1X8ZfJ-1" class="defn"><span class="chunknr">C95:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1X8ZfJ-1">Try to set code chunk language</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-t9vUx-1">C94</a></span></p>
+<pre>
+std::string cl;
+if (name_dict_lang(name, langs, cl)) {
+        chunk_lang.insert({name, cl});
+        pending.push(name);
+}
+</pre>
+◼
+</div>
+<p>When in <code>content</code>, end of input is an error. An <code>@end code</code> token signals the transition back to <code>out</code>.</p>
+<div class="codechunk">
+<p><span id="NW0-XBXer-1" class="defn"><span class="chunknr">C96:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-XBXer-1"><code>Content</code> transitions</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span></p>
+<pre>
+if (!std::getline(std::cin, line)) goto error;
+lines.push_back(line);
+
+if (string_prefix(line, {&quot;@end code&quot;})) goto out;
+</pre>
+◼
+</div>
+<p>When in <code>content</code>, each <code>@uses</code> token is used to populate the set of neighbours of the current code chunk in the DAG.</p>
+<div class="codechunk">
+<p><span id="NW0-17dZub-1" class="defn"><span class="chunknr">C97:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-17dZub-1"><code>Content</code>: collect uses</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span></p>
+<pre>
+std::string un;
+if (string_prefix_rest(line, {&quot;@use &quot;}, un)) uses[name].insert(un);
+</pre>
+◼
+</div>
+<p>The language of a code chunk can be deduced in two ways. First, from the code chunk name; this is done as soon as the code chunk is encountered for the first time (see <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-1X8ZfJ-1">Try to set code chunk language</a><span style="white-space:nowrap"> </span>⟫</span></span>). Second, if a code chunk without a known language is used by a code chunk with a language, it inherits it. To achieve this, a breadth-first traversal of the DAG of code chunks is used. Initially, the queue holds the names of all chunks with known languages (also done while reading). Any child code chunk <em>that does not yet have a language</em> has its language set to that of the parent, and is pushed to the back of the queue.</p>
+<div class="codechunk">
+<p><span id="NW0-KeFMG-1" class="defn"><span class="chunknr">C98:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-KeFMG-1">Propagate language to uses</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span></p>
+<pre>
+while (!pending.empty()) {
+        std::string next = pending.front();
+        pending.pop();
+
+        for (auto c : uses[next]) {
+                auto x = chunk_lang.find(c);
+                if (x == chunk_lang.cend()) {
+                        chunk_lang.insert({c, chunk_lang[next]});
+                        pending.push(c);
+                }
+        }
+}
+</pre>
+◼
+</div>
+<p>At the end, all tokens are emitted. If the token is <code>@defn</code>, a <code>@language</code> token is added right after it. For code chunks that don’t have a language, the <code>txt</code> language is used.</p>
+<div class="codechunk">
+<p><span id="NW0-3yNLgf-1" class="defn"><span class="chunknr">C99:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3yNLgf-1">Output all lines, with <code><span class="citation" data-cites="language">@language</span></code> after each <code><span class="citation" data-cites="defn">@defn</span></code></a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span></p>
+<pre>
+for (auto l : lines) {
+        std::cout &lt;&lt; l &lt;&lt; '\n';
+
+        if (string_prefix_rest(l, {&quot;@defn &quot;}, name)) {
+                auto x = chunk_lang.find(name);
+                if (x != chunk_lang.cend())
+                        std::cout &lt;&lt; &quot;@language &quot; &lt;&lt; x-&gt;second &lt;&lt; '\n';
+                else
+                        std::cout &lt;&lt; &quot;@language txt\n&quot;;
+        }
+}
+</pre>
+◼
+</div>
+<p>These variables are “global” to the <code>main</code> function, or in other words, are available to all states of the state machine.</p>
+<div class="codechunk">
+<p><span id="NW0-3ZYWBN-1" class="defn"><span class="chunknr">C100:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3ZYWBN-1">Variable definitions (<code>langs</code>)</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span><span class="chunkdefs"><br> definition continued in <a href="#NW0-3ZYWBN-2">↓<span style="white-space:nowrap"> </span>C106</a></span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3ZYWBN-1-u1" href="#NW0-4TMe30-1">A list of all lines as they are read</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3ZYWBN-1-u2" href="#NW0-95sci-1">The DAG of the code chunks as adjacency-list</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3ZYWBN-1-u3" href="#NW0-3AMYU8-1">The language of each code chunk</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3ZYWBN-1-u4" href="#NW0-17Q9B9-1">A queue for the traversal of the chunks DAG</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3ZYWBN-1-u5" href="#NW0-2TK9DP-1">Mapping of extensions to languages</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+<span class="chunknext"><a href="#NW0-3ZYWBN-2">⇩<span style="white-space:nowrap"> </span>C106</a></span>
+</div>
+<div class="codechunk">
+<p><span id="NW0-4TMe30-1" class="defn"><span class="chunknr">C101:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4TMe30-1">A list of all lines as they are read</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3ZYWBN-1">C100</a></span></p>
+<pre>
+std::list&lt;std::string&gt; lines{};
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-95sci-1" class="defn"><span class="chunknr">C102:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-95sci-1">The DAG of the code chunks as adjacency-list</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3ZYWBN-1">C100</a></span></p>
+<pre>
+std::map&lt;std::string, std::set&lt;std::string&gt;&gt; uses{};
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-3AMYU8-1" class="defn"><span class="chunknr">C103:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3AMYU8-1">The language of each code chunk</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3ZYWBN-1">C100</a></span></p>
+<pre>
+std::map&lt;std::string, std::string&gt; chunk_lang{};
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-17Q9B9-1" class="defn"><span class="chunknr">C104:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-17Q9B9-1">A queue for the traversal of the chunks DAG</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3ZYWBN-1">C100</a></span></p>
+<pre>
+std::queue&lt;std::string&gt; pending{};
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-2TK9DP-1" class="defn"><span class="chunknr">C105:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2TK9DP-1">Mapping of extensions to languages</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3ZYWBN-1">C100</a></span></p>
+<pre>
+const std::map&lt;std::string, std::string&gt; langs{<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-2TK9DP-1-u1" href="#NW0-3mKsAT-1">Ext-Lang</a><span style="white-space:nowrap"> </span>⟫</span>};
+</pre>
+◼
+</div>
+<p>Two strings, one for the last line that was read and one for the name of the last code chunk defined with <code>@defn</code>:</p>
+<div class="codechunk">
+<p><span id="NW0-3ZYWBN-2" class="defn"><span class="chunknr">C106:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3ZYWBN-2">Variable definitions (<code>langs</code>)</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><br> <span class="chunkprev"><a href="#NW0-3ZYWBN-1">⇧<span style="white-space:nowrap"> </span>C100</a></span></p>
+<pre>
+std::string line;
+std::string name;
+</pre>
+◼
+</div>
+<p>The necessary standard libraries:</p>
+<div class="codechunk">
+<p><span id="NW0-qc6vF-1" class="defn"><span class="chunknr">C107:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-qc6vF-1">Includes (<code>langs</code>)</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span></p>
+<pre>
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;list&gt;
+#include &lt;map&gt;
+#include &lt;set&gt;
+#include &lt;queue&gt;
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-AkHXu-1" class="defn"><span class="chunknr">C108:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-AkHXu-1">Function definitions (<code>langs</code>)</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-AkHXu-1-u1" href="#NW0-3N8yIi-1">Does a string have a prefix?</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-AkHXu-1-u2" href="#NW0-1dee3R-1">Can you guess the language from the name?</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-3N8yIi-1" class="defn"><span class="chunknr">C109:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3N8yIi-1">Does a string have a prefix?</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-AkHXu-1">C108</a></span><span class="chunkdefs"><br> definition continued in <a href="#NW0-3N8yIi-2">↓<span style="white-space:nowrap"> </span>C110</a></span></p>
+<pre>
+bool
+string_prefix(const std::string&amp; s, const std::string&amp; t)
+{
+        if (0 == s.compare(0, t.length(), t)) return true;
+        return false;
+}
+</pre>
+<span class="chunknext"><a href="#NW0-3N8yIi-2">⇩<span style="white-space:nowrap"> </span>C110</a></span>
+</div>
+<p>A three-argument version to get the rest, too:</p>
+<div class="codechunk">
+<p><span id="NW0-3N8yIi-2" class="defn"><span class="chunknr">C110:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3N8yIi-2">Does a string have a prefix?</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><br> <span class="chunkprev"><a href="#NW0-3N8yIi-1">⇧<span style="white-space:nowrap"> </span>C109</a></span></p>
+<pre>
+bool
+string_prefix_rest(const std::string&amp; s, const std::string&amp; t,
+                                      std::string&amp; rest)
+{
+        if (string_prefix(s, t)) {
+                rest = s.substr(t.length());
+                return true;
+        }
+        return false;
+}
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-1dee3R-1" class="defn"><span class="chunknr">C111:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1dee3R-1">Can you guess the language from the name?</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-AkHXu-1">C108</a></span></p>
+<pre>
+bool
+name_dict_lang(const std::string&amp; n,
+                              const std::map&lt;std::string, std::string&gt;&amp; d,
+                              std::string&amp; l)
+{
+        size_t x = n.find_last_of('.');
+        if (x == std::string::npos) return false;
+
+        ++x;
+        auto ext_lang = d.find(n.substr(x));
+        if (ext_lang == d.cend()) return false;
+
+        l = ext_lang-&gt;second;
+        return true;
+}
+</pre>
+◼
+</div>
+<h2 id="html">HTML</h2>
+<p>For HTML documentation, <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-GgjSz-1">lir.css</a><span style="white-space:nowrap"> </span>⟫</span></span> is used.</p>
+<div class="codechunk">
+<p><span id="NW0-GgjSz-1" class="defn"><span class="chunknr">C112:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-GgjSz-1">lir.css</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
+<pre>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-GgjSz-1-u1" href="#NW0-3pNXnV-1">Text width and margin</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-GgjSz-1-u2" href="#NW0-2E7ajM-1">Headers in sans-serif</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-GgjSz-1-u3" href="#NW0-4Z40HY-1">Quoted code in monospace</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-GgjSz-1-u4" href="#NW0-XplRT-1">Use names typesetting</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-GgjSz-1-u5" href="#NW0-3nRMio-1">Highlight chunk names on hover</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-GgjSz-1-u6" href="#NW0-1KgfIB-1">List of chunks formatting</a><span style="white-space:nowrap"> </span>⟫</span>
+<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-GgjSz-1-u7" href="#NW0-3MBbsx-1">Display item formatting</a><span style="white-space:nowrap"> </span>⟫</span>
+</pre>
+◼
+</div>
+<p>The text width is limited and a left margin is inserted to improve readability.</p>
+<div class="codechunk">
+<p><span id="NW0-3pNXnV-1" class="defn"><span class="chunknr">C113:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3pNXnV-1">Text width and margin</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-GgjSz-1">C112</a></span></p>
+<pre>
+p {
+        max-width: 14cm;
+}
+blockquote {
+        max-width: 11cm;
+        font-size: small;
+}
+ul, ol, dl,
+span.chunkdefs {
+        max-width: 12cm;
+}
+body {
+        padding-left: 1cm;
+}
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-2E7ajM-1" class="defn"><span class="chunknr">C114:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2E7ajM-1">Headers in sans-serif</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-GgjSz-1">C112</a></span></p>
+<pre>
+h1, h2, h3 {
+        font-family: sans-serif;
+        max-width: 12cm;
+}
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-XplRT-1" class="defn"><span class="chunknr">C115:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-XplRT-1">Use names typesetting</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-GgjSz-1">C112</a></span></p>
+<pre>
+span.sourcefile a,
+span.resultfile a,
+span.listingfile a,
+span.figurefile a,
+span.chunkdefs a,
+span.chunkuses a,
+span.chunkprev a,
+span.chunknext a,
+span.defn a,
+span.quoteduse a,
+span.embeddeduse a {
+        text-decoration-line: none;
+}
+span.chunkdefs,
+span.chunkuses,
+span.chunkprev,
+span.chunknext {
+        font-size: small;
+}
+span.quoteduse {
+        font-family: serif;
+}
+span.embeddeduse {
+        font-family: serif;
+}
+span.chunknr {
+        font-weight: bold;
+}
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-3nRMio-1" class="defn"><span class="chunknr">C116:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3nRMio-1">Highlight chunk names on hover</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-GgjSz-1">C112</a></span></p>
+<pre>
+span.quoteduse a {
+        color: darkGreen;
+}
+span.quoteduse a:hover {
+        color: limeGreen;
+}
+span.embeddeduse a {
+        color: darkblue;
+        font-style: italic;
+}
+span.embeddedusesym {
+        font-style: normal;
+}
+span.embeddeduse a:hover {
+        color: dodgerBlue;
+}
+span.sourcefile a,
+span.resultfile a,
+span.listingfile a,
+span.figurefile a,
+span.chunkdefs a,
+span.chunkprev a,
+span.chunknext a,
+span.defn a,
+span.chunkuses a {
+        color: darkred;
+}
+span.sourcefile a:hover,
+span.resultfile a:hover,
+span.listingfile a:hover,
+span.figurefile a:hover,
+span.chunkdefs a:hover,
+span.chunkprev a:hover,
+span.chunknext a:hover,
+span.defn a:hover,
+span.chunkuses a:hover {
+        color: darkGoldenRod;
+}
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-4Z40HY-1" class="defn"><span class="chunknr">C117:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4Z40HY-1">Quoted code in monospace</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-GgjSz-1">C112</a></span></p>
+<pre>
+span.quote {
+        font-family: monospace;
+}
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-1KgfIB-1" class="defn"><span class="chunknr">C118:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1KgfIB-1">List of chunks formatting</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-GgjSz-1">C112</a></span></p>
+<pre>
+ul.chunkslist {
+        list-style-type: square;
+}
+</pre>
+◼
+</div>
+<div class="codechunk">
+<p><span id="NW0-3MBbsx-1" class="defn"><span class="chunknr">C119:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3MBbsx-1">Display item formatting</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-GgjSz-1">C112</a></span></p>
+<pre>
+div.lirtable th {
+        border-style: none none solid none;
+        border-width: 0 0 1px 0;
+}
+div.lirtable th,
+div.lirtable td {
+        padding-left: 3.3mm;
+        padding-right: 3.3mm;
+        padding-top: 0.9mm;
+        padding-bottom: 0.9mm;
+}
+div.lirtable table {
+        font-family: sans-serif;
+        font-size: small;
+        margin-top: 3mm;
+        margin-bottom: 3mm;
+        border-collapse: collapse;
+        border-style: solid none solid none;
+        border-width: 2px 0 1px 0;
+}
+div.lirlisting {
+        max-width: 14cm;
+}
+span.sourcename,
+span.resultname,
+span.tablename,
+span.figurename,
+span.listingname {
+        font-weight: bold;
+}
+div.figurecontents img {
+        display: block;
+        max-width: 14cm;
+        width: auto;
+        height: auto;
+}
+div.listingcontents {
+        font-size: small;
+        margin-top: 3mm;
+        margin-bottom: 3mm;
+        border-style: solid none solid none;
+        border-width: 0.3mm;
+}
+span.sourcefile,
+span.resultfile,
+span.tablefile,
+span.figurefile,
+span.listingfile {
+        font-style: italic;
+}
+div.tablemeta,
+div.figuremeta,
+div.listingmeta {
+        max-width: 14cm;
+        font-size: small;
+}
+span.tabletitle,
+span.figuretitle,
+span.listingtitle {
+        font-weight: bold;
+}
+div.codechunk,
+div.lirlisting,
+div.lirtable,
+div.lirfigure {
+        margin-bottom: 3mm;
+}
+</pre>
+◼
+</div>
+</body>
+</html>

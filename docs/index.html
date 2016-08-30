@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Boris Vassilev">
+  <title>Lir</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link href="data:text/css;charset=utf-8,p%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0A%7D%0Ablockquote%20%7B%0Amax%2Dwidth%3A%2011cm%3B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aul%2C%20ol%2C%20dl%2C%0Aspan%2Echunkdefs%20%7B%0Amax%2Dwidth%3A%2012cm%3B%0A%7D%0Abody%20%7B%0Apadding%2Dleft%3A%201cm%3B%0A%7D%0Ah1%2C%20h2%2C%20h3%20%7B%0Afont%2Dfamily%3A%20sans%2Dserif%3B%0Amax%2Dwidth%3A%2012cm%3B%0A%7D%0Aspan%2Equote%20%7B%0Afont%2Dfamily%3A%20monospace%3B%0A%7D%0Aspan%2Esourcefile%20a%2C%0Aspan%2Eresultfile%20a%2C%0Aspan%2Elistingfile%20a%2C%0Aspan%2Efigurefile%20a%2C%0Aspan%2Echunkdefs%20a%2C%0Aspan%2Echunkuses%20a%2C%0Aspan%2Echunkprev%20a%2C%0Aspan%2Echunknext%20a%2C%0Aspan%2Edefn%20a%2C%0Aspan%2Equoteduse%20a%2C%0Aspan%2Eembeddeduse%20a%20%7B%0Atext%2Ddecoration%2Dline%3A%20none%3B%0A%7D%0Aspan%2Echunkdefs%2C%0Aspan%2Echunkuses%2C%0Aspan%2Echunkprev%2C%0Aspan%2Echunknext%20%7B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aspan%2Equoteduse%20%7B%0Afont%2Dfamily%3A%20serif%3B%0A%7D%0Aspan%2Eembeddeduse%20%7B%0Afont%2Dfamily%3A%20serif%3B%0A%7D%0Aspan%2Echunknr%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aspan%2Equoteduse%20a%20%7B%0Acolor%3A%20darkGreen%3B%0A%7D%0Aspan%2Equoteduse%20a%3Ahover%20%7B%0Acolor%3A%20limeGreen%3B%0A%7D%0Aspan%2Eembeddeduse%20a%20%7B%0Acolor%3A%20darkblue%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Aspan%2Eembeddedusesym%20%7B%0Afont%2Dstyle%3A%20normal%3B%0A%7D%0Aspan%2Eembeddeduse%20a%3Ahover%20%7B%0Acolor%3A%20dodgerBlue%3B%0A%7D%0Aspan%2Esourcefile%20a%2C%0Aspan%2Eresultfile%20a%2C%0Aspan%2Elistingfile%20a%2C%0Aspan%2Efigurefile%20a%2C%0Aspan%2Echunkdefs%20a%2C%0Aspan%2Echunkprev%20a%2C%0Aspan%2Echunknext%20a%2C%0Aspan%2Edefn%20a%2C%0Aspan%2Echunkuses%20a%20%7B%0Acolor%3A%20darkred%3B%0A%7D%0Aspan%2Esourcefile%20a%3Ahover%2C%0Aspan%2Eresultfile%20a%3Ahover%2C%0Aspan%2Elistingfile%20a%3Ahover%2C%0Aspan%2Efigurefile%20a%3Ahover%2C%0Aspan%2Echunkdefs%20a%3Ahover%2C%0Aspan%2Echunkprev%20a%3Ahover%2C%0Aspan%2Echunknext%20a%3Ahover%2C%0Aspan%2Edefn%20a%3Ahover%2C%0Aspan%2Echunkuses%20a%3Ahover%20%7B%0Acolor%3A%20darkGoldenRod%3B%0A%7D%0Aul%2Echunkslist%20%7B%0Alist%2Dstyle%2Dtype%3A%20square%3B%0A%7D%0Adiv%2Elirtable%20th%20%7B%0Aborder%2Dstyle%3A%20none%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%200%200%201px%200%3B%0A%7D%0Adiv%2Elirtable%20th%2C%0Adiv%2Elirtable%20td%20%7B%0Apadding%2Dleft%3A%203%2E3mm%3B%0Apadding%2Dright%3A%203%2E3mm%3B%0Apadding%2Dtop%3A%200%2E9mm%3B%0Apadding%2Dbottom%3A%200%2E9mm%3B%0A%7D%0Adiv%2Elirtable%20table%20%7B%0Afont%2Dfamily%3A%20sans%2Dserif%3B%0Afont%2Dsize%3A%20small%3B%0Amargin%2Dtop%3A%203mm%3B%0Amargin%2Dbottom%3A%203mm%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0Aborder%2Dstyle%3A%20solid%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%202px%200%201px%200%3B%0A%7D%0Adiv%2Elirlisting%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0A%7D%0Aspan%2Esourcename%2C%0Aspan%2Eresultname%2C%0Aspan%2Etablename%2C%0Aspan%2Efigurename%2C%0Aspan%2Elistingname%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Adiv%2Efigurecontents%20img%20%7B%0Adisplay%3A%20block%3B%0Amax%2Dwidth%3A%2014cm%3B%0Awidth%3A%20auto%3B%0Aheight%3A%20auto%3B%0A%7D%0Adiv%2Elistingcontents%20%7B%0Afont%2Dsize%3A%20small%3B%0Amargin%2Dtop%3A%203mm%3B%0Amargin%2Dbottom%3A%203mm%3B%0Aborder%2Dstyle%3A%20solid%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%200%2E3mm%3B%0A%7D%0Aspan%2Esourcefile%2C%0Aspan%2Eresultfile%2C%0Aspan%2Etablefile%2C%0Aspan%2Efigurefile%2C%0Aspan%2Elistingfile%20%7B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Adiv%2Etablemeta%2C%0Adiv%2Efiguremeta%2C%0Adiv%2Elistingmeta%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aspan%2Etabletitle%2C%0Aspan%2Efiguretitle%2C%0Aspan%2Elistingtitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Adiv%2Ecodechunk%2C%0Adiv%2Elirlisting%2C%0Adiv%2Elirtable%2C%0Adiv%2Elirfigure%20%7B%0Amargin%2Dbottom%3A%203mm%3B%0A%7D%0A" rel="stylesheet">
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header>
+<h1 class="title">Lir</h1>
+<h2 class="author">Boris Vassilev</h2>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#recommended-reading">Recommended reading</a><ul>
+<li><a href="#makefiles">Makefiles</a></li>
+<li><a href="#markdown">Markdown</a></li>
+<li><a href="#literate-programming-with-noweb">Literate Programming with <code>noweb</code></a></li>
+</ul></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#quick-start">Quick start</a></li>
+<li><a href="#acknowledgements">Acknowledgements</a></li>
+</ul>
+</nav>
+<p><a href="http://borisvassilev.github.io/lir/">Lir is a reproducible computing tool</a>. The name Lir stands for <strong>li</strong>terate, <strong>r</strong>eproducible computing. It is available as <a href="https://github.com/borisvassilev/lir">free software</a>. It comes with a <a href="http://borisvassilev.github.io/lir/lir.html">User’s Guide</a>.</p>
+<h1 id="prerequisites">Prerequisites</h1>
+<p>You need a reasonably modern Linux/BSD operating system. Any of the major GNU/Linux and BSD distributions, and OS X fulfil that requirement. It should be possible to use it on Microsoft Windows 10, but at the moment this is not officially supported: however, if you are interested in trying to install Lir on a Windows 10, share your experience.</p>
+<p>In particular, you will need an up-to-date version of the GNU Toolchain (<code>autoconf</code>, <code>make</code>, <code>gcc</code>, <code>binutils</code>, <code>glibc</code>), as well as Bash along with the standard command line tools like <code>grep</code>, <code>sed</code>, and <code>awk</code> (to name a few).</p>
+<p>Furthermore, you need to install the following software:</p>
+<ul>
+<li><p><a href="https://www.cs.tufts.edu/~nr/noweb/">Noweb</a>, “A Simple, Extensible Tool for Literate Programming.” Available in the Ubuntu official repositories. You can also <a href="http://packages.debian.org/noweb">look at the Debian package</a> or even attempt to <a href="ftp://www.eecs.harvard.edu/pub/nr">compile it from source</a> (if you do that, make sure you get version 2.11b).</p></li>
+<li><p><a href="http://www.swi-prolog.org/">SWI-Prolog</a>, a comprehensive free Prolog environment. It is easy to <a href="http://www.swi-prolog.org/git.html">install from source</a>, and for Ubuntu, the maintainer <a href="http://www.swi-prolog.org/build/Debian.txt">provides a PPA</a>. Just make sure you have the <strong>latest development or stable release</strong>, and not one of the very outdated releases available in the official repositories of most distributions.</p></li>
+<li><p><a href="http://pandoc.org/">Pandoc</a>, a universal document converter. Installing from source is a bit of a hustle, but you don’t have to: just get the <a href="http://pandoc.org/installing.html">installer for the latest release</a>. It is important that you have the latest (patched) release, as there have been a non-negative number of bugs in major releases that get in the way.</p></li>
+</ul>
+<h1 id="recommended-reading">Recommended reading</h1>
+<p>Lir makes use of existing tools for literate programming, making, and markup. A working knowledge of these tools is not required, but it is beneficial, at least at the beginning.</p>
+<h2 id="makefiles">Makefiles</h2>
+<p>It would help you if you had some working knowledge of writing makefiles, as understood by GNU Make. Reading the <a href="https://www.gnu.org/software/make/manual/html_node/index.html">official documentation</a> is a good start; at least take a look at the first few chapters.</p>
+<h2 id="markdown">Markdown</h2>
+<p>You need to have a basic idea of the concept of <a href="https://en.wikipedia.org/wiki/Markdown">markdown</a>. Armed with this knowledge, open the <a href="http://pandoc.org/README.html">excellent manual provided by Pandoc</a> and use it as a reference.</p>
+<h2 id="literate-programming-with-noweb">Literate Programming with <code>noweb</code></h2>
+<p>Understanding the concept of literate programming is, sadly, a must. You can take a look at the <a href="http://www.literateprogramming.com/knuthweb.pdf">original publication by Donald E. Knuth (pdf link)</a>; you can also skip this at first. The <a href="https://en.wikipedia.org/wiki/Noweb">Wikipedia page for <code>noweb</code></a> contains enough detail to get you acquainted with the syntax. A Lir source file is a valid <code>noweb</code> source file.</p>
+<h1 id="installation">Installation</h1>
+<p>Once you have all prerequisites, clone this repository and go to the <code>lir</code> directory:</p>
+<pre><code>$ git clone https://github.com/borisvassilev/lir.git
+$ cd lir</code></pre>
+<p>Now open the source file, <code>lir.lir</code>, and start reading it. At the very top, there are instructions on how to set the paths for your installation and install Lir. Follow those instructions. The final version of file is <a href="http://borisvassilev.github.io/lir/lir.html">available on the web</a>.</p>
+<p>To validate the installation, try to compile the <code>lir.lir</code> source file, using Lir:</p>
+<pre><code>$ lir lir.lir</code></pre>
+<p>Look for <code>lir.html</code>, and open it in a web browser. If you see the Lir User Guide, followed by a whole bunch of code, you have successfully installed Lir and used it to generate its documentation from its source.</p>
+<h1 id="quick-start">Quick start</h1>
+<p>This is a minimal example of applying Lir to obtain a result and display it in your final document.</p>
+<p>This is the complete Lir source file, named <code>show-size.lir</code>, and <a href="https://raw.githubusercontent.com/borisvassilev/lir/master/show-size/show-size.lir">available here</a>:</p>
+<pre><code>This is a minimal example of how to use Lir.  Here, we will use
+the command line tool `wc` (**w**ord **c**ount) to count the
+lines, words, and characters in this Lir source file.  We will
+display the output in the final document.
+
+We start by declaring a placeholder in a code chunk:
+&lt;&lt;:listing size&gt;&gt;=
+title: Line, word, and character count
+caption: The output of `wc`, when applied to this Lir source file.
+@
+The name of the code chunk defined above is the string &quot;`:listing
+size`&quot;.  The prefix, &quot;`:listing`&quot;, tells Lir that this is a
+placeholder for a file that should be displayed verbatim, as a
+listing.  The prefix is followed by a single space character and
+the name of the file that should be displayed, &quot;`size`&quot;.  Inside
+this code chunk, we have defined a title and a caption for the
+display item.
+
+The file will be generated by running the command `wc` on this
+source file (`show-size.lir`), and saving the output to `size`:
+&lt;&lt;:make Generate the file `size`&gt;&gt;=
+size: show-size.lir
+	wc show-size.lir &gt; size
+
+@
+The name of this code chunk has the prefix &quot;`:make `&quot;.  This
+prefix tells Lir that the code chunk contains a rule, in Make
+syntax.  This particular rule reads:
+
+&gt; The file `size` should be generated.  It depends on the file
+&gt; `show-size.lir`.  To generate it, run the command `wc` with a
+&gt; single argument, `show-size.lir`, and put the output of that
+&gt; command in the file `size`.
+
+**NB**: in the rule above, there must be a single tab character
+at the beginning of the second line!
+
+Normally, input files have to be declared as &quot;sources&quot; to the
+data analysis.  This can be done using the following declaration,
+again in a code chunk:
+&lt;&lt;:source show-size.lir&gt;&gt;=
+@
+
+To use Lir to interpret this source file, you can invoke `lir`
+with the filename as the only argument:
+&lt;&lt;: Use Lir to interpret this source file&gt;&gt;=
+$ lir show-size.lir
+@
+(This last code chunk has a name that begins with a colon, &quot;`:`&quot;,
+followed by a space.  This will be ignored when interpreting the
+source file, but it will show up in the final document.)
+
+An HTML document named `show-size.html` will be generated in the
+same directory.  Open it with your web browser!</code></pre>
+<p>Generate the final document and open it in your web browser (<a href="http://borisvassilev.github.io/lir/show-size.html">here is what I get</a>). Look around. If you like what you see, you should go on by reading the <a href="https://github.com/borisvassilev/lir-tutorial">Tutorial</a> for a somewhat longer introduction.</p>
+<h1 id="acknowledgements">Acknowledgements</h1>
+<p>This work is done at the University of Helsinki, Finland by Boris Vassilev and Erkka Valo, under the supervision of Sampsa Hautaniemi and Elina Ikonen. It is licenced under the terms of the GPL (see COPYING).</p>
+<p>Copyright 2015 Boris Vassilev</p>
+</body>
+</html>
