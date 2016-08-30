@@ -106,7 +106,7 @@ echo &quot;*** Using lir to tangle and weave lir...&quot;
 lir lir.lir
 echo &quot;*** Weaved document is in lir.html!&quot;
 cp -v lir.html docs/lir.html
-echo -n &quot;*** Generating index..&quot;
+echo &quot;*** Generating index...&quot;
 title=$(mktemp)
 echo -ne &quot;---\ntitle: Lir\nauthor: Boris Vassilev\n...\n&quot; &gt; &quot;$title&quot;
 sed &quot;s/^@/@@/&quot; README.md \
@@ -115,7 +115,7 @@ sed &quot;s/^@/@@/&quot; README.md \
         &gt; docs/index.lir
 (cd docs ; lir index.lir)
 rm &quot;$title&quot;
-echo &quot;. done&quot;
+echo &quot;*** Generating index done!&quot;
 </pre>
 ◼
 </div>
@@ -1018,7 +1018,7 @@ test-display: lir.lir
 </div>
 <div class="listingcontents">
 <pre>
-lrwxrwxrwx 1 bvassile hyad-all 41 Aug 30 16:41 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
+lrwxrwxrwx 1 bvassile hyad-all 41 Aug 30 17:37 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
 </pre>
 </div>
 <div class="listingmeta">

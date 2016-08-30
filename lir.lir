@@ -84,7 +84,7 @@ echo "*** Using lir to tangle and weave lir..."
 lir lir.lir
 echo "*** Weaved document is in lir.html!"
 cp -v lir.html docs/lir.html
-echo -n "*** Generating index.."
+echo "*** Generating index..."
 title=$(mktemp)
 echo -ne "---\ntitle: Lir\nauthor: Boris Vassilev\n...\n" > "$title"
 sed "s/^@/@@/" README.md \
@@ -93,7 +93,7 @@ sed "s/^@/@@/" README.md \
         > docs/index.lir
 (cd docs ; lir index.lir)
 rm "$title"
-echo ". done"
+echo "*** Generating index done!"
 @
 This script is used when the bash script file [`bootstrap`](https://github.com/borisvassilev/lir/blob/master/bootstrap) is evaluated.
 

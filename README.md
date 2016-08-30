@@ -50,15 +50,10 @@ $ git clone https://github.com/borisvassilev/lir.git
 $ cd lir
 ~~~~
 
-And just follow the usual installation process:
+Now open the source file, `lir.lir`, and start reading it. At the very top, there are instructions on how to set the paths for your installation and install Lir.
+Follow those instructions.
+The file is also [available on the web](http://borisvassilev.github.io/lir/lir.html).
 
-~~~~
-$ ./configure
-$ make
-$ make install
-~~~~
-
-This should work, as long as you have installed everything in with the default settings.
 To validate the installation, try to compile the `lir.lir` source file, using Lir:
 
 ~~~~
