@@ -1,4 +1,4 @@
-Lir is a reproducible computing tool.
+[Lir is a reproducible computing tool](http://borisvassilev.github.io/lir/).
 The name Lir stands for **li**terate, **r**eproducible computing.
 
 # Prerequisites
