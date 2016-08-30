@@ -132,7 +132,7 @@ same directory.  Open it with your web browser!
 
 Generate the final document and open it in your web browser ([here is what I get](http://borisvassilev.github.io/lir/show-size.html)).
 Look around.
-If you like what you see, you should go on by reading the Tutorial for a somewhat longer introduction.
+If you like what you see, you should go on by reading the [Tutorial](https://github.com/borisvassilev/lir-tutorial) for a somewhat longer introduction.
 
 # Acknowledgements
 This work is done at the University of Helsinki, Finland by Boris Vassilev and Erkka Valo, under the supervision of Sampsa Hautaniemi and Elina Ikonen.
