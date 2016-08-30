@@ -23,7 +23,7 @@ Those have to be redefined before compiling this document.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 <<Path to `noweb`>>=
-"$HOME"/lib/noweb
+/usr/lib/noweb
 @
 
 ## Making and installing
@@ -31,7 +31,7 @@ Those have to be redefined before compiling this document.
 <<Bash header>>
 
 echo "*** Making and Installing..."
-notangle -t8 -filter emptydefn -R"Makefile" lir.lir > Makefile
+notangle -t8 -filter emptydefn -RMakefile lir.lir > Makefile
 export LIRPATH=<<Path to `lir`>>
 export LIRBINPATH=<<Path to `lir` binaries>>
 export NOWEBPATH=<<Path to `noweb`>>
@@ -44,9 +44,18 @@ echo "*** Done!"
 
 rm -rf .lir
 echo "*** Using lir to tangle and weave lir..."
-lir tangle lir.lir && lir make lir.lir && lir tangle lir.lir
+lir lir.lir
 echo "*** Weaved document is in lir.html!"
 @
+To use this script, issue the following command to extract if and make it executable first:
+
+~~~~
+$ notangle -Rbuild.sh lir.lir > build
+$ chmod u+x build
+~~~~
+
+From now on, you can call the script to build Lir.
+You only need to extract the build script again if you change its definition here, or if you change one of the paths.
 
 ## Makefile
 <<Makefile>>=

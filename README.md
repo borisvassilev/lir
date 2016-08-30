@@ -1,5 +1,7 @@
 [Lir is a reproducible computing tool](http://borisvassilev.github.io/lir/).
 The name Lir stands for **li**terate, **r**eproducible computing.
+It is available as [free software](https://github.com/borisvassilev/lir).
+It comes with a [User's Guide](http://borisvassilev.github.io/lir/lir.html).
 
 # Prerequisites
 You need a reasonably modern Linux/BSD operating system.
