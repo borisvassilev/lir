@@ -130,7 +130,7 @@ same directory.  Open it with your web browser!
 
 (In this README, the tab character in this file will probably become 4 spaces. Just take the original file from the link above.)
 
-Yes, go ahead and open it in your web browser.
+Generate the final document and open it in your web browser ([here is what I get](https://github.com/borisvassilev/lir/blob/master/show-size/show-size.html)).
 Look around.
 If you like what you see, you should go on by reading the Tutorial for a somewhat longer introduction.
 
