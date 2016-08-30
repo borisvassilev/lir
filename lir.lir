@@ -46,8 +46,10 @@ rm -rf .lir
 echo "*** Using lir to tangle and weave lir..."
 lir lir.lir
 echo "*** Weaved document is in lir.html!"
-cp lir.html docs/lir.html
+cp -v lir.html docs/lir.html
+echo -n "*** Generating index.."
 pandoc -s -S -o docs/index.html README.md
+echo ". done"
 @
 To use this script, issue the following command to extract if and make it executable first:
 

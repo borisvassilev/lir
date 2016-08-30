@@ -92,8 +92,10 @@ rm -rf .lir
 echo &quot;*** Using lir to tangle and weave lir...&quot;
 lir lir.lir
 echo &quot;*** Weaved document is in lir.html!&quot;
-cp lir.html docs/lir.html
+cp -v lir.html docs/lir.html
+echo -n &quot;*** Generating index..&quot;
 pandoc -s -S -o docs/index.html README.md
+echo &quot;. done&quot;
 </pre>
 ◼
 </div>
@@ -165,21 +167,19 @@ set -o nounset
 </ol>
 <p>This is usually done in three independent steps: <em>tangling</em>, <em>making</em>, and <em>weaving</em>.</p>
 <ul>
-<li><p><strong>Tangling</strong>: Extract all source code from the <code>lir</code> source file and bring in external dependencies.</p>
-<pre><code>This might be scripts that are immediately executable, or code that needs to be compiled.
-
-For externally maintained files to be managed by `lir`, they need to be explicitly declared in the `lir` source file.
-Example use cases would be input data files, or a bibliography file maintained by a reference manager.</code></pre></li>
-<li><p><strong>Making</strong>: Generate all results.</p>
-<pre><code>This is a step that usually will include resolving dependencies.
-In the case of intermediate analysis steps, a final result will depend on an intermediate result.
-For example, a figure might be generated from the results of an analysis of the input data.
-
-In the case of programs that need to be compiled, a compilation step will have to occur before actually running the program.</code></pre></li>
-<li><p><strong>Weaving</strong>: Compile the final documentation.</p>
-<pre><code>Once all results and figures have been generated, the original `lir` source file is processed to obtain a valid Pandoc markdown source file.
-At that point, Pandoc is used to compile this to a final human readable file with any results and figures generated in the previous step.</code></pre></li>
+<li><strong>Tangling</strong>: Extract all source code from the <code>lir</code> source file and bring in external dependencies.</li>
 </ul>
+<p>This might be scripts that are immediately executable, or code that needs to be compiled.</p>
+<p>For externally maintained files to be managed by <code>lir</code>, they need to be explicitly declared in the <code>lir</code> source file. Example use cases would be input data files, or a bibliography file maintained by a reference manager.</p>
+<ul>
+<li><strong>Making</strong>: Generate all results.</li>
+</ul>
+<p>This is a step that usually will include resolving dependencies. In the case of intermediate analysis steps, a final result will depend on an intermediate result. For example, a figure might be generated from the results of an analysis of the input data.</p>
+<p>In the case of programs that need to be compiled, a compilation step will have to occur before actually running the program.</p>
+<ul>
+<li><strong>Weaving</strong>: Compile the final documentation.</li>
+</ul>
+<p>Once all results and figures have been generated, the original <code>lir</code> source file is processed to obtain a valid Pandoc markdown source file. At that point, Pandoc is used to compile this to a final human readable file with any results and figures generated in the previous step.</p>
 <h2 id="the-wrapper-script">The wrapper script</h2>
 <p>The program is installed as a script that can be invoked with one of the three actions, <code>tangle</code>, <code>make</code>, or <code>weave</code>, as the first argument.</p>
 <div class="codechunk">
@@ -1000,7 +1000,7 @@ test-display: lir.lir
 </div>
 <div class="listingcontents">
 <pre>
-lrwxrwxrwx 1 bvassile hyad-all 41 Aug 30 13:07 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
+lrwxrwxrwx 1 bvassile hyad-all 41 Aug 30 13:20 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
 </pre>
 </div>
 <div class="listingmeta">
