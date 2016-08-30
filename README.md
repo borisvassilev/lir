@@ -69,7 +69,7 @@ If you see the Lir User Guide, followed by a whole bunch of code, you have succe
 # Quick start
 This is a minimal example of applying Lir to obtain a result and display it in your final document.
 
-This is the complete Lir source file, named `show-size.lir`, and [available here](show-size/show-size.lir):
+This is the complete Lir source file, named `show-size.lir`, and [available here](https://raw.githubusercontent.com/borisvassilev/lir/master/show-size/show-size.lir):
 
 ~~~~
 This is a minimal example of how to use Lir.  Here, we will use
