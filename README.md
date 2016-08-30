@@ -32,7 +32,7 @@ Reading the [official documentation](https://www.gnu.org/software/make/manual/ht
 
 ## Markdown
 You need to have a basic idea of the concept of [markdown](https://en.wikipedia.org/wiki/Markdown).
-Armed with this knowledge, open the [excellent README provided by Pandoc](http://pandoc.org/README.html) and use it as a reference.
+Armed with this knowledge, open the [excellent manual provided by Pandoc](http://pandoc.org/README.html) and use it as a reference.
 
 ## Literate Programming with `noweb`
 Understanding the concept of literate programming is, sadly, a must.
