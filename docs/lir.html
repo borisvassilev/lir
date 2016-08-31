@@ -280,10 +280,8 @@ tangle)
         LIRBIB=&quot;&quot;
         if [ -r &quot;$BASENAME&quot;.bib ]
         then
-                BIBTARGET=$(readlink -f &quot;$LIR_DIR/$BASENAME&quot;.bib)
-                cp &quot;$BASENAME&quot;.bib &quot;$BIBTARGET&quot;
-                #ln --logical --symbolic &quot;$BASENAME&quot;.bib &quot;$BIBTARGET&quot;
-                LIRBIB=&quot;--bibliography=$BASENAME.bib&quot;
+                BIBTARGET=$(readlink -f &quot;$BASENAME&quot;.bib)
+                LIRBIB=&quot;--bibliography=$BIBTARGET&quot;
         fi
         echo -e &quot;\t<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u11" href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫</span>&quot;'/lir-weave '&quot;$LIRBIB&quot;' &lt; $&lt; &gt; $@' \
                 &gt;&gt; &quot;$LIR_DIR&quot;/.makehtml
@@ -1020,7 +1018,7 @@ test-display: lir.lir
 </div>
 <div class="listingcontents">
 <pre>
-lrwxrwxrwx 1 bvassile hyad-all 41 Aug 31 10:29 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
+lrwxrwxrwx 1 bvassile hyad-all 41 Aug 31 10:58 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
 </pre>
 </div>
 <div class="listingmeta">

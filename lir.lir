@@ -247,10 +247,8 @@ tangle)
         LIRBIB=""
         if [ -r "$BASENAME".bib ]
         then
-                BIBTARGET=$(readlink -f "$LIR_DIR/$BASENAME".bib)
-                cp "$BASENAME".bib "$BIBTARGET"
-                #ln --logical --symbolic "$BASENAME".bib "$BIBTARGET"
-                LIRBIB="--bibliography=$BASENAME.bib"
+                BIBTARGET=$(readlink -f "$BASENAME".bib)
+                LIRBIB="--bibliography=$BIBTARGET"
         fi
         echo -e "\t<<Path to `lir`>>"'/lir-weave '"$LIRBIB"' < $< > $@' \
                 >> "$LIR_DIR"/.makehtml
