@@ -265,9 +265,6 @@ weave)
                 "$BASENAME".html
         cp --verbose --update ".lir/$BASENAME.html" "$BASENAME.html"
         ;;
-purge)
-        rm --recursive --one-file-system "$LIR_DIR"
-        ;;
 *)
         echo "ERROR: unknown command $1"
         ;;
