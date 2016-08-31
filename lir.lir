@@ -69,7 +69,108 @@ $ bash bootstrap
 You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the "Weaved document is in lir.html".
 
 # User's Guide
-There is nothing here.
+Lir defines a syntax for defining a reproducible computation, and the tools for running the computation on the input files to obtain results.
+Make sure that you have read the [Tutorial](https://github.com/borisvassilev/lir-tutorial);
+you can use this Guide as a reference.
+
+## Source file
+The Lir source file is a valid `noweb` source file.
+Lir adds semantics by recognizing and interpreting keywords embedded in code chunk names.
+A Lir source file has the extension "`.lir`".
+It is a plain text file.
+Within this file, there are code chunks, as defined by `noweb`, and documentation chunks (everything between and around code chunks).
+Documentation chunks may be formatted and structured with markdown as understood by Pandoc.
+
+## Code chunks
+A code chunk starts with a code chunk header, followed by the contents of the code chunk, and a code chunk footer.
+The code chunk header is the string "`@<<Code chunk name>>=`" on a line by itself.
+The code chunk footer is the string "`@`" on a line by itself.
+If the code chunk must contain a line starting with "`@<<`" or "`@`", use an additional "`@`" to escape these: "`@<<`" and "`@@`".
+Below, we see a code chunk with the name ": Just an example".
+<<: Just an example>>=
+These are
+the contents
+of this chunk.
+<<Another code chunk>> is included by a name reference.
+@
+
+Code chunks may refer to other code chunks by name: just put the name in double angle brackets.
+Whenever a code chunk is extracted, all code chunk references are replaced with their contents.
+If we define:
+<<Another code chunk>>=
+<<Yet another code chunk>>Moar content!1!!1<<Yet another code chunk>>
+<<Yet another code chunk>>=
+***
+@
+
+then, the full contents of [[<<: Just an example>>]], if extracted from the source file, will be:
+<<:listing just-an-example-tangled>>=
+title: The "tangled" code chunk
+@
+
+This is how we generate the listing:
+<<:make>>=
+just-an-example-tangled: lir.lir
+	notangle -R": Just an example" $< > $@
+
+<<:source lir.lir>>=
+@
+(If you don't understand what happens in the lines above, please [read the Tutorial](https://github.com/borisvassilev/lir-tutorial).)
+
+## Special code chunks
+All code chunks that have names starting with a colon (`:`) are given special treatment.
+The code chunk [[<<: Just an example>>]] is a code chunk that will not be considered for extracting.
+
+## Sources and sinks
+We represent the work flow as a directed, acyclic graph (DAG).
+In this DAG, each node is a data object: a file.
+Some of these files are input data: they are sources of the DAG.
+Some of these files are final results: they are the sinks of th DAG.
+
+The sources of the DAG (the input files to the workflow) must be declared explicitly in a special code chunk with a name: ":source <Filename>".
+For example, this is how we declared [[<<:source lir.lir>>]] above.
+
+## Display items
+To declare a placeholder for a display item -- a Figure, a Table, or a Listing -- use a code chunk with a special name.
+The name must start with ":figure", ":table", or ":listing", followed by a single space and the name of the file that should be displayed.
+
+In the contents of a display item, you must declare the title of the display item, and you may declare a caption for the display item.
+This is a figure with a caption:
+<<:figure example.svg>>=
+title: Example figure
+caption: This is the caption for the display item.
+@
+
+## Make rules
+All dependencies and rules are defined within make code chunks.
+The names of these code chunks must begin with ":make".
+Here is an example:
+<<:make The example above>>=
+example.svg: make-example.R
+	Rscript --vanilla $< $@
+
+@
+This defines a rule for generating the example SVG image displayed in [[<<:figure example.svg>>]].
+The rule has one target, `example.svg`, and one prerequisite, the R script `make-example.R`.
+It defines a rule for generating the target: by executing `Rscript` with the command line argument `--vanilla` and the script as the first argument and the target file as the second argument.
+
+## Root code chunks
+A root code chunk is a code chunk that is not referenced by name in any other code chunk.
+
+## Executable code
+All root code chunks that don't have a special name are extracted to files during the first stage of Lir, `lir-tangle`.
+The name of the code chunk determines the name of the file.
+Here is the executable R script that generates the example above:
+<<make-example.R>>=
+out <- commandArgs(trailingOnly = TRUE)[1]
+svg(out, 8, 5)
+curve(sin, -2*pi, 2*pi, type="l", col="darkred")
+curve(cos, -2*pi, 2*pi, type="l", col="darkblue", add = TRUE)
+dev.off() -> foo
+@
+
+# Implementation
+This is the complete source of Lir.
 
 ## Making and installing
 <<build.sh>>=
@@ -152,7 +253,7 @@ set -o pipefail
 set -o nounset
 @
 
-# Overview
+## Overview
 The tools provided by `lir` support two goals:
 
 1. Generating results by running the code in a `lir` source file.
@@ -404,7 +505,6 @@ Everything is wrapped as a bash script that will be installed, along with [[<<li
 It reads the `lir` source from standard input and writes the HTML to standard output.
 <<lir-weave>>=
 <<Bash header>>
-export PANDOC_OPTS="${@:2}"
 <<Weave `lir` source to HTML>>
 <<Weave `lir` source to HTML>>=
 <<Source to `noweb` pipeline representation>> \
@@ -441,7 +541,7 @@ pandoc "$@" \
         --output=-
 @
 
-# `Lir` to Pandoc
+## `Lir` to Pandoc
 The program [[<<nwpipe-pandoc.pl>>]] is written in Prolog, using the SWI-Prolog implementation [@Wielemaker2012].
 It is written as a stand-alone command line program: once compiled, can be run from the command line as a part of a pipe.
 It uses the module [[<<driver.pl>>]] to do the actual work.
@@ -1230,7 +1330,7 @@ display(figure, FN, Meta, Label, DB) -->
 
 figure_contents(FN) -->
         html(div(class("figurecontents"),
-                          [img(src(".lir/~s"-FN))])).
+                          [img(src("~s"-FN))])).
 
 @
 
@@ -1324,11 +1424,11 @@ chunk_defs_rest([D|Ds], DB) -->
         chunk_defs_rest(Ds, DB).
 @
 
-# Layout
+## Layout
 The system tries to separate content and layout as much as possible.
 It also aims to provide a sensible default layout for the human-readable documentation.
 
-## Code chunk language
+### Code chunk language
 The program in [[<<langs.cpp>>]] can be used as a filter to `noweb`.
 It deduces the programming language of code chunks based on the names of the chunks.
 This is a table that maps known extensions to programming language names.
@@ -1561,7 +1661,7 @@ name_dict_lang(const std::string& n,
 }
 @
 
-## HTML
+### HTML
 For HTML documentation, [[<<lir.css>>]] is used.
 <<lir.css>>=
 <<Text width and margin>>
