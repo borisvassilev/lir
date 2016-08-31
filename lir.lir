@@ -192,7 +192,7 @@ fi
 
 LIR_SOURCE="$2"
 LIR_DIR=.lir
-MORE_OPTS="${@:2}"
+MORE_OPTS="${@:3}"
 BASENAME=$(basename "$LIR_SOURCE" .lir)
 STATE_SOURCE="__LIR_SOURCE_$LIR_SOURCE"
 
@@ -391,7 +391,6 @@ Everything is wrapped as a bash script that will be installed, along with [[<<li
 It reads the `lir` source from standard input and writes the HTML to standard output.
 <<lir-weave>>=
 <<Bash header>>
-export PANDOC_OPTS="${@:2}"
 <<Weave `lir` source to HTML>>
 <<Weave `lir` source to HTML>>=
 <<Source to `noweb` pipeline representation>> \
@@ -1738,3 +1737,5 @@ div.lirfigure {
         margin-bottom: 3mm;
 }
 @
+
+# Bibliography
