@@ -5,7 +5,7 @@
   <meta name="generator" content="pandoc">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <meta name="author" content="Boris Vassilev">
-  <meta name="dcterms.date" content="2016-08-30">
+  <meta name="dcterms.date" content="2016-08-31">
   <title>Reproducible computing with lir</title>
   <style type="text/css">code{white-space: pre;}</style>
   <link href="data:text/css;charset=utf-8,p%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0A%7D%0Ablockquote%20%7B%0Amax%2Dwidth%3A%2011cm%3B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aul%2C%20ol%2C%20dl%2C%0Aspan%2Echunkdefs%20%7B%0Amax%2Dwidth%3A%2012cm%3B%0A%7D%0Abody%20%7B%0Apadding%2Dleft%3A%201cm%3B%0A%7D%0Ah1%2C%20h2%2C%20h3%20%7B%0Afont%2Dfamily%3A%20sans%2Dserif%3B%0Amax%2Dwidth%3A%2012cm%3B%0A%7D%0Aspan%2Equote%20%7B%0Afont%2Dfamily%3A%20monospace%3B%0A%7D%0Aspan%2Esourcefile%20a%2C%0Aspan%2Eresultfile%20a%2C%0Aspan%2Elistingfile%20a%2C%0Aspan%2Efigurefile%20a%2C%0Aspan%2Echunkdefs%20a%2C%0Aspan%2Echunkuses%20a%2C%0Aspan%2Echunkprev%20a%2C%0Aspan%2Echunknext%20a%2C%0Aspan%2Edefn%20a%2C%0Aspan%2Equoteduse%20a%2C%0Aspan%2Eembeddeduse%20a%20%7B%0Atext%2Ddecoration%2Dline%3A%20none%3B%0A%7D%0Aspan%2Echunkdefs%2C%0Aspan%2Echunkuses%2C%0Aspan%2Echunkprev%2C%0Aspan%2Echunknext%20%7B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aspan%2Equoteduse%20%7B%0Afont%2Dfamily%3A%20serif%3B%0A%7D%0Aspan%2Eembeddeduse%20%7B%0Afont%2Dfamily%3A%20serif%3B%0A%7D%0Aspan%2Echunknr%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aspan%2Equoteduse%20a%20%7B%0Acolor%3A%20darkGreen%3B%0A%7D%0Aspan%2Equoteduse%20a%3Ahover%20%7B%0Acolor%3A%20limeGreen%3B%0A%7D%0Aspan%2Eembeddeduse%20a%20%7B%0Acolor%3A%20darkblue%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Aspan%2Eembeddedusesym%20%7B%0Afont%2Dstyle%3A%20normal%3B%0A%7D%0Aspan%2Eembeddeduse%20a%3Ahover%20%7B%0Acolor%3A%20dodgerBlue%3B%0A%7D%0Aspan%2Esourcefile%20a%2C%0Aspan%2Eresultfile%20a%2C%0Aspan%2Elistingfile%20a%2C%0Aspan%2Efigurefile%20a%2C%0Aspan%2Echunkdefs%20a%2C%0Aspan%2Echunkprev%20a%2C%0Aspan%2Echunknext%20a%2C%0Aspan%2Edefn%20a%2C%0Aspan%2Echunkuses%20a%20%7B%0Acolor%3A%20darkred%3B%0A%7D%0Aspan%2Esourcefile%20a%3Ahover%2C%0Aspan%2Eresultfile%20a%3Ahover%2C%0Aspan%2Elistingfile%20a%3Ahover%2C%0Aspan%2Efigurefile%20a%3Ahover%2C%0Aspan%2Echunkdefs%20a%3Ahover%2C%0Aspan%2Echunkprev%20a%3Ahover%2C%0Aspan%2Echunknext%20a%3Ahover%2C%0Aspan%2Edefn%20a%3Ahover%2C%0Aspan%2Echunkuses%20a%3Ahover%20%7B%0Acolor%3A%20darkGoldenRod%3B%0A%7D%0Aul%2Echunkslist%20%7B%0Alist%2Dstyle%2Dtype%3A%20square%3B%0A%7D%0Adiv%2Elirtable%20th%20%7B%0Aborder%2Dstyle%3A%20none%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%200%200%201px%200%3B%0A%7D%0Adiv%2Elirtable%20th%2C%0Adiv%2Elirtable%20td%20%7B%0Apadding%2Dleft%3A%203%2E3mm%3B%0Apadding%2Dright%3A%203%2E3mm%3B%0Apadding%2Dtop%3A%200%2E9mm%3B%0Apadding%2Dbottom%3A%200%2E9mm%3B%0A%7D%0Adiv%2Elirtable%20table%20%7B%0Afont%2Dfamily%3A%20sans%2Dserif%3B%0Afont%2Dsize%3A%20small%3B%0Amargin%2Dtop%3A%203mm%3B%0Amargin%2Dbottom%3A%203mm%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0Aborder%2Dstyle%3A%20solid%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%202px%200%201px%200%3B%0A%7D%0Adiv%2Elirlisting%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0A%7D%0Aspan%2Esourcename%2C%0Aspan%2Eresultname%2C%0Aspan%2Etablename%2C%0Aspan%2Efigurename%2C%0Aspan%2Elistingname%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Adiv%2Efigurecontents%20img%20%7B%0Adisplay%3A%20block%3B%0Amax%2Dwidth%3A%2014cm%3B%0Awidth%3A%20auto%3B%0Aheight%3A%20auto%3B%0A%7D%0Adiv%2Elistingcontents%20%7B%0Afont%2Dsize%3A%20small%3B%0Amargin%2Dtop%3A%203mm%3B%0Amargin%2Dbottom%3A%203mm%3B%0Aborder%2Dstyle%3A%20solid%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%200%2E3mm%3B%0A%7D%0Aspan%2Esourcefile%2C%0Aspan%2Eresultfile%2C%0Aspan%2Etablefile%2C%0Aspan%2Efigurefile%2C%0Aspan%2Elistingfile%20%7B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Adiv%2Etablemeta%2C%0Adiv%2Efiguremeta%2C%0Adiv%2Elistingmeta%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aspan%2Etabletitle%2C%0Aspan%2Efiguretitle%2C%0Aspan%2Elistingtitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Adiv%2Ecodechunk%2C%0Adiv%2Elirlisting%2C%0Adiv%2Elirtable%2C%0Adiv%2Elirfigure%20%7B%0Amargin%2Dbottom%3A%203mm%3B%0A%7D%0A" rel="stylesheet">
@@ -17,7 +17,7 @@
 <header>
 <h1 class="title">Reproducible computing with <code>lir</code></h1>
 <h2 class="author">Boris Vassilev</h2>
-<h3 class="date">2016-08-30</h3>
+<h3 class="date">2016-08-31</h3>
 </header>
 <nav id="TOC">
 <ul>
@@ -275,7 +275,14 @@ tangle)
         echo -n &quot;$BASENAME.html: $STATE_SOURCE &quot; &gt; &quot;$LIR_DIR&quot;/.makehtml
         &lt; &quot;$tmpdir&quot;/sinkchunks tr '\n' ' ' &gt;&gt; &quot;$LIR_DIR&quot;/.makehtml
         echo &quot;;&quot; &gt;&gt; &quot;$LIR_DIR&quot;/.makehtml
-        echo -e &quot;\t<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u11" href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫</span>&quot;'/lir-weave &lt; $&lt; &gt; $@' \
+
+        # Check for a bib file and add bibliography
+        LIRBIB=&quot;&quot;
+        if [ -r &quot;$BASENAME&quot;.bib ]
+        then
+                LIRBIB=&quot;--bibliography=$BASENAME.bib&quot;
+        fi
+        echo -e &quot;\t<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u11" href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫</span>&quot;'/lir-weave '&quot;$LIRBIB&quot;' &lt; $&lt; &gt; $@' \
                 &gt;&gt; &quot;$LIR_DIR&quot;/.makehtml
 
         rm -r &quot;$tmpdir&quot;
@@ -534,7 +541,7 @@ pandoc &quot;$@&quot; \
 ◼
 </div>
 <h1 id="lir-to-pandoc"><code>Lir</code> to Pandoc</h1>
-<p>The program <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-4NjBUt-1">nwpipe-pandoc.pl</a><span style="white-space:nowrap"> </span>⟫</span></span> is written in Prolog, using the SWI-Prolog implementation <span class="citation" data-cites="Wielemaker2012">[@Wielemaker2012]</span>. It is written as a stand-alone command line program: once compiled, can be run from the command line as a part of a pipe. It uses the module <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-TgMsj-1">driver.pl</a><span style="white-space:nowrap"> </span>⟫</span></span> to do the actual work.</p>
+<p>The program <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-4NjBUt-1">nwpipe-pandoc.pl</a><span style="white-space:nowrap"> </span>⟫</span></span> is written in Prolog, using the SWI-Prolog implementation <span class="citation" data-cites="Wielemaker2012">(Wielemaker et al. 2012)</span>. It is written as a stand-alone command line program: once compiled, can be run from the command line as a part of a pipe. It uses the module <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-TgMsj-1">driver.pl</a><span style="white-space:nowrap"> </span>⟫</span></span> to do the actual work.</p>
 <div class="codechunk">
 <p><span id="NW0-4NjBUt-1" class="defn"><span class="chunknr">C31:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4NjBUt-1">nwpipe-pandoc.pl</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
 <pre>
@@ -623,7 +630,7 @@ nwpipe_term(Pipe, Doc) :-
 </pre>
 ◼
 </div>
-<p>A <code>noweb</code> token in the <code>noweb</code> pipeline representation <span class="citation" data-cites="Ramsey1992">[@Ramsey1992]</span> is parsed to become a Prolog term. Here, we use an approach to parsing them described in “The Craft of Prolog” <span class="citation" data-cites="OKeefe1990">[@OKeefe1990]</span>. We use the keyword at the beginning of each token to look up (deterministically) in a table the list of items that this token contains. Then, each item is converted to a Prolog term using a mini-interpreter for the “language” of <code>noweb</code> tokens.</p>
+<p>A <code>noweb</code> token in the <code>noweb</code> pipeline representation <span class="citation" data-cites="Ramsey1992">(Ramsey 1992)</span> is parsed to become a Prolog term. Here, we use an approach to parsing them described in “The Craft of Prolog” <span class="citation" data-cites="OKeefe1990">(O’Keefe 1990)</span>. We use the keyword at the beginning of each token to look up (deterministically) in a table the list of items that this token contains. Then, each item is converted to a Prolog term using a mini-interpreter for the “language” of <code>noweb</code> tokens.</p>
 <div class="codechunk">
 <p><span id="NW0-2KXCJM-1" class="defn"><span class="chunknr">C37:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2KXCJM-1"><code>Noweb</code> token <span class="math inline">→</span> Prolog term</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-40JgGE-1">C36</a></span></p>
 <pre>
@@ -1018,7 +1025,7 @@ test-display: lir.lir
 </div>
 <div class="listingcontents">
 <pre>
-lrwxrwxrwx 1 bvassile hyad-all 41 Aug 30 17:39 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
+lrwxrwxrwx 1 bvassile hyad-all 41 Aug 31 09:56 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
 </pre>
 </div>
 <div class="listingmeta">
@@ -1749,7 +1756,7 @@ while (!pending.empty()) {
 </div>
 <p>At the end, all tokens are emitted. If the token is <code>@defn</code>, a <code>@language</code> token is added right after it. For code chunks that don’t have a language, the <code>txt</code> language is used.</p>
 <div class="codechunk">
-<p><span id="NW0-3yNLgf-1" class="defn"><span class="chunknr">C99:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3yNLgf-1">Output all lines, with <code><span class="citation" data-cites="language">@language</span></code> after each <code><span class="citation" data-cites="defn">@defn</span></code></a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span></p>
+<p><span id="NW0-3yNLgf-1" class="defn"><span class="chunknr">C99:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3yNLgf-1">Output all lines, with <code><span class="citation" data-cites="language">(<span class="citeproc-not-found" data-reference-id="language"><strong>???</strong></span>)</span></code> after each <code><span class="citation" data-cites="defn">(<span class="citeproc-not-found" data-reference-id="defn"><strong>???</strong></span>)</span></code></a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span></p>
 <pre>
 for (auto l : lines) {
         std::cout &lt;&lt; l &lt;&lt; '\n';
@@ -2106,6 +2113,17 @@ div.lirfigure {
 }
 </pre>
 ◼
+</div>
+<div id="refs" class="references">
+<div id="ref-OKeefe1990">
+<p>O’Keefe, Richard A. 1990. <em>The Craft of Prolog</em>. Edited by Ehud Shapiro. The MIT Press.</p>
+</div>
+<div id="ref-Ramsey1992">
+<p>Ramsey, Norman. 1992. “The Noweb Hacker’s Guide.” <em>Departement of Computer Science Princeton University September</em>, September. <a href="http://www.cs.tufts.edu/~nr/noweb/guide.ps" class="uri">http://www.cs.tufts.edu/~nr/noweb/guide.ps</a>.</p>
+</div>
+<div id="ref-Wielemaker2012">
+<p>Wielemaker, Jan, Tom Schrijvers, Markus Triska, and Torbjörn Lager. 2012. “SWI-Prolog.” <em>Theory and Practice of Logic Programming</em> 12 (1-2): 67–96.</p>
+</div>
 </div>
 </body>
 </html>

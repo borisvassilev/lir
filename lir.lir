@@ -242,7 +242,14 @@ tangle)
         echo -n "$BASENAME.html: $STATE_SOURCE " > "$LIR_DIR"/.makehtml
         < "$tmpdir"/sinkchunks tr '\n' ' ' >> "$LIR_DIR"/.makehtml
         echo ";" >> "$LIR_DIR"/.makehtml
-        echo -e "\t<<Path to `lir`>>"'/lir-weave < $< > $@' \
+
+        # Check for a bib file and add bibliography
+        LIRBIB=""
+        if [ -r "$BASENAME".bib ]
+        then
+                LIRBIB="--bibliography=$BASENAME.bib"
+        fi
+        echo -e "\t<<Path to `lir`>>"'/lir-weave '"$LIRBIB"' < $< > $@' \
                 >> "$LIR_DIR"/.makehtml
 
         rm -r "$tmpdir"
