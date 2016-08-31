@@ -280,6 +280,9 @@ tangle)
         LIRBIB=&quot;&quot;
         if [ -r &quot;$BASENAME&quot;.bib ]
         then
+                BIBTARGET=$(readlink -f &quot;$LIR_DIR/$BASENAME&quot;.bib)
+                cp &quot;$BASENAME&quot;.bib &quot;$BIBTARGET&quot;
+                #ln --logical --symbolic &quot;$BASENAME&quot;.bib &quot;$BIBTARGET&quot;
                 LIRBIB=&quot;--bibliography=$BASENAME.bib&quot;
         fi
         echo -e &quot;\t<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-4UExSf-1-u11" href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫</span>&quot;'/lir-weave '&quot;$LIRBIB&quot;' &lt; $&lt; &gt; $@' \
@@ -316,11 +319,6 @@ fi
 <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-fgUnR-1-u2" href="#NW0-4KFltr-1">lir-mtangle</a><span style="white-space:nowrap"> </span>⟫</span>
 </pre>
 ◼
-</div>
-<div id="NW0-1yFF7D-1" class="lirdisplay">
-<div class="lirsource">
-<span class="sourcename">S1:</span> <span class="sourcefile"><a href="/home/bvassile/Documents/code/lir/.lir/lir.bib"><code>lir.bib</code></a></span>
-</div>
 </div>
 <div class="codechunk">
 <p><span id="NW0-4KFltr-1" class="defn"><span class="chunknr">C11:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-4KFltr-1">lir-mtangle</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-fgUnR-1">C10</a></span></p>
@@ -498,7 +496,7 @@ export PANDOC_OPTS=&quot;${@:2}&quot;
 <p><span id="NW0-jqFfG-1" class="defn"><span class="chunknr">C27:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-jqFfG-1">Weave <code>lir</code> source to HTML</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3933RI-1">C26</a></span></p>
 <pre>
 <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-jqFfG-1-u1" href="#NW0-sh3ht-1">Source to <code>noweb</code> pipeline representation</a><span style="white-space:nowrap"> </span>⟫</span> \
-        | <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-jqFfG-1-u2" href="#NW0-knN2l-1"><code>Noweb</code> pipeline representation to Pandoc source</a><span style="white-space:nowrap"> </span>⟫</span> \
+        | <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-jqFfG-1-u2" href="#NW0-knN2l-1"><code>Noweb</code> pipeline representation to Pandoc source</a><span style="white-space:nowrap"> </span>⟫</span> | tee pandoc-source.debug \
         | <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-jqFfG-1-u3" href="#NW0-14TQfc-1">Pandoc source to HTML</a><span style="white-space:nowrap"> </span>⟫</span>
 </pre>
 ◼
@@ -1003,7 +1001,7 @@ indented_lines([0'\n|Block]) --&gt; [0'\n], !,
 </div>
 <div id="NW0-1qeZBj-1" class="lirdisplay">
 <div class="lirsource">
-<span class="sourcename">S2:</span> <span class="sourcefile"><a href="/home/bvassile/Documents/code/lir/.lir/lir.lir"><code>lir.lir</code></a></span>
+<span class="sourcename">S1:</span> <span class="sourcefile"><a href="/home/bvassile/Documents/code/lir/.lir/lir.lir"><code>lir.lir</code></a></span>
 </div>
 </div>
 <div class="codechunk">
@@ -1022,7 +1020,7 @@ test-display: lir.lir
 </div>
 <div class="listingcontents">
 <pre>
-lrwxrwxrwx 1 bvassile hyad-all 41 Aug 31 09:58 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
+lrwxrwxrwx 1 bvassile hyad-all 41 Aug 31 10:29 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
 </pre>
 </div>
 <div class="listingmeta">
@@ -1656,7 +1654,7 @@ content:
 end:
 {
         <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3V1RUB-1-u8" href="#NW0-KeFMG-1">Propagate language to uses</a><span style="white-space:nowrap"> </span>⟫</span>
-        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3V1RUB-1-u9" href="#NW0-3yNLgf-1">Output all lines, with <code>@language</code> after each <code>@defn</code></a><span style="white-space:nowrap"> </span>⟫</span>
+        <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-3V1RUB-1-u9" href="#NW0-2PiMS9-1">Output all lines, with <code>language</code> after each <code>defn</code></a><span style="white-space:nowrap"> </span>⟫</span>
         return 0;
 }
 
@@ -1677,7 +1675,7 @@ if (string_prefix(line, {&quot;@begin code&quot;})) goto code;
 </pre>
 ◼
 </div>
-<p>When in <code>code</code>, end of input is an error. A <code>@defn</code> token contains the code chunk name. The name is processed and the state machine transitions to <code>content</code>.</p>
+<p>When in <code>code</code>, end of input is an error. A <code>defn</code> token contains the code chunk name. The name is processed and the state machine transitions to <code>content</code>.</p>
 <div class="codechunk">
 <p><span id="NW0-1LSAEd-1" class="defn"><span class="chunknr">C93:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1LSAEd-1"><code>Code</code> transitions</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span></p>
 <pre>
@@ -1751,9 +1749,9 @@ while (!pending.empty()) {
 </pre>
 ◼
 </div>
-<p>At the end, all tokens are emitted. If the token is <code>@defn</code>, a <code>@language</code> token is added right after it. For code chunks that don’t have a language, the <code>txt</code> language is used.</p>
+<p>At the end, all tokens are emitted. If the token is <code>defn</code>, a <code>language</code> token is added right after it. For code chunks that don’t have a language, the <code>txt</code> language is used.</p>
 <div class="codechunk">
-<p><span id="NW0-3yNLgf-1" class="defn"><span class="chunknr">C99:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3yNLgf-1">Output all lines, with <code><span class="citation" data-cites="language">(<span class="citeproc-not-found" data-reference-id="language"><strong>???</strong></span>)</span></code> after each <code><span class="citation" data-cites="defn">(<span class="citeproc-not-found" data-reference-id="defn"><strong>???</strong></span>)</span></code></a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span></p>
+<p><span id="NW0-2PiMS9-1" class="defn"><span class="chunknr">C99:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-2PiMS9-1">Output all lines, with <code>language</code> after each <code>defn</code></a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3V1RUB-1">C91</a></span></p>
 <pre>
 for (auto l : lines) {
         std::cout &lt;&lt; l &lt;&lt; '\n';
@@ -1816,7 +1814,7 @@ const std::map&lt;std::string, std::string&gt; langs{<span class="embeddeduse">�
 </pre>
 ◼
 </div>
-<p>Two strings, one for the last line that was read and one for the name of the last code chunk defined with <code>@defn</code>:</p>
+<p>Two strings, one for the last line that was read and one for the name of the last code chunk defined with <code>defn</code>:</p>
 <div class="codechunk">
 <p><span id="NW0-3ZYWBN-2" class="defn"><span class="chunknr">C106:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-3ZYWBN-2">Variable definitions (<code>langs</code>)</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><br> <span class="chunkprev"><a href="#NW0-3ZYWBN-1">⇧<span style="white-space:nowrap"> </span>C100</a></span></p>
 <pre>

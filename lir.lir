@@ -247,6 +247,9 @@ tangle)
         LIRBIB=""
         if [ -r "$BASENAME".bib ]
         then
+                BIBTARGET=$(readlink -f "$LIR_DIR/$BASENAME".bib)
+                cp "$BASENAME".bib "$BIBTARGET"
+                #ln --logical --symbolic "$BASENAME".bib "$BIBTARGET"
                 LIRBIB="--bibliography=$BASENAME.bib"
         fi
         echo -e "\t<<Path to `lir`>>"'/lir-weave '"$LIRBIB"' < $< > $@' \
@@ -278,9 +281,6 @@ fi
 <<Define functions used by `lir`>>=
 <<lir-use>>
 <<lir-mtangle>>
-@
-
-<<:source lir.bib>>=
 @
 
 <<lir-mtangle>>=
@@ -402,7 +402,7 @@ export PANDOC_OPTS="${@:2}"
 <<Weave `lir` source to HTML>>
 <<Weave `lir` source to HTML>>=
 <<Source to `noweb` pipeline representation>> \
-        | <<`Noweb` pipeline representation to Pandoc source>> \
+        | <<`Noweb` pipeline representation to Pandoc source>> | tee pandoc-source.debug \
         | <<Pandoc source to HTML>>
 @
 
@@ -1372,7 +1372,7 @@ content:
 end:
 {
         <<Propagate language to uses>>
-        <<Output all lines, with `@language` after each `@defn`>>
+        <<Output all lines, with `language` after each `defn`>>
         return 0;
 }
 
@@ -1391,7 +1391,7 @@ if (string_prefix(line, {"@begin code"})) goto code;
 @
 
 When in `code`, end of input is an error.
-A `@defn` token contains the code chunk name.
+A `defn` token contains the code chunk name.
 The name is processed and the state machine transitions to `content`.
 <<`Code` transitions>>=
 if (!std::getline(std::cin, line)) goto error;
@@ -1458,9 +1458,9 @@ while (!pending.empty()) {
 @
 
 At the end, all tokens are emitted.
-If the token is `@defn`, a `@language` token is added right after it.
+If the token is `defn`, a `language` token is added right after it.
 For code chunks that don't have a language, the `txt` language is used.
-<<Output all lines, with `@language` after each `@defn`>>=
+<<Output all lines, with `language` after each `defn`>>=
 for (auto l : lines) {
         std::cout << l << '\n';
 
@@ -1493,7 +1493,7 @@ std::queue<std::string> pending{};
 const std::map<std::string, std::string> langs{<<Ext-Lang>>};
 @
 
-Two strings, one for the last line that was read and one for the name of the last code chunk defined with `@defn`:
+Two strings, one for the last line that was read and one for the name of the last code chunk defined with `defn`:
 <<Variable definitions (`langs`)>>=
 std::string line;
 std::string name;
