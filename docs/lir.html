@@ -22,7 +22,9 @@
 <nav id="TOC">
 <ul>
 <li><a href="#installation">Installation</a><ul>
-<li><a href="#library-paths">Library paths</a></li>
+<li><a href="#setting-the-installation-paths">Setting the installation paths</a></li>
+</ul></li>
+<li><a href="#users-guide">User’s Guide</a><ul>
 <li><a href="#making-and-installing">Making and installing</a></li>
 <li><a href="#makefile">Makefile</a></li>
 <li><a href="#bash-scripts">Bash scripts</a></li>
@@ -44,19 +46,20 @@
 </ul></li>
 </ul>
 </nav>
-<p>This is a collection of tools that support programming language-agnostic reproducible computing.</p>
-<p>This document is self-hosting: the implementation presented here can be used to produce the final human-readable version of itself. This makes informal validation trivial (“does the final document look right?”), but it also means that the only guarantee is that it implements enough to be able to compile itself.</p>
+<p>Lir is a tool for reproducible computing. With Lir, any combination of programming languages and software platforms can be used in the same work flow. All executable code is maintained in the Lir source file, along with rules for generating the results of running each program. The source file additionally contains the documentation of the project.</p>
+<p>In this document, we provide detailed Lir installation instructions, followed by a User’s Guide, and the full implementation of Lir at the end.</p>
+<p>This document is self-hosting: the implementation of Lir presented here can be used to produce the final human-readable version of this source file. This makes informal validation somewhat easier (“does the final document look right?”), but it also means that the only guarantee is that it implements enough of Lir to be able to compile itself.</p>
 <h1 id="installation">Installation</h1>
-<p>These are a few paths that would probably be different for each computer. Those have to be redefined before compiling this document.</p>
-<h2 id="library-paths">Library paths</h2>
+<p>First, make sure that you have all prerequisites, as described in the <a href="http://borisvassilev.github.io/lir">Readme</a>. In short, you need to have Noweb, SWI-Prolog, and Pandoc installed on your computer. There are a few paths that would probably be different for each computer. Those have to be redefined before trying to install Lir.</p>
+<h2 id="setting-the-installation-paths">Setting the installation paths</h2>
 <p>Figure out where you have installed the <code>noweb</code> library files. If you installed from the official Ubuntu directories, this should be <code>/usr/lib/noweb</code>.</p>
 <p>If you cannot find this directory, the directory where the files were installed is mentioned towards the bottom of the <code>nowebfilters</code> man page, under the <code>FILES</code> section. So try this:</p>
 <pre><code>$ man nowebfilters</code></pre>
 <p>If for some reason you this doesn’t work either, you can try looking for one of the files in the library, for example:</p>
 <pre><code>$ locate emptydefn</code></pre>
 <p>If you cannot find a file called <code>emptydefn</code> on your system, you have not installed <code>noweb</code>.</p>
-<p>Now that you know where the library files are, add the paths to this file.</p>
-<p>This is the folder where all <code>lir</code> components are installed:</p>
+<p>Now that you know where the library files are, you need to open this file (<code>lir.lir</code>) and edit the three paths below!</p>
+<p>First, the folder where all <code>lir</code> components are installed:</p>
 <div class="codechunk">
 <p><span id="NW0-le3mf-1" class="defn"><span class="chunknr">C1:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1rI3Ge-1">C4</a>, <a href="#NW0-4UExSf-1">C9</a>, <a href="#NW0-knN2l-1">C29</a>, <a href="#NW0-14TQfc-1">C30</a></span></p>
 <pre>
@@ -64,7 +67,7 @@
 </pre>
 ◼
 </div>
-<p>This is the folder where the main <code>lir</code> script will be installed; make sure it is on your system <code>PATH</code>.</p>
+<p>Then, the folder where the main <code>lir</code> script will be installed; make sure it is on your system <code>PATH</code>.</p>
 <div class="codechunk">
 <p><span id="NW0-AfPqe-1" class="defn"><span class="chunknr">C2:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-AfPqe-1">Path to <code>lir</code> binaries</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1rI3Ge-1">C4</a></span></p>
 <pre>
@@ -72,7 +75,7 @@
 </pre>
 ◼
 </div>
-<p>This is the folder containing the <code>noweb</code> library files. If you installed <code>noweb</code> normally (and as root), this will read <code>/urs/lib/noweb</code>.</p>
+<p>Finally, the folder containing the <code>noweb</code> library files. If you installed <code>noweb</code> normally (and as root), this will read <code>/urs/lib/noweb</code>.</p>
 <div class="codechunk">
 <p><span id="NW0-411qse-1" class="defn"><span class="chunknr">C3:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-411qse-1">Path to <code>noweb</code></a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1rI3Ge-1">C4</a>, <a href="#NW0-sh3ht-1">C28</a></span></p>
 <pre>
@@ -80,9 +83,11 @@
 </pre>
 ◼
 </div>
-<p>Now save and close the file, and run:</p>
+<p>Now save and close the file <code>lir.lir</code>, and run:</p>
 <pre><code>$ bash bootstrap</code></pre>
 <p>You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the “Weaved document is in lir.html”.</p>
+<h1 id="users-guide">User’s Guide</h1>
+<p>There is nothing here.</p>
 <h2 id="making-and-installing">Making and installing</h2>
 <div class="codechunk">
 <p><span id="NW0-1rI3Ge-1" class="defn"><span class="chunknr">C4:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-1rI3Ge-1">build.sh</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> root chunk</span></p>
@@ -1018,7 +1023,7 @@ test-display: lir.lir
 </div>
 <div class="listingcontents">
 <pre>
-lrwxrwxrwx 1 bvassile hyad-all 41 Aug 31 10:58 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
+lrwxrwxrwx 1 bvassile hyad-all 41 Aug 31 14:03 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
 </pre>
 </div>
 <div class="listingmeta">

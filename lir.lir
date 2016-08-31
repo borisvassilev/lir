@@ -8,16 +8,23 @@ echo "date: $(date --utc --iso-8601)"
 rights: (c) 2015 Boris Vassilev, University of Helsinki
 ...
 
-This is a collection of tools that support programming language-agnostic reproducible computing.
+Lir is a tool for reproducible computing.
+With Lir, any combination of programming languages and software platforms can be used in the same work flow.
+All executable code is maintained in the Lir source file, along with rules for generating the results of running each program.
+The source file additionally contains the documentation of the project.
 
-This document is self-hosting: the implementation presented here can be used to produce the final human-readable version of itself.
-This makes informal validation trivial ("does the final document look right?"), but it also means that the only guarantee is that it implements enough to be able to compile itself.
+In this document, we provide detailed Lir installation instructions, followed by a User's Guide, and the full implementation of Lir at the end.
+
+This document is self-hosting: the implementation of Lir presented here can be used to produce the final human-readable version of this source file.
+This makes informal validation somewhat easier ("does the final document look right?"), but it also means that the only guarantee is that it implements enough of Lir to be able to compile itself.
 
 # Installation
-These are a few paths that would probably be different for each computer.
-Those have to be redefined before compiling this document.
+First, make sure that you have all prerequisites, as described in the [Readme](http://borisvassilev.github.io/lir).
+In short, you need to have Noweb, SWI-Prolog, and Pandoc installed on your computer.
+There are a few paths that would probably be different for each computer.
+Those have to be redefined before trying to install Lir.
 
-## Library paths
+## Setting the installation paths
 Figure out where you have installed the `noweb` library files.
 If you installed from the official Ubuntu directories, this should be `/usr/lib/noweb`.
 
@@ -36,25 +43,24 @@ $ locate emptydefn
 
 If you cannot find a file called `emptydefn` on your system, you have not installed `noweb`.
 
-Now that you know where the library files are, add the paths to this file.
+Now that you know where the library files are, you need to open this file (`lir.lir`) and edit the three paths below!
 
-This is the folder where all `lir` components are installed:
+First, the folder where all `lir` components are installed:
 <<Path to `lir`>>=
 "$HOME"/lib/lir
 @
-This is the folder where the main `lir` script will be installed; make sure it is on your system `PATH`.
+Then, the folder where the main `lir` script will be installed; make sure it is on your system `PATH`.
 <<Path to `lir` binaries>>=
 "$HOME"/bin
 @
-
-This is the folder containing the `noweb` library files.
+Finally, the folder containing the `noweb` library files.
 If you installed `noweb` normally (and as root), this will read `/urs/lib/noweb`.
 <<Path to `noweb`>>=
 /usr/lib/noweb
 @
 
 
-Now save and close the file, and run:
+Now save and close the file `lir.lir`, and run:
 
 ~~~~
 $ bash bootstrap
@@ -62,6 +68,8 @@ $ bash bootstrap
 
 You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the "Weaved document is in lir.html".
 
+# User's Guide
+There is nothing here.
 
 ## Making and installing
 <<build.sh>>=
