@@ -21,8 +21,7 @@ This makes informal validation somewhat easier ("does the final document look ri
 # Installation
 First, make sure that you have all prerequisites, as described in the [Readme](http://borisvassilev.github.io/lir).
 In short, you need to have Noweb, SWI-Prolog, and Pandoc installed on your computer.
-There are a few paths that would probably be different for each computer.
-Those have to be redefined before trying to install Lir.
+There are a few paths that might be different for each installation and need to be adjusted before installing.
 
 ## Setting the installation paths
 Figure out where you have installed the `noweb` library files.
@@ -41,9 +40,9 @@ If for some reason you this doesn't work either, you can try looking for one of 
 $ locate emptydefn
 ~~~~
 
-If you cannot find a file called `emptydefn` on your system, you have not installed `noweb`.
+If you cannot find a file called `emptydefn` on your system, you have not installed `noweb` correctly: please do so now.
 
-Now that you know where the library files are, you need to open this file (`lir.lir`) and edit the three paths below!
+Now that you know where the library files are, you need to open the Lir source file [`lir.lir`](lir/lir.lir) and edit the three paths below!
 
 First, the folder where all `lir` components are installed:
 <<Path to `lir`>>=

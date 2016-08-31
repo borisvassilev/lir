@@ -59,15 +59,15 @@
 <p>In this document, we provide detailed Lir installation instructions, followed by a User’s Guide, and the full implementation of Lir at the end.</p>
 <p>This document is self-hosting: the implementation of Lir presented here can be used to produce the final human-readable version of this source file. This makes informal validation somewhat easier (“does the final document look right?”), but it also means that the only guarantee is that it implements enough of Lir to be able to compile itself.</p>
 <h1 id="installation">Installation</h1>
-<p>First, make sure that you have all prerequisites, as described in the <a href="http://borisvassilev.github.io/lir">Readme</a>. In short, you need to have Noweb, SWI-Prolog, and Pandoc installed on your computer. There are a few paths that would probably be different for each computer. Those have to be redefined before trying to install Lir.</p>
+<p>First, make sure that you have all prerequisites, as described in the <a href="http://borisvassilev.github.io/lir">Readme</a>. In short, you need to have Noweb, SWI-Prolog, and Pandoc installed on your computer. There are a few paths that might be different for each installation and need to be adjusted before installing.</p>
 <h2 id="setting-the-installation-paths">Setting the installation paths</h2>
 <p>Figure out where you have installed the <code>noweb</code> library files. If you installed from the official Ubuntu directories, this should be <code>/usr/lib/noweb</code>.</p>
 <p>If you cannot find this directory, the directory where the files were installed is mentioned towards the bottom of the <code>nowebfilters</code> man page, under the <code>FILES</code> section. So try this:</p>
 <pre><code>$ man nowebfilters</code></pre>
 <p>If for some reason you this doesn’t work either, you can try looking for one of the files in the library, for example:</p>
 <pre><code>$ locate emptydefn</code></pre>
-<p>If you cannot find a file called <code>emptydefn</code> on your system, you have not installed <code>noweb</code>.</p>
-<p>Now that you know where the library files are, you need to open this file (<code>lir.lir</code>) and edit the three paths below!</p>
+<p>If you cannot find a file called <code>emptydefn</code> on your system, you have not installed <code>noweb</code> correctly: please do so now.</p>
+<p>Now that you know where the library files are, you need to open the Lir source file <a href="lir/lir.lir"><code>lir.lir</code></a> and edit the three paths below!</p>
 <p>First, the folder where all <code>lir</code> components are installed:</p>
 <div class="codechunk">
 <p><span id="NW0-le3mf-1" class="defn"><span class="chunknr">C1:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-1rI3Ge-1">C10</a>, <a href="#NW0-4UExSf-1">C15</a>, <a href="#NW0-knN2l-1">C35</a>, <a href="#NW0-14TQfc-1">C36</a></span></p>
@@ -1145,7 +1145,7 @@ test-display: lir.lir
 </div>
 <div class="listingcontents">
 <pre>
-lrwxrwxrwx 1 boris users 28 Aug 31 21:40 lir.lir -&gt; /home/boris/code/lir/lir.lir
+lrwxrwxrwx 1 boris users 28 Aug 31 21:44 lir.lir -&gt; /home/boris/code/lir/lir.lir
 </pre>
 </div>
 <div class="listingmeta">
