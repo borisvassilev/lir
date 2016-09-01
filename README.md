@@ -135,4 +135,4 @@ If you like what you see, you should go on by reading the [Tutorial](https://git
 This work is done at the University of Helsinki, Finland by Boris Vassilev and Erkka Valo, under the supervision of Sampsa Hautaniemi and Elina Ikonen.
 It is licenced under the terms of the GPL (see [COPYING](COPYING)).
 
-Copyright 2015 Boris Vassilev
+Copyright (c) 2015 Boris Vassilev
