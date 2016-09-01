@@ -135,7 +135,7 @@ If the code chunk must contain a line starting with "`@<<`" or "`@`", use an add
 
 A code chunk ends with a footer line or with the header line of another code chunk.
 
-[Here is a link](https://github.com/borisvassilev/lir/blob/master/lir.lir#L93) to the Lir source of the few following paragraphs; please read those in the raw Lir source to understand the code chunk syntax and examples!
+[Here is a link](https://github.com/borisvassilev/lir/blob/master/lir.lir#L139) to the Lir source of the few following paragraphs; please read those in the raw Lir source to understand the code chunk syntax and examples!
 
 Below, we see a code chunk with the name ": Just an example".
 <<: Just an example>>=
