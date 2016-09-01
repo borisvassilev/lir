@@ -1,6 +1,8 @@
 [Lir is a reproducible computing tool](http://borisvassilev.github.io/lir/).
 The name Lir stands for **li**terate, **r**eproducible computing.
-It is available as [free software](https://github.com/borisvassilev/lir).
+With Lir you can organize, document, and automate your work flow.
+
+Lir is available as [free software](https://github.com/borisvassilev/lir).
 It comes with a [Tutorial](https://github.com/borisvassilev/lir-tutorial) and a [User's Guide](http://borisvassilev.github.io/lir/lir.html).
 
 # Prerequisites
@@ -37,8 +39,8 @@ You need to have a basic idea of the concept of [markdown](https://en.wikipedia.
 Armed with this knowledge, open the [excellent manual provided by Pandoc](http://pandoc.org/README.html) and use it as a reference.
 
 ## Literate Programming with `noweb`
-Understanding the concept of literate programming is, sadly, a must.
-You can take a look at the [original publication by Donald E. Knuth (pdf link)](http://www.literateprogramming.com/knuthweb.pdf); you can also skip this at first.
+Understanding the concept of literate programming is a must.
+You may take a look at the [original publication by Donald E. Knuth (pdf link)](http://www.literateprogramming.com/knuthweb.pdf); you can also skip this at first.
 The [Wikipedia page for `noweb`](https://en.wikipedia.org/wiki/Noweb) contains enough detail to get you acquainted with the syntax.
 A Lir source file is a valid `noweb` source file.
 
@@ -131,6 +133,6 @@ If you like what you see, you should go on by reading the [Tutorial](https://git
 
 # Acknowledgements
 This work is done at the University of Helsinki, Finland by Boris Vassilev and Erkka Valo, under the supervision of Sampsa Hautaniemi and Elina Ikonen.
-It is licenced under the terms of the GPL (see COPYING).
+It is licenced under the terms of the GPL (see [COPYING](COPYING)).
 
 Copyright 2015 Boris Vassilev

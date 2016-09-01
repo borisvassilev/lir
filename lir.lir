@@ -9,7 +9,10 @@ rights: (c) 2015 Boris Vassilev, University of Helsinki
 ...
 
 Lir is a [tool for reproducible computing](https://github.com/borisvassilev/lir).
-With Lir, any combination of programming languages and software platforms can be used in the same work flow.
+The name Lir stands for **li**terate, **r**eproducible computing.
+With Lir you can organize, document, and automate your work flow.
+
+Any combination of programming languages and software platforms can be used in the same work flow.
 All executable code is maintained in the Lir source file, along with rules for generating the results of running each program.
 A Lir source file additionally contains the documentation of a project.
 
@@ -19,9 +22,53 @@ This document is self-hosting: the implementation of Lir presented here can be u
 This makes informal validation somewhat easier ("does the final document look right?"), but it also means that the only guarantee is that it implements enough of Lir to be able to compile itself.
 
 # Installation
-First, make sure that you have all prerequisites, as described in the [Readme](http://borisvassilev.github.io/lir).
-In short, you need to have Noweb, SWI-Prolog, and Pandoc installed on your computer.
-There are a few paths that might be different for each installation and need to be adjusted before installing.
+You need a reasonably modern Linux/BSD operating system.
+Any of the major GNU/Linux and BSD distributions, and OS X fulfil that requirement.
+It should be possible to use it on Microsoft Windows 10, but at the moment this is not officially supported: however, if you are interested in trying to install Lir on a Windows 10, share your experience.
+
+In particular, you will need an up-to-date version of the GNU Toolchain (`autoconf`, `make`, `gcc`, `binutils`, `glibc`), as well as Bash along with the standard command line tools like `grep`, `sed`, and `awk` (to name a few).
+
+## Prerequisites
+Furthermore, you need to install the following software:
+
+  - [Noweb](https://www.cs.tufts.edu/~nr/noweb/), "A Simple, Extensible Tool for Literate Programming."
+    Available in the Ubuntu official repositories.
+    You can also [look at the Debian package](http://packages.debian.org/noweb) or even attempt to [compile it from source](ftp://www.eecs.harvard.edu/pub/nr) (if you do that, make sure you get version 2.11b).
+
+  - [SWI-Prolog](http://www.swi-prolog.org/), a comprehensive free Prolog environment.
+    It is easy to [install from source](http://www.swi-prolog.org/git.html), and for Ubuntu, the maintainer [provides a PPA](http://www.swi-prolog.org/build/Debian.txt).
+    Just make sure you have the **latest development or stable release**, and not one of the very outdated releases available in the official repositories of most distributions.
+
+  - [Pandoc](http://pandoc.org/), a universal document converter.
+    Installing from source is a bit of a hustle, but you don't have to: just get the [installer for the latest release](http://pandoc.org/installing.html).
+    It is important that you have the latest (patched) release, as there have been a non-negative number of bugs in major releases that get in the way.
+
+## Recommended reading
+Lir makes use of existing tools for literate programming, making, and markup.
+A working knowledge of these tools is not required, but it is beneficial, at least at the beginning.
+
+### Makefiles
+It would help you if you had some working knowledge of writing makefiles, as understood by GNU Make.
+Reading the [official documentation](https://www.gnu.org/software/make/manual/html_node/index.html) is a good start; at least take a look at the first few chapters.
+
+### Markdown
+You need to have a basic idea of the concept of [markdown](https://en.wikipedia.org/wiki/Markdown).
+Armed with this knowledge, open the [excellent manual provided by Pandoc](http://pandoc.org/README.html) and use it as a reference.
+
+### Literate Programming with `noweb`
+Understanding the concept of literate programming is a must.
+You may take a look at the [original publication by Donald E. Knuth (pdf link)](http://www.literateprogramming.com/knuthweb.pdf); you can also skip this at first.
+The [Wikipedia page for `noweb`](https://en.wikipedia.org/wiki/Noweb) contains enough detail to get you acquainted with the syntax.
+A Lir source file is a valid `noweb` source file.
+
+Once you have all prerequisites, clone the [Lir repository](https://github.com/borisvassilev/lir) and change to the `lir` directory:
+
+~~~~
+$ git clone https://github.com/borisvassilev/lir.git
+$ cd lir
+~~~~
+
+Before you can install Lir, three paths that might be different for each installation need to be adjusted.
 
 ## Setting the installation paths
 Figure out where you have installed the `noweb` library files.
@@ -42,7 +89,7 @@ $ locate emptydefn
 
 If you cannot find a file called `emptydefn` on your system, you have not installed `noweb` correctly: please do so now.
 
-Now that you know where the library files are, you need to open the Lir source file [`lir.lir`](https://github.com/borisvassilev/lir/blob/master/lir.lir) and edit the three paths on lines 49, 53, and 58.
+Now that you know where the library files are, you need to open the Lir source file [`lir.lir`](https://github.com/borisvassilev/lir/blob/master/lir.lir) and edit the three paths on lines 96, 100, and 105 of this file.
 
 First, the folder where all `lir` components are installed:
 <<Path to `lir`>>=
@@ -55,7 +102,7 @@ Then, the folder where the main `lir` script will be installed; make sure it is 
 Finally, the folder containing the `noweb` library files.
 If you installed `noweb` normally (and as root), this will read `/urs/lib/noweb`.
 <<Path to `noweb`>>=
-"$HOME"/lib/noweb
+/usr/lib/noweb
 @
 
 Now save and close the file `lir.lir`, and run:
@@ -88,7 +135,7 @@ If the code chunk must contain a line starting with "`@<<`" or "`@`", use an add
 
 A code chunk ends with a footer line or with the header line of another code chunk.
 
-[Here is a link](https://github.com/borisvassilev/lir/blob/master/lir.lir#L89) to the Lir source of the few following paragraphs; please read those in the raw Lir source to understand the code chunk syntax and examples!
+[Here is a link](https://github.com/borisvassilev/lir/blob/master/lir.lir#L93) to the Lir source of the few following paragraphs; please read those in the raw Lir source to understand the code chunk syntax and examples!
 
 Below, we see a code chunk with the name ": Just an example".
 <<: Just an example>>=
@@ -135,6 +182,8 @@ For example, this is how we declared [[<<:source lir.lir>>]] above.
 ## Display items
 To declare a placeholder for a display item -- a Figure, a Table, or a Listing -- use a code chunk with a special name.
 The name must start with ":figure", ":table", or ":listing", followed by a single space and the name of the file that should be displayed.
+
+[Here is a link](https://github.com/borisvassilev/lir/blob/master/lir.lir#L188) to the following few paragraphs in the Lir source file; you need to look at the source to understand the examples!
 
 In the contents of a display item, you must declare the title of the display item, and you may declare a caption for the display item.
 This is a figure with a caption:
