@@ -39,6 +39,9 @@
 <li><a href="#make-rules">Make rules</a></li>
 <li><a href="#root-code-chunks">Root code chunks</a></li>
 <li><a href="#executable-code">Executable code</a></li>
+<li><a href="#citations">Citations</a></li>
+<li><a href="#running-lir">Running Lir</a></li>
+<li><a href="#state">State</a></li>
 </ul></li>
 <li><a href="#implementation">Implementation</a><ul>
 <li><a href="#making-and-installing">Making and installing</a></li>
@@ -222,7 +225,7 @@ example.svg: make-example.R
 </pre>
 ◼
 </div>
-<p>This defines a rule for generating the example SVG image displayed in <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-3nJFfo-1">:figure example.svg</a><span style="white-space:nowrap"> </span>⟫</span></span>. The rule has one target, <code>example.svg</code>, and one prerequisite, the R script <code>make-example.R</code>. It defines a rule for generating the target: by executing <code>Rscript</code> with the command line argument <code>--vanilla</code> and the script as the first argument and the target file as the second argument.</p>
+<p>This defines a rule for generating the example SVG image displayed in <span class="quote"><span class="quoteduse">⟪<span style="white-space:nowrap"> </span><a href="#NW0-3nJFfo-1">:figure example.svg</a><span style="white-space:nowrap"> </span>⟫</span></span>. The rule has one target, <code>example.svg</code>, and one prerequisite, the R script <code>make-example.R</code>. It defines a rule for generating the target: by executing <code>Rscript</code> with the command line argument <code>--vanilla</code> and the script as the first argument and the target file as the second argument (note that obviously, you need to have R installed on your computer if you want to generate this figure and the final document).</p>
 <h2 id="root-code-chunks">Root code chunks</h2>
 <p>A root code chunk is a code chunk that is not referenced by name in any other code chunk.</p>
 <h2 id="executable-code">Executable code</h2>
@@ -238,6 +241,21 @@ dev.off() -&gt; foo
 </pre>
 ◼
 </div>
+<h2 id="citations">Citations</h2>
+<p>You can add citations in the <a href="http://pandoc.org/MANUAL.html#citations">markup recognized by Pandoc</a>. The easiest way to produce the citations and a bibliography is to add a bibliography file in the working directory. The file must have the same base name as the Lir source file, and the extension “<code>.bib</code>”. For example, since this source file is named <code>lir.lir</code>, the bibliography is in <code>lir.bib</code>. The bibliography file should be in the format recognized by Biblatex; a good free software for maintaining a bibliography is <a href="https://www.jabref.org/">JabRef</a>, available for all operating systems.</p>
+<p>The bibliography will be at the end of the final document. If you want to have it listed in the table of contents, you can put a section heading at the end of the document. The last line of the Lir source file can be for example “# References” or “# Bibliography”.</p>
+<h2 id="running-lir">Running Lir</h2>
+<p>Lir provides the command line program <code>lir</code>. To extract all code, execute it, and compile the final document, you need to run <code>lir</code> with the name of the Lir source file as the only argument. For example, if you are in the working directory of the Lir distribution, you can do:</p>
+<pre><code>$ lir lir.lir</code></pre>
+<p>This will run the three steps: tangling, making, and weaving. You can also do each step separately, by providing a one of <code>tangle</code>, <code>make</code>, or <code>weave</code> as the first argument to <code>lir</code>:</p>
+<pre><code>$ lir tangle lir.lir
+$ lir make lir.lir
+$ lir weave lir.lir</code></pre>
+<p>This can be useful if you need to run <code>lir-make</code> on another machine.</p>
+<h2 id="state">State</h2>
+<p>When a Lir source file is interpreted, a current state of the project is created in the hidden directory <code>.lir</code> inside the working directory. Every time <code>lir</code> is re-run on a source file, the state is updated. Only files that have changed are updated: thus, running Lir does not run programs that have not changed on input data that has not changed.</p>
+<p>The state contains all executable files extracted from the Lir source file, makefiles to generate all results, symbolic links to all input data, and all results. The state in <code>.lir</code> can be copied as it is to another machine, and used to generate all results remotely.</p>
+<p>It is safe to remove the state by deleting the <code>.lir</code> directory and all its contents. This will force all intermediate results to be re-generated.</p>
 <h1 id="implementation">Implementation</h1>
 <p>This is the complete source of Lir.</p>
 <h2 id="making-and-installing">Making and installing</h2>
@@ -1174,7 +1192,7 @@ test-display: lir.lir
 </div>
 <div class="listingcontents">
 <pre>
-lrwxrwxrwx 1 bvassile hyad-all 41 Sep  1 10:47 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
+lrwxrwxrwx 1 bvassile hyad-all 41 Sep  1 11:56 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
 </pre>
 </div>
 <div class="listingmeta">
