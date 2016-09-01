@@ -1,17 +1,17 @@
 ---
-title: 'Reproducible computing with `lir`'
+title: 'Reproducible computing with Lir'
 author: Boris Vassilev
-version: 0.3
+version: 1.0 
 <<:eval>>=
 echo "date: $(date --utc --iso-8601)"
 @
 rights: (c) 2015 Boris Vassilev, University of Helsinki
 ...
 
-Lir is a tool for reproducible computing.
+Lir is a [tool for reproducible computing](https://github.com/borisvassilev/lir).
 With Lir, any combination of programming languages and software platforms can be used in the same work flow.
 All executable code is maintained in the Lir source file, along with rules for generating the results of running each program.
-The source file additionally contains the documentation of the project.
+A Lir source file additionally contains the documentation of a project.
 
 In this document, we provide detailed Lir installation instructions, followed by a User's Guide, and the full implementation of Lir at the end.
 
@@ -42,7 +42,7 @@ $ locate emptydefn
 
 If you cannot find a file called `emptydefn` on your system, you have not installed `noweb` correctly: please do so now.
 
-Now that you know where the library files are, you need to open the Lir source file [`lir.lir`](lir/lir.lir) and edit the three paths below!
+Now that you know where the library files are, you need to open the Lir source file [`lir.lir`](https://github.com/borisvassilev/lir/blob/master/lir.lir) and edit the three paths on lines 49, 53, and 58.
 
 First, the folder where all `lir` components are installed:
 <<Path to `lir`>>=
@@ -58,18 +58,18 @@ If you installed `noweb` normally (and as root), this will read `/urs/lib/noweb`
 "$HOME"/lib/noweb
 @
 
-
 Now save and close the file `lir.lir`, and run:
 
 ~~~~
 $ bash bootstrap
 ~~~~
 
-You should see a bunch of stuff on your terminal screen, with the bottom line claiming that the "Weaved document is in lir.html".
+This will extract and install all Lir files to your computer, and use the installed Lir to compile this source file to an HTML document.
+You can use the command line above to reinstall Lir if you update it, or if you change the source.
 
 # User's Guide
 Lir defines a syntax for defining a reproducible computation, and the tools for running the computation on the input files to obtain results.
-Make sure that you have read the [Tutorial](https://github.com/borisvassilev/lir-tutorial);
+You must have already read the [Tutorial](https://github.com/borisvassilev/lir-tutorial);
 you can use this Guide as a reference.
 
 ## Source file
@@ -85,10 +85,14 @@ A code chunk starts with a code chunk header, followed by the contents of the co
 The code chunk header is the string "`@<<Code chunk name>>=`" on a line by itself.
 The code chunk footer is the string "`@`" on a line by itself.
 If the code chunk must contain a line starting with "`@<<`" or "`@`", use an additional "`@`" to escape these: "`@<<`" and "`@@`".
+
+A code chunk ends with a footer line or with the header line of another code chunk.
+
+[Here is a link](https://github.com/borisvassilev/lir/blob/master/lir.lir#L89) to the Lir source of the few following paragraphs; please read those in the raw Lir source to understand the code chunk syntax and examples!
+
 Below, we see a code chunk with the name ": Just an example".
 <<: Just an example>>=
-These are
-the contents
+These are the contents
 of this chunk.
 <<Another code chunk>> is included by a name reference.
 @
@@ -97,12 +101,11 @@ Code chunks may refer to other code chunks by name: just put the name in double 
 Whenever a code chunk is extracted, all code chunk references are replaced with their contents.
 If we define:
 <<Another code chunk>>=
-<<Yet another code chunk>>Moar content!1!!1<<Yet another code chunk>>
+<<Yet another code chunk>>Moar content!1!!!1<<Yet another code chunk>>
 <<Yet another code chunk>>=
 ***
 @
-
-then, the full contents of [[<<: Just an example>>]], if extracted from the source file, will be:
+Then, the full contents of [[<<: Just an example>>]], if extracted from the source file, will be:
 <<:listing just-an-example-tangled>>=
 title: The "tangled" code chunk
 @
