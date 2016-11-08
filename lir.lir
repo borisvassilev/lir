@@ -312,20 +312,19 @@ all : lir.lir
 	$(NOWEBPATH)/markup -t lir.lir \
                 | $(NOWEBPATH)/emptydefn \
                 | $(NOWEBPATH)/mnt -t $(tangled)
-	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
 	chmod u+x lir lir-weave
 
 install :
 	mkdir --parents $(LIRPATH)
 	cp --verbose --preserve \
-                lir.css nwpipe-pandoc lir-weave $(LIRPATH)
+                lir.css $(nwpipesources) lir-weave $(LIRPATH)
 	mkdir --parents $(LIRBINPATH)
 	cp --verbose --preserve \
                 lir $(LIRBINPATH)
 .PHONY : install
 
 clean :
-	-rm $(tangled) nwpipe-pandoc
+	-rm $(tangled)
 .PHONY : clean
 
 uninstall :
@@ -601,8 +600,8 @@ It reads the `lir` source from standard input and writes the HTML to standard ou
 <<Weave `lir` source to HTML>>
 <<Weave `lir` source to HTML>>=
 <<Source to `noweb` pipeline representation>> \
-        | <<`Noweb` pipeline representation to Pandoc source>> | tee pandoc-source.debug \
-        | <<Pandoc source to HTML>>
+| <<`Noweb` pipeline representation to Pandoc source>> \
+| <<Pandoc source to HTML>>
 @
 
 A custom `noweb` pipeline is used, as we definitely want to be able to use "anonymous" chunks as continuations of the previous chunk.
@@ -618,7 +617,7 @@ To make it marginally easier to deal with the pipeline representation, we comple
 We then use [[<<nwpipe-pandoc.pl>>]] to transform the `noweb` pipeline representation of the `lir` source file to a valid Pandoc source file.
 <<`Noweb` pipeline representation to Pandoc source>>=
 sed -n '/^@text $/!p' \
-        | "<<Path to `lir`>>"/nwpipe-pandoc
+| swipl -q -g main -t "halt(2)" <<Path to `lir`>>/nwpipe-pandoc.pl
 @
 
 <<Pandoc source to HTML>>=

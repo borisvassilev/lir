@@ -5,7 +5,7 @@
   <meta name="generator" content="pandoc">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <meta name="author" content="Boris Vassilev">
-  <meta name="dcterms.date" content="2016-09-01">
+  <meta name="dcterms.date" content="2016-11-08">
   <title>Reproducible computing with Lir</title>
   <style type="text/css">code{white-space: pre;}</style>
   <link href="data:text/css;charset=utf-8,p%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0A%7D%0Ablockquote%20%7B%0Amax%2Dwidth%3A%2011cm%3B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aul%2C%20ol%2C%20dl%2C%0Aspan%2Echunkdefs%20%7B%0Amax%2Dwidth%3A%2012cm%3B%0A%7D%0Abody%20%7B%0Apadding%2Dleft%3A%201cm%3B%0A%7D%0Ah1%2C%20h2%2C%20h3%20%7B%0Afont%2Dfamily%3A%20sans%2Dserif%3B%0Amax%2Dwidth%3A%2012cm%3B%0A%7D%0Aspan%2Equote%20%7B%0Afont%2Dfamily%3A%20monospace%3B%0A%7D%0Aspan%2Esourcefile%20a%2C%0Aspan%2Eresultfile%20a%2C%0Aspan%2Elistingfile%20a%2C%0Aspan%2Efigurefile%20a%2C%0Aspan%2Echunkdefs%20a%2C%0Aspan%2Echunkuses%20a%2C%0Aspan%2Echunkprev%20a%2C%0Aspan%2Echunknext%20a%2C%0Aspan%2Edefn%20a%2C%0Aspan%2Equoteduse%20a%2C%0Aspan%2Eembeddeduse%20a%20%7B%0Atext%2Ddecoration%2Dline%3A%20none%3B%0A%7D%0Aspan%2Echunkdefs%2C%0Aspan%2Echunkuses%2C%0Aspan%2Echunkprev%2C%0Aspan%2Echunknext%20%7B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aspan%2Equoteduse%20%7B%0Afont%2Dfamily%3A%20serif%3B%0A%7D%0Aspan%2Eembeddeduse%20%7B%0Afont%2Dfamily%3A%20serif%3B%0A%7D%0Aspan%2Echunknr%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aspan%2Equoteduse%20a%20%7B%0Acolor%3A%20darkGreen%3B%0A%7D%0Aspan%2Equoteduse%20a%3Ahover%20%7B%0Acolor%3A%20limeGreen%3B%0A%7D%0Aspan%2Eembeddeduse%20a%20%7B%0Acolor%3A%20darkblue%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Aspan%2Eembeddedusesym%20%7B%0Afont%2Dstyle%3A%20normal%3B%0A%7D%0Aspan%2Eembeddeduse%20a%3Ahover%20%7B%0Acolor%3A%20dodgerBlue%3B%0A%7D%0Aspan%2Esourcefile%20a%2C%0Aspan%2Eresultfile%20a%2C%0Aspan%2Elistingfile%20a%2C%0Aspan%2Efigurefile%20a%2C%0Aspan%2Echunkdefs%20a%2C%0Aspan%2Echunkprev%20a%2C%0Aspan%2Echunknext%20a%2C%0Aspan%2Edefn%20a%2C%0Aspan%2Echunkuses%20a%20%7B%0Acolor%3A%20darkred%3B%0A%7D%0Aspan%2Esourcefile%20a%3Ahover%2C%0Aspan%2Eresultfile%20a%3Ahover%2C%0Aspan%2Elistingfile%20a%3Ahover%2C%0Aspan%2Efigurefile%20a%3Ahover%2C%0Aspan%2Echunkdefs%20a%3Ahover%2C%0Aspan%2Echunkprev%20a%3Ahover%2C%0Aspan%2Echunknext%20a%3Ahover%2C%0Aspan%2Edefn%20a%3Ahover%2C%0Aspan%2Echunkuses%20a%3Ahover%20%7B%0Acolor%3A%20darkGoldenRod%3B%0A%7D%0Aul%2Echunkslist%20%7B%0Alist%2Dstyle%2Dtype%3A%20square%3B%0A%7D%0Adiv%2Elirtable%20th%20%7B%0Aborder%2Dstyle%3A%20none%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%200%200%201px%200%3B%0A%7D%0Adiv%2Elirtable%20th%2C%0Adiv%2Elirtable%20td%20%7B%0Apadding%2Dleft%3A%203%2E3mm%3B%0Apadding%2Dright%3A%203%2E3mm%3B%0Apadding%2Dtop%3A%200%2E9mm%3B%0Apadding%2Dbottom%3A%200%2E9mm%3B%0A%7D%0Adiv%2Elirtable%20table%20%7B%0Afont%2Dfamily%3A%20sans%2Dserif%3B%0Afont%2Dsize%3A%20small%3B%0Amargin%2Dtop%3A%203mm%3B%0Amargin%2Dbottom%3A%203mm%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0Aborder%2Dstyle%3A%20solid%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%202px%200%201px%200%3B%0A%7D%0Adiv%2Elirlisting%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0A%7D%0Aspan%2Esourcename%2C%0Aspan%2Eresultname%2C%0Aspan%2Etablename%2C%0Aspan%2Efigurename%2C%0Aspan%2Elistingname%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Adiv%2Efigurecontents%20img%20%7B%0Adisplay%3A%20block%3B%0Amax%2Dwidth%3A%2014cm%3B%0Awidth%3A%20auto%3B%0Aheight%3A%20auto%3B%0A%7D%0Adiv%2Elistingcontents%20%7B%0Afont%2Dsize%3A%20small%3B%0Amargin%2Dtop%3A%203mm%3B%0Amargin%2Dbottom%3A%203mm%3B%0Aborder%2Dstyle%3A%20solid%20none%20solid%20none%3B%0Aborder%2Dwidth%3A%200%2E3mm%3B%0A%7D%0Aspan%2Esourcefile%2C%0Aspan%2Eresultfile%2C%0Aspan%2Etablefile%2C%0Aspan%2Efigurefile%2C%0Aspan%2Elistingfile%20%7B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Adiv%2Etablemeta%2C%0Adiv%2Efiguremeta%2C%0Adiv%2Elistingmeta%20%7B%0Amax%2Dwidth%3A%2014cm%3B%0Afont%2Dsize%3A%20small%3B%0A%7D%0Aspan%2Etabletitle%2C%0Aspan%2Efiguretitle%2C%0Aspan%2Elistingtitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Adiv%2Ecodechunk%2C%0Adiv%2Elirlisting%2C%0Adiv%2Elirtable%2C%0Adiv%2Elirfigure%20%7B%0Amargin%2Dbottom%3A%203mm%3B%0A%7D%0A" rel="stylesheet">
@@ -17,7 +17,7 @@
 <header>
 <h1 class="title">Reproducible computing with Lir</h1>
 <h2 class="author">Boris Vassilev</h2>
-<h3 class="date">2016-09-01</h3>
+<h3 class="date">2016-11-08</h3>
 </header>
 <nav id="TOC">
 <ul>
@@ -310,20 +310,19 @@ all : lir.lir
 	$(NOWEBPATH)/markup -t lir.lir \
                 | $(NOWEBPATH)/emptydefn \
                 | $(NOWEBPATH)/mnt -t $(tangled)
-	swipl --goal=main -o nwpipe-pandoc -c nwpipe-pandoc.pl
 	chmod u+x lir lir-weave
 
 install :
 	mkdir --parents $(LIRPATH)
 	cp --verbose --preserve \
-                lir.css nwpipe-pandoc lir-weave $(LIRPATH)
+                lir.css $(nwpipesources) lir-weave $(LIRPATH)
 	mkdir --parents $(LIRBINPATH)
 	cp --verbose --preserve \
                 lir $(LIRBINPATH)
 .PHONY : install
 
 clean :
-	-rm $(tangled) nwpipe-pandoc
+	-rm $(tangled)
 .PHONY : clean
 
 uninstall :
@@ -668,8 +667,8 @@ RS = save_rs
 <p><span id="NW0-jqFfG-1" class="defn"><span class="chunknr">C33:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-jqFfG-1">Weave <code>lir</code> source to HTML</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-3933RI-1">C32</a></span></p>
 <pre>
 <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-jqFfG-1-u1" href="#NW0-sh3ht-1">Source to <code>noweb</code> pipeline representation</a><span style="white-space:nowrap"> </span>⟫</span> \
-        | <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-jqFfG-1-u2" href="#NW0-knN2l-1"><code>Noweb</code> pipeline representation to Pandoc source</a><span style="white-space:nowrap"> </span>⟫</span> | tee pandoc-source.debug \
-        | <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-jqFfG-1-u3" href="#NW0-14TQfc-1">Pandoc source to HTML</a><span style="white-space:nowrap"> </span>⟫</span>
+| <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-jqFfG-1-u2" href="#NW0-knN2l-1"><code>Noweb</code> pipeline representation to Pandoc source</a><span style="white-space:nowrap"> </span>⟫</span> \
+| <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-jqFfG-1-u3" href="#NW0-14TQfc-1">Pandoc source to HTML</a><span style="white-space:nowrap"> </span>⟫</span>
 </pre>
 ◼
 </div>
@@ -687,7 +686,7 @@ RS = save_rs
 <p><span id="NW0-knN2l-1" class="defn"><span class="chunknr">C35:</span> ⟪<span style="white-space:nowrap"> </span><a href="#NW0-knN2l-1"><code>Noweb</code> pipeline representation to Pandoc source</a><span style="white-space:nowrap"> </span>⟫<span style="white-space:nowrap"> </span>≡</span><span class="chunkuses"><br> Appears in <a href="#NW0-jqFfG-1">C33</a></span></p>
 <pre>
 sed -n '/^@text $/!p' \
-        | &quot;<span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-knN2l-1-u1" href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫</span>&quot;/nwpipe-pandoc
+| swipl -q -g main -t &quot;halt(2)&quot; <span class="embeddeduse">⟪<span style="white-space:nowrap"> </span><a id="NW0-knN2l-1-u1" href="#NW0-le3mf-1">Path to <code>lir</code></a><span style="white-space:nowrap"> </span>⟫</span>/nwpipe-pandoc.pl
 </pre>
 ◼
 </div>
@@ -1192,7 +1191,7 @@ test-display: lir.lir
 </div>
 <div class="listingcontents">
 <pre>
-lrwxrwxrwx 1 bvassile hyad-all 41 Sep  1 17:21 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
+lrwxrwxrwx 1 bvassile hyad-all 41 Nov  8 10:25 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
 </pre>
 </div>
 <div class="listingmeta">
