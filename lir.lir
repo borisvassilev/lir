@@ -131,7 +131,7 @@ Documentation chunks may be formatted and structured with markdown as understood
 A code chunk starts with a code chunk header, followed by the contents of the code chunk, and a code chunk footer.
 The code chunk header is the string "`@<<Code chunk name>>=`" on a line by itself.
 The code chunk footer is the string "`@`" on a line by itself.
-If the code chunk must contain a line starting with "`@<<`" or "`@`", use an additional "`@`" to escape these: "`@<<`" and "`@@`".
+If the code chunk must contain a line starting with "`@<<`" or "`@`", use an additional "`@`" to escape these: "`@@<<`" and "`@@`".
 
 A code chunk ends with a footer line or with the header line of another code chunk.
 
@@ -288,7 +288,10 @@ echo "*** Weaved document is in lir.html!"
 cp -v lir.html docs/lir.html
 echo "*** Generating index..."
 title=$(mktemp)
-echo -ne "---\ntitle: Lir\nauthor: Boris Vassilev\n...\n" > "$title"
+echo "---" > "$title"
+echo "title: Lir" >> "$title"
+echo "author: Boris Vassilev (University of Helsinki)" >> "$title"
+echo "..." >> "$title"
 sed "s/^@/@@/" README.md \
         | sed "s/^<</@<</" \
         | cat "$title" - \

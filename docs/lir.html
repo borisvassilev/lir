@@ -130,7 +130,7 @@ $ cd lir</code></pre>
 <h2 id="source-file">Source file</h2>
 <p>The Lir source file is a valid <code>noweb</code> source file. Lir adds semantics by recognizing and interpreting keywords embedded in code chunk names. A Lir source file has the extension “<code>.lir</code>”. It is a plain text file. Within this file, there are code chunks, as defined by <code>noweb</code>, and documentation chunks (everything between and around code chunks). Documentation chunks may be formatted and structured with markdown as understood by Pandoc.</p>
 <h2 id="code-chunks">Code chunks</h2>
-<p>A code chunk starts with a code chunk header, followed by the contents of the code chunk, and a code chunk footer. The code chunk header is the string “<code>&lt;&lt;Code chunk name&gt;&gt;=</code>” on a line by itself. The code chunk footer is the string “<code>@</code>” on a line by itself. If the code chunk must contain a line starting with “<code>&lt;&lt;</code>” or “<code>@</code>”, use an additional “<code>@</code>” to escape these: “<code>&lt;&lt;</code>” and “<code>@@</code>”.</p>
+<p>A code chunk starts with a code chunk header, followed by the contents of the code chunk, and a code chunk footer. The code chunk header is the string “<code>&lt;&lt;Code chunk name&gt;&gt;=</code>” on a line by itself. The code chunk footer is the string “<code>@</code>” on a line by itself. If the code chunk must contain a line starting with “<code>&lt;&lt;</code>” or “<code>@</code>”, use an additional “<code>@</code>” to escape these: “<code>@&lt;&lt;</code>” and “<code>@@</code>”.</p>
 <p>A code chunk ends with a footer line or with the header line of another code chunk.</p>
 <p><a href="https://github.com/borisvassilev/lir/blob/master/lir.lir#L139">Here is a link</a> to the Lir source of the few following paragraphs; please read those in the raw Lir source to understand the code chunk syntax and examples!</p>
 <p>Below, we see a code chunk with the name “: Just an example”.</p>
@@ -283,7 +283,10 @@ echo &quot;*** Weaved document is in lir.html!&quot;
 cp -v lir.html docs/lir.html
 echo &quot;*** Generating index...&quot;
 title=$(mktemp)
-echo -ne &quot;---\ntitle: Lir\nauthor: Boris Vassilev\n...\n&quot; &gt; &quot;$title&quot;
+echo &quot;---&quot; &gt; &quot;$title&quot;
+echo &quot;title: Lir&quot; &gt;&gt; &quot;$title&quot;
+echo &quot;author: Boris Vassilev (University of Helsinki)&quot; &gt;&gt; &quot;$title&quot;
+echo &quot;...&quot; &gt;&gt; &quot;$title&quot;
 sed &quot;s/^@/@@/&quot; README.md \
         | sed &quot;s/^&lt;&lt;/@&lt;&lt;/&quot; \
         | cat &quot;$title&quot; - \
@@ -1191,7 +1194,7 @@ test-display: lir.lir
 </div>
 <div class="listingcontents">
 <pre>
-lrwxrwxrwx 1 bvassile hyad-all 41 Nov  8 10:25 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
+lrwxrwxrwx 1 bvassile hyad-all 41 Nov  8 10:39 lir.lir -&gt; /home/bvassile/Documents/code/lir/lir.lir
 </pre>
 </div>
 <div class="listingmeta">
