@@ -102,7 +102,7 @@ Then, the folder where the main `lir` script will be installed; make sure it is 
 Finally, the folder containing the `noweb` library files.
 If you installed `noweb` normally (and as root), this will read `/urs/lib/noweb`.
 <<Path to `noweb`>>=
-/usr/lib/noweb
+"$HOME"/lib/noweb
 @
 
 Now save and close the file `lir.lir`, and run:
@@ -630,8 +630,7 @@ pandoc "$@" \
         --table-of-contents \
         --standalone \
         --self-contained \
-        --smart \
-        --to=html5 \
+        --to=html5+smart \
         --css="<<Path to `lir`>>"/lir.css \
         --output=-
 @
@@ -1126,7 +1125,7 @@ display_item_keyword("source", source).
 display_item_keyword("result", result).
 display_item_keyword("figure", figure).
 display_item_keyword("listing", listing).
-display_item_keyword("table", table).
+display_item_keyword("table", table_name).
 @
 
 <<Parse the code chunk contents>>=
@@ -1210,12 +1209,12 @@ counters_db(L, DB) :-
         dict_create(CC_nrs, nr, LNrs),
 
         maplist(display_dict(L),
-                        [source, result, listing, figure, table],
+                        [source, result, listing, figure, table_name],
                         [DSNrs, DRNrs, DLNrs, DFNrs, DTNrs]),
 
         maplist(dict_create,
                         [CodeD, SourceD, ResultD, ListingD, FigureD, TableD],
-                        [code,  source,  result,  listing,  figure,  table],
+                        [code,  source,  result,  listing,  figure,  table_name],
                         [[name:CC_names, nr:CC_nrs],
                           [namestr:"S", nr:DSNrs],
                           [namestr:"Result ", nr:DRNrs],
@@ -1229,7 +1228,7 @@ counters_db(L, DB) :-
                                   result:ResultD,
                                   listing:ListingD,
                                   figure:FigureD,
-                                  table:TableD]).
+                                  table_name:TableD]).
 
 is_code_name_label_meta(code_name_label_meta(_,_,_,_)).
 code_name_label_meta_Name_Label(code_name_label_meta(_,N,L,_), N,L).
@@ -1409,13 +1408,13 @@ display_optional_caption(Item, M) -->
         html([" ", span(class("~acaption"-Item), [Caption])]).
 display_optional_caption(_, _) --> [].
 
-display(table, FN, Meta, Label, DB) -->
+display(table_name, FN, Meta, Label, DB) -->
         {   file_contents(FN, FC)
         },
         html(div(class("lirtable"),
-                          [\display_header(table, FN, Label, DB),
-                            table([\[FC]]),
-                            \display_title_caption(table, Meta)])).
+                          [\display_header(table_name, FN, Label, DB),
+                            table_name([\[FC]]),
+                            \display_title_caption(table_name, Meta)])).
 
 display(figure, FN, Meta, Label, DB) -->
         html(div(class("lirfigure"),
